@@ -5,6 +5,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
@@ -76,22 +77,12 @@ class _SettingsContent extends ConsumerWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: DropdownButtonFormField<AppLanguage>(
-          initialValue: selectedLanguage,
-          decoration: InputDecoration(
-            labelText: text.appLanguage,
-            prefixIcon: const Icon(Icons.translate_rounded),
-          ),
-          items: AppLanguage.values.map((language) {
-            return DropdownMenuItem<AppLanguage>(
-              value: language,
-              child: Text(_languageName(text, language)),
-            );
-          }).toList(),
-          onChanged: (language) {
-            ref
-                .read(appControllerProvider.notifier)
-                .setLocale(language!.locale);
+        child: AppLanguageDropdown(
+          key: ValueKey<String>('app-language-${selectedLanguage.code}'),
+          selectedLanguage: selectedLanguage,
+          label: text.appLanguage,
+          onSelected: (language) {
+            ref.read(appControllerProvider.notifier).setLocale(language.locale);
           },
         ),
       ),
@@ -185,15 +176,5 @@ class _SettingsContent extends ConsumerWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(text.allDataDeleted)));
-  }
-
-  /// Returns the localized display name for one supported language.
-  String _languageName(AppLocalizations text, AppLanguage language) {
-    return switch (language) {
-      AppLanguage.english => text.english,
-      AppLanguage.arabic => text.arabic,
-      AppLanguage.swedish => text.swedish,
-      AppLanguage.somali => text.somali,
-    };
   }
 }

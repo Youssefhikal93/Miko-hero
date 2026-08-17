@@ -8,6 +8,7 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -235,18 +236,11 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
 
   /// Builds the language selector from the four supported story contracts.
   Widget _languageField(AppLocalizations text) {
-    return DropdownButtonFormField<AppLanguage>(
-      initialValue: _language,
-      decoration: InputDecoration(labelText: text.storyLanguage),
-      items: AppLanguage.values.map((language) {
-        return DropdownMenuItem<AppLanguage>(
-          value: language,
-          child: Text(_languageName(text, language)),
-        );
-      }).toList(),
-      onChanged: _generating
-          ? null
-          : (language) => setState(() => _language = language!),
+    return AppLanguageDropdown(
+      selectedLanguage: _language,
+      label: text.storyLanguage,
+      enabled: !_generating,
+      onSelected: (language) => setState(() => _language = language),
     );
   }
 
@@ -393,16 +387,6 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).somethingWentWrong)),
     );
-  }
-
-  /// Returns the translated display name for a supported language.
-  String _languageName(AppLocalizations text, AppLanguage language) {
-    return switch (language) {
-      AppLanguage.english => text.english,
-      AppLanguage.arabic => text.arabic,
-      AppLanguage.swedish => text.swedish,
-      AppLanguage.somali => text.somali,
-    };
   }
 
   /// Returns the translated description of an exact story length.

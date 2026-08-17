@@ -6,6 +6,7 @@ import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/l10n/somali_platform_localizations.dart';
 
 /// Root widget that binds persisted locale state to the routed application.
 class IamHeroApp extends ConsumerWidget {
@@ -27,6 +28,8 @@ class IamHeroApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
         AppLocalizations.delegate,
+        SomaliMaterialLocalizationsDelegate(),
+        SomaliCupertinoLocalizationsDelegate(),
         GlobalMaterialLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

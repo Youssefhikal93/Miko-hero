@@ -45,6 +45,28 @@ void main() {
     expect(Directionality.of(tester.element(welcome)), TextDirection.rtl);
   });
 
+  testWidgets('Somali selection keeps localized Material controls available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
+    await tester.pumpAndSettle();
+    appRouter.go('/settings');
+    await tester.pumpAndSettle();
+
+    final languageSelector = find.byKey(
+      const ValueKey<String>('app-language-en'),
+    );
+    await tester.tap(languageSelector);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Somali').last);
+    await tester.pumpAndSettle();
+
+    final somaliTitle = find.text('Dejinta iyo gaar ahaanshaha');
+    expect(somaliTitle, findsOneWidget);
+    expect(MaterialLocalizations.of(tester.element(somaliTitle)), isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('selected child receives the story and a separate library tab', (
     tester,
   ) async {
