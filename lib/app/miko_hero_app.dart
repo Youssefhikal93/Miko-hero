@@ -1,0 +1,33 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/app/app_router.dart';
+import 'package:miko_hero/app/app_theme.dart';
+import 'package:miko_hero/l10n/app_localizations.dart';
+
+/// Root widget that binds persisted locale state to the routed application.
+class MikoHeroApp extends ConsumerWidget {
+  /// Creates the immutable application root.
+  const MikoHeroApp({super.key});
+
+  @override
+  /// Renders routed features while local state loads in their own boundaries.
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appState = ref.watch(appControllerProvider);
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      title: 'Miko-hero',
+      theme: AppTheme.dark(),
+      routerConfig: appRouter,
+      locale: appState.value?.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+    );
+  }
+}
