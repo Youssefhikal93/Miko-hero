@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Original Miko-hero visual system shared by every target platform.
+/// Iam - hero visual system shared by every target platform.
 abstract final class AppTheme {
   /// Warm amber used for primary actions and story highlights.
   static const amber = Color(0xFFFFB43A);

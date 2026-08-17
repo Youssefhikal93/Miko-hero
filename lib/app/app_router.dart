@@ -30,7 +30,21 @@ final appRouter = GoRouter(
         ),
       ],
     ),
-    GoRoute(path: '/profile', builder: (context, state) => const ProfilePage()),
+    GoRoute(
+      path: '/profiles',
+      builder: (context, state) => const ProfilePage(),
+    ),
+    GoRoute(
+      path: '/profiles/new',
+      builder: (context, state) => const ProfileEditorPage(),
+    ),
+    GoRoute(
+      path: '/profiles/:profileId',
+      builder: (context, state) {
+        return ProfileEditorPage(profileId: state.pathParameters['profileId']);
+      },
+    ),
+    GoRoute(path: '/profile', redirect: (context, state) => '/profiles'),
     GoRoute(
       path: '/story/:storyId',
       builder: (context, state) {

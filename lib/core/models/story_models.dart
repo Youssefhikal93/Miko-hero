@@ -81,11 +81,15 @@ class StoryPresentation {
 class StoryRequest {
   /// Creates an immutable request after user input validation.
   const StoryRequest({
+    required this.profileId,
     required this.heroName,
     required this.theme,
     required this.moral,
     required this.presentation,
   });
+
+  /// Stable child identity used to group stories even when names are edited.
+  final String profileId;
 
   /// Child's name used as the story protagonist.
   final String heroName;
@@ -102,6 +106,7 @@ class StoryRequest {
   /// Converts the request into a JSON-compatible local storage object.
   Map<String, Object> toJson() {
     return <String, Object>{
+      'profileId': profileId,
       'heroName': heroName,
       'theme': theme,
       'moral': moral,
@@ -109,19 +114,35 @@ class StoryRequest {
     };
   }
 
-  /// Validates and restores a request from local storage.
-  factory StoryRequest.fromJson(Map<String, Object?> json) {
+  /// Restores local JSON, using [fallbackProfileId] only for legacy payloads.
+  factory StoryRequest.fromJson(
+    Map<String, Object?> json, {
+    String? fallbackProfileId,
+  }) {
+    final storedProfileId = json['profileId'];
+    if (storedProfileId != null && storedProfileId is! String) {
+      throw const FormatException('Malformed story profile identity.');
+    }
+    final profileId = storedProfileId as String? ?? fallbackProfileId;
     final heroName = json['heroName'];
     final theme = json['theme'];
     final moral = json['moral'];
     final presentation = json['presentation'];
-    if (heroName is! String || theme is! String || moral is! String) {
+    if (profileId == null ||
+        profileId.trim().isEmpty ||
+        heroName is! String ||
+        heroName.trim().isEmpty ||
+        theme is! String ||
+        theme.trim().isEmpty ||
+        moral is! String ||
+        moral.trim().isEmpty) {
       throw const FormatException('Malformed story request.');
     }
     if (presentation is! Map<String, Object?>) {
       throw const FormatException('Malformed story presentation.');
     }
     return StoryRequest(
+      profileId: profileId,
       heroName: heroName,
       theme: theme,
       moral: moral,
@@ -200,8 +221,11 @@ class StoryContent {
     };
   }
 
-  /// Validates and restores story content from local storage.
-  factory StoryContent.fromJson(Map<String, Object?> json) {
+  /// Restores content while forwarding a legacy profile identity to its request.
+  factory StoryContent.fromJson(
+    Map<String, Object?> json, {
+    String? fallbackProfileId,
+  }) {
     final title = json['title'];
     final request = json['request'];
     final pages = json['pages'];
@@ -216,7 +240,10 @@ class StoryContent {
     }
     return StoryContent(
       title: title,
-      request: StoryRequest.fromJson(request),
+      request: StoryRequest.fromJson(
+        request,
+        fallbackProfileId: fallbackProfileId,
+      ),
       pages: decodedPages,
     );
   }
@@ -249,8 +276,11 @@ class StoryBook {
     };
   }
 
-  /// Validates and restores a complete book from local storage.
-  factory StoryBook.fromJson(Map<String, Object?> json) {
+  /// Restores a complete book with optional legacy-profile migration context.
+  factory StoryBook.fromJson(
+    Map<String, Object?> json, {
+    String? fallbackProfileId,
+  }) {
     final id = json['id'];
     final createdAt = json['createdAt'];
     final content = json['content'];
@@ -262,7 +292,10 @@ class StoryBook {
     return StoryBook(
       id: id,
       createdAt: DateTime.parse(createdAt).toUtc(),
-      content: StoryContent.fromJson(content),
+      content: StoryContent.fromJson(
+        content,
+        fallbackProfileId: fallbackProfileId,
+      ),
     );
   }
 }

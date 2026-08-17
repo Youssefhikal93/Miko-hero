@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
-import 'package:miko_hero/core/models/daughter_profile.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -16,15 +16,14 @@ class StoryCreationPage extends ConsumerWidget {
   const StoryCreationPage({super.key});
 
   @override
-  /// Blocks generation until persisted profile state is available.
+  /// Blocks generation until at least one persisted profile is available.
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appControllerProvider);
     return AppStateBoundary(
       state: state,
       builder: (snapshot) {
-        final profile = snapshot.profile;
-        if (profile == null) return const _ProfileRequired();
-        return _StoryForm(profile: profile, locale: snapshot.locale);
+        if (snapshot.profiles.isEmpty) return const _ProfileRequired();
+        return _StoryForm(profiles: snapshot.profiles, locale: snapshot.locale);
       },
     );
   }
@@ -36,7 +35,7 @@ class _ProfileRequired extends StatelessWidget {
   const _ProfileRequired();
 
   @override
-  /// Explains the requirement and routes directly to the private profile form.
+  /// Explains the requirement and routes directly to a new private profile.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
     return ScreenLayout(
@@ -54,7 +53,7 @@ class _ProfileRequired extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               FilledButton(
-                onPressed: () => context.go('/profile'),
+                onPressed: () => context.go('/profiles/new'),
                 child: Text(text.setUpProfile),
               ),
             ],
@@ -67,10 +66,10 @@ class _ProfileRequired extends StatelessWidget {
 
 /// Temporary form state retained until a request is generated or abandoned.
 class _StoryForm extends ConsumerStatefulWidget {
-  /// Creates a form using the private profile and current interface locale.
-  const _StoryForm({required this.profile, required this.locale});
+  /// Creates a form using available profiles and the current interface locale.
+  const _StoryForm({required this.profiles, required this.locale});
 
-  final DaughterProfile profile;
+  final List<ChildProfile> profiles;
   final Locale locale;
 
   @override
@@ -83,6 +82,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   final _formKey = GlobalKey<FormState>();
   final _themeController = TextEditingController();
   final _moralController = TextEditingController();
+  String? _selectedProfileId;
   late AppLanguage _language;
   StoryLength _length = StoryLength.short;
   IllustrationStyle _style = IllustrationStyle.pictureBook;
@@ -119,6 +119,8 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 20),
+            _profileField(text),
+            const SizedBox(height: 16),
             _DemoNotice(text: text),
             const SizedBox(height: 20),
             _languageField(text),
@@ -139,6 +141,28 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Requires the parent to choose which child will star in this story.
+  Widget _profileField(AppLocalizations text) {
+    return DropdownButtonFormField<String>(
+      key: const ValueKey<String>('story-profile-selector'),
+      initialValue: _selectedProfileId,
+      decoration: InputDecoration(labelText: text.chooseHeroProfile),
+      hint: Text(text.selectHeroProfile),
+      items: widget.profiles.map((profile) {
+        return DropdownMenuItem<String>(
+          value: profile.id,
+          child: Text(profile.heroName),
+        );
+      }).toList(),
+      validator: (profileId) {
+        return profileId == null ? text.profileSelectionRequired : null;
+      },
+      onChanged: _generating
+          ? null
+          : (profileId) => setState(() => _selectedProfileId = profileId),
     );
   }
 
@@ -273,8 +297,12 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
 
   /// Captures one immutable request from the already-validated edit buffer.
   StoryRequest _storyRequest() {
+    final profile = widget.profiles.firstWhere(
+      (candidate) => candidate.id == _selectedProfileId,
+    );
     return StoryRequest(
-      heroName: widget.profile.name,
+      profileId: profile.id,
+      heroName: profile.name,
       theme: _themeController.text.trim(),
       moral: _moralController.text.trim(),
       presentation: StoryPresentation(

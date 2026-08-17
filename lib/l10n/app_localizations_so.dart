@@ -9,7 +9,7 @@ class AppLocalizationsSo extends AppLocalizations {
   AppLocalizationsSo([String locale = 'so']) : super(locale);
 
   @override
-  String get appName => 'Miko-hero';
+  String get appName => 'Iam - hero';
 
   @override
   String get home => 'Hoyga';
@@ -28,10 +28,10 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get welcomeBody =>
-      'Abuur sheekooyin gaar ah oo sawir leh, gabadhaaduna ay tahay halyeyga.';
+      'Abuur sheekooyin gaar ah oo sawir leh, ilmo kastana uu halyeyga noqdo.';
 
   @override
-  String get createFirstStory => 'Abuur sheekadeedii ugu horreysay';
+  String get createFirstStory => 'Abuur sheekada ugu horreysa';
 
   @override
   String get createAnotherStory => 'Abuur sheeko kale';
@@ -40,14 +40,14 @@ class AppLocalizationsSo extends AppLocalizations {
   String get recentStories => 'Sheekooyinkii u dambeeyay';
 
   @override
-  String get profileIncompleteTitle => 'Samee bogga halyeygeeda';
+  String get profileIncompleteTitle => 'Ku dar bog halyey';
 
   @override
   String get profileIncompleteBody =>
-      'Ku dar magaceeda, da\'deeda, iyo sawir tixraac ah ka hor intaadan sheeko abuurin.';
+      'Ku dar magaca ilmaha, da\'da, iyo sawir tixraac ah ka hor intaadan sheeko abuurin.';
 
   @override
-  String get setUpProfile => 'Samee bogga';
+  String get setUpProfile => 'Ku dar bog';
 
   @override
   String get editProfile => 'Wax ka beddel bogga halyeyga';
@@ -56,11 +56,36 @@ class AppLocalizationsSo extends AppLocalizations {
   String get profileTitle => 'Bogga halyeyga';
 
   @override
-  String get profileIntro =>
-      'Macluumaadkani wuxuu ku ekaanayaa qalabkan, lagumana kaydiyo koodhka app-ka.';
+  String get profilesTitle => 'Bogagga halyeeyada';
 
   @override
-  String get daughterName => 'Magaca gabadha';
+  String get profilesSubtitle =>
+      'Ku dar bog gaar ah ilmo kasta oo halyey ka noqon kara sheeko.';
+
+  @override
+  String get addProfile => 'Ku dar bog';
+
+  @override
+  String get manageProfiles => 'Maamul bogagga halyeeyada';
+
+  @override
+  String profileCount(int count) {
+    return 'Bogagga: $count';
+  }
+
+  @override
+  String get noProfilesTitle => 'Weli bog halyey ma jiro';
+
+  @override
+  String get noProfilesBody =>
+      'Ku dar bogga ilmaha ugu horreeya si aad u bilowdo sheekooyin gaar ah.';
+
+  @override
+  String get profileIntro =>
+      'Macluumaadka ilmahan wuxuu ku ekaanayaa qalabkan, lagumana kaydiyo koodhka app-ka.';
+
+  @override
+  String get childName => 'Magaca ilmaha';
 
   @override
   String get age => 'Da\'da';
@@ -84,7 +109,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get profileSaved => 'Bogga waa la kaydiyay';
 
   @override
-  String get nameRequired => 'Geli magaceeda.';
+  String get nameRequired => 'Geli magaca ilmaha.';
 
   @override
   String get ageInvalid => 'Geli da\' u dhexeysa 1 iyo 17.';
@@ -100,6 +125,15 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get createStoryTitle => 'Abuur sheeko';
+
+  @override
+  String get chooseHeroProfile => 'Dooro bogga halyeyga';
+
+  @override
+  String get selectHeroProfile => 'Dooro ilmo';
+
+  @override
+  String get profileSelectionRequired => 'Dooro ilmaha noqonaya halyeyga.';
 
   @override
   String get storyLanguage => 'Luqadda sheekada';
@@ -148,7 +182,7 @@ class AppLocalizationsSo extends AppLocalizations {
       'AI-ga maxalliga ah weli lama xirin. Habka tijaabadu wuxuu abuuraa sheeko tusaale ah oo si cad loo calaamadeeyay si app-ka oo dhan bilaash loogu tijaabiyo.';
 
   @override
-  String get profileNeeded => 'Marka hore dhammaystir bogga halyeyga.';
+  String get profileNeeded => 'Marka hore ku dar ugu yaraan hal bog halyey.';
 
   @override
   String get themeRequired => 'Sharax mawduuca tacaburka.';
@@ -167,7 +201,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get storyCreated => 'Sheekadu waa diyaar';
 
   @override
-  String get libraryTitle => 'Maktabadda sheekooyinkeeda';
+  String get libraryTitle => 'Maktabadda sheekooyinka qoyska';
 
   @override
   String get librarySubtitle =>
@@ -244,13 +278,13 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get deleteAllBody =>
-      'Bogga, sawirka, iyo sheekooyinka oo dhan si joogto ah ayaa looga tirtiri doonaa qalabkan.';
+      'Dhammaan bogagga, sawirrada, iyo sheekooyinka si joogto ah ayaa looga tirtiri doonaa qalabkan.';
 
   @override
   String get allDataDeleted => 'Dhammaan xogta maxalliga ah waa la tirtiray';
 
   @override
-  String get aboutTitle => 'Ku saabsan Miko-hero';
+  String get aboutTitle => 'Ku saabsan Iam - hero';
 
   @override
   String get aboutBody =>

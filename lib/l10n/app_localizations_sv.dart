@@ -9,7 +9,7 @@ class AppLocalizationsSv extends AppLocalizations {
   AppLocalizationsSv([String locale = 'sv']) : super(locale);
 
   @override
-  String get appName => 'Miko-hero';
+  String get appName => 'Iam - hero';
 
   @override
   String get home => 'Hem';
@@ -28,10 +28,10 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get welcomeBody =>
-      'Skapa privata, illustrerade berättelser där din dotter är hjälten.';
+      'Skapa privata, illustrerade berättelser där varje barn blir hjälten.';
 
   @override
-  String get createFirstStory => 'Skapa hennes första berättelse';
+  String get createFirstStory => 'Skapa en första berättelse';
 
   @override
   String get createAnotherStory => 'Skapa en ny berättelse';
@@ -40,14 +40,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get recentStories => 'Senaste berättelser';
 
   @override
-  String get profileIncompleteTitle => 'Skapa hennes hjälteprofil';
+  String get profileIncompleteTitle => 'Lägg till en hjälteprofil';
 
   @override
   String get profileIncompleteBody =>
-      'Lägg till namn, ålder och ett referensfoto innan du skapar en berättelse.';
+      'Lägg till barnets namn, ålder och referensfoto innan du skapar en berättelse.';
 
   @override
-  String get setUpProfile => 'Skapa profil';
+  String get setUpProfile => 'Lägg till profil';
 
   @override
   String get editProfile => 'Redigera hjälteprofil';
@@ -56,11 +56,36 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileTitle => 'Hjälteprofil';
 
   @override
-  String get profileIntro =>
-      'Informationen stannar på enheten och sparas aldrig i appens källkod.';
+  String get profilesTitle => 'Hjälteprofiler';
 
   @override
-  String get daughterName => 'Dotterns namn';
+  String get profilesSubtitle =>
+      'Lägg till en privat profil för varje barn som kan vara hjälte i en berättelse.';
+
+  @override
+  String get addProfile => 'Lägg till profil';
+
+  @override
+  String get manageProfiles => 'Hantera hjälteprofiler';
+
+  @override
+  String profileCount(int count) {
+    return 'Profiler: $count';
+  }
+
+  @override
+  String get noProfilesTitle => 'Inga hjälteprofiler ännu';
+
+  @override
+  String get noProfilesBody =>
+      'Lägg till den första barnprofilen för att skapa personliga berättelser.';
+
+  @override
+  String get profileIntro =>
+      'Barnets information stannar på enheten och sparas aldrig i appens källkod.';
+
+  @override
+  String get childName => 'Barnets namn';
 
   @override
   String get age => 'Ålder';
@@ -84,7 +109,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileSaved => 'Profilen sparades';
 
   @override
-  String get nameRequired => 'Ange hennes namn.';
+  String get nameRequired => 'Ange barnets namn.';
 
   @override
   String get ageInvalid => 'Ange en ålder mellan 1 och 17.';
@@ -100,6 +125,16 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get createStoryTitle => 'Skapa en berättelse';
+
+  @override
+  String get chooseHeroProfile => 'Välj en hjälteprofil';
+
+  @override
+  String get selectHeroProfile => 'Välj ett barn';
+
+  @override
+  String get profileSelectionRequired =>
+      'Välj vilket barn som ska vara hjälten.';
 
   @override
   String get storyLanguage => 'Berättelsens språk';
@@ -148,7 +183,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'Lokal AI är inte ansluten ännu. Demoläget skapar en tydligt markerad exempelberättelse så att hela appflödet kan testas gratis.';
 
   @override
-  String get profileNeeded => 'Slutför hjälteprofilen först.';
+  String get profileNeeded => 'Lägg först till minst en hjälteprofil.';
 
   @override
   String get themeRequired => 'Beskriv äventyrets tema.';
@@ -167,7 +202,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get storyCreated => 'Berättelsen är klar';
 
   @override
-  String get libraryTitle => 'Hennes berättelsebibliotek';
+  String get libraryTitle => 'Familjens berättelsebibliotek';
 
   @override
   String get librarySubtitle =>
@@ -242,13 +277,13 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get deleteAllBody =>
-      'Profilen, fotot och alla berättelser tas bort permanent från enheten.';
+      'Alla profiler, foton och berättelser tas bort permanent från enheten.';
 
   @override
   String get allDataDeleted => 'All lokal data togs bort';
 
   @override
-  String get aboutTitle => 'Om Miko-hero';
+  String get aboutTitle => 'Om Iam - hero';
 
   @override
   String get aboutBody =>

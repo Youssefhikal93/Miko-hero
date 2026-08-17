@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
-import 'package:miko_hero/core/models/daughter_profile.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,13 +20,14 @@ class LocalDataFormatException implements Exception {
   String toString() => 'Local data is malformed: ${cause.message}';
 }
 
-/// Persists the private profile, interface locale, and story library locally.
+/// Persists private profiles, the interface locale, and story libraries locally.
 class LocalRepository {
   /// Wraps one opened preferences instance for atomic repository operations.
   LocalRepository._(this._preferences);
 
   static const _localeKey = 'app_locale';
-  static const _profileKey = 'daughter_profile';
+  static const _legacyProfileKey = 'daughter_profile';
+  static const _profilesKey = 'child_profiles';
   static const _storiesKey = 'story_library';
 
   final SharedPreferences _preferences;
@@ -40,11 +41,18 @@ class LocalRepository {
   /// Reads and validates a complete application snapshot from local storage.
   Future<AppState> readState() async {
     try {
-      return AppState(
+      final profiles = _readProfiles();
+      final fallbackProfileId = _legacyStoryProfileId(profiles);
+      final state = AppState(
         locale: _readLocale(),
-        profile: _readProfile(),
-        stories: _readStories(),
+        profiles: profiles,
+        stories: _readStories(fallbackProfileId: fallbackProfileId),
       );
+      _validateStoryProfiles(state);
+      if (fallbackProfileId != null) {
+        await _finishLegacyProfileMigration(profiles, state.stories);
+      }
+      return state;
     } on FormatException catch (error) {
       throw LocalDataFormatException(error);
     }
@@ -55,9 +63,12 @@ class LocalRepository {
     await _preferences.setString(_localeKey, locale.languageCode);
   }
 
-  /// Saves or replaces the one private daughter profile.
-  Future<void> saveProfile(DaughterProfile profile) async {
-    await _preferences.setString(_profileKey, jsonEncode(profile.toJson()));
+  /// Persists the complete ordered profile list as one preference value.
+  Future<void> saveProfiles(List<ChildProfile> profiles) async {
+    final encodedProfiles = profiles
+        .map((profile) => profile.toJson())
+        .toList();
+    await _preferences.setString(_profilesKey, jsonEncode(encodedProfiles));
   }
 
   /// Persists the complete ordered library as one atomic preference value.
@@ -66,10 +77,11 @@ class LocalRepository {
     await _preferences.setString(_storiesKey, jsonEncode(encodedStories));
   }
 
-  /// Permanently removes every Miko-hero value from this device.
+  /// Permanently removes every Iam - hero family value from this device.
   Future<void> clearAll() async {
     await Future.wait(<Future<bool>>[
-      _preferences.remove(_profileKey),
+      _preferences.remove(_legacyProfileKey),
+      _preferences.remove(_profilesKey),
       _preferences.remove(_storiesKey),
     ]);
   }
@@ -80,17 +92,30 @@ class LocalRepository {
     return language.locale;
   }
 
-  /// Decodes the optional child profile from local JSON.
-  DaughterProfile? _readProfile() {
-    final encodedProfile = _preferences.getString(_profileKey);
-    if (encodedProfile == null) {
-      return null;
+  /// Decodes current profiles or converts the original singleton payload.
+  List<ChildProfile> _readProfiles() {
+    final encodedProfiles = _preferences.getString(_profilesKey);
+    if (encodedProfiles != null) {
+      final decodedProfiles = jsonDecode(encodedProfiles);
+      if (decodedProfiles is! List) {
+        throw const FormatException('Child profiles must be a list.');
+      }
+      final profiles = decodedProfiles.map(_decodeChildProfile).toList();
+      final uniqueIds = profiles.map((profile) => profile.id).toSet();
+      if (uniqueIds.length != profiles.length) {
+        throw const FormatException('Child profile identities must be unique.');
+      }
+      return List<ChildProfile>.unmodifiable(profiles);
     }
-    return DaughterProfile.fromJson(_jsonObject(encodedProfile));
+    final encodedLegacyProfile = _preferences.getString(_legacyProfileKey);
+    if (encodedLegacyProfile == null) return const <ChildProfile>[];
+    return <ChildProfile>[
+      ChildProfile.fromLegacyJson(_jsonObject(encodedLegacyProfile)),
+    ];
   }
 
   /// Decodes books and returns them newest first for deterministic rendering.
-  List<StoryBook> _readStories() {
+  List<StoryBook> _readStories({String? fallbackProfileId}) {
     final encodedStories = _preferences.getString(_storiesKey);
     if (encodedStories == null) {
       return const <StoryBook>[];
@@ -99,7 +124,14 @@ class LocalRepository {
     if (decodedStories is! List) {
       throw const FormatException('Story library must be a list.');
     }
-    final stories = decodedStories.map(_decodeStoryBook).toList();
+    final stories = decodedStories
+        .map(
+          (encodedStory) => _decodeStoryBook(
+            encodedStory,
+            fallbackProfileId: fallbackProfileId,
+          ),
+        )
+        .toList();
     stories.sort((left, right) => right.createdAt.compareTo(left.createdAt));
     return List<StoryBook>.unmodifiable(stories);
   }
@@ -114,10 +146,57 @@ class LocalRepository {
   }
 
   /// Validates each library entry before constructing a real story model.
-  StoryBook _decodeStoryBook(Object? encodedStory) {
+  StoryBook _decodeStoryBook(
+    Object? encodedStory, {
+    String? fallbackProfileId,
+  }) {
     if (encodedStory is! Map<String, Object?>) {
       throw const FormatException('Malformed story library entry.');
     }
-    return StoryBook.fromJson(encodedStory);
+    return StoryBook.fromJson(
+      encodedStory,
+      fallbackProfileId: fallbackProfileId,
+    );
+  }
+
+  /// Validates one entry from the current profile list schema.
+  ChildProfile _decodeChildProfile(Object? encodedProfile) {
+    if (encodedProfile is! Map<String, Object?>) {
+      throw const FormatException('Malformed child profile entry.');
+    }
+    return ChildProfile.fromJson(encodedProfile);
+  }
+
+  /// Supplies the sole migrated identity only while old stories lack one.
+  String? _legacyStoryProfileId(List<ChildProfile> profiles) {
+    if (_preferences.containsKey(_profilesKey) || profiles.length != 1) {
+      return null;
+    }
+    return profiles.single.id;
+  }
+
+  /// Commits a successful legacy decode before removing the old preference.
+  Future<void> _finishLegacyProfileMigration(
+    List<ChildProfile> profiles,
+    List<StoryBook> stories,
+  ) async {
+    if (_preferences.containsKey(_profilesKey) ||
+        !_preferences.containsKey(_legacyProfileKey)) {
+      return;
+    }
+    await saveStories(stories);
+    await saveProfiles(profiles);
+    await _preferences.remove(_legacyProfileKey);
+  }
+
+  /// Rejects stories whose child identity cannot resolve to a saved profile.
+  void _validateStoryProfiles(AppState state) {
+    for (final story in state.stories) {
+      if (state.profileById(story.content.request.profileId) == null) {
+        throw const FormatException(
+          'Story references an unknown child profile.',
+        );
+      }
+    }
   }
 }

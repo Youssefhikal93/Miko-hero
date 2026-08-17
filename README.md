@@ -1,7 +1,7 @@
-# Miko-hero
+# Iam - hero
 
-Miko-hero is a private Flutter storybook for one parent and one daughter. It
-runs without accounts, payments, analytics, advertising, or a required cloud
+Iam - hero is a private Flutter storybook for one parent and multiple children.
+It runs without accounts, payments, analytics, advertising, or a required cloud
 service.
 
 The current application provides the complete local user flow while clearly
@@ -16,23 +16,26 @@ not connected yet; their integration boundary is documented in
 - English, Arabic, Swedish, and Somali application interfaces
 - Story text in the same four languages
 - Right-to-left interface and story layouts for Arabic
-- One private daughter profile with a reference photo capped at 2 MB
+- Multiple private child profiles with reference photos capped at 2 MB each
+- Required hero-profile selection before every story is created
+- Personalized labels such as `Miko hero` and `Abbas hero`
 - Story theme, moral, length, language, and illustration-style selection
 - Explicit offline demo generation for 6-, 8-, or 10-page stories
+- Per-profile story-library tabs when more than one child profile exists
 - Device-local story library and permanent deletion
 - Responsive phone, tablet, and desktop reader
 - Free narration through voices installed on the current device
-- Full removal of the profile, reference photo, and story library
+- Full removal of all profiles, reference photos, and story libraries
 
 ## Privacy and storage
 
-`LocalRepository` stores the interface locale, profile, base64-encoded reference
-photo, and story JSON through `shared_preferences`. The app contains no network
-client and sends no profile or story content to an external service.
+`LocalRepository` stores the interface locale, profiles, base64-encoded
+reference photos, and story JSON through `shared_preferences`. The app contains
+no network client and sends no profile or story content to an external service.
 
 This storage is local but not an encrypted vault. It relies on the operating
 system and device account for access control. Browser storage belongs to the
-specific browser profile and origin; clearing site data also clears Miko-hero
+specific browser profile and origin; clearing site data also clears Iam - hero
 content. Export and encrypted backup are not implemented in this version.
 
 Never add a real child photo to Git. Photos are selected at runtime and the
@@ -54,7 +57,7 @@ lib/
   app/                 routing, theme, providers, and persisted state commands
   core/
     generation/        StoryGenerator boundary and demo implementation
-    models/            validated profile and story value objects
+    models/            validated child-profile and story value objects
     narration/         device text-to-speech boundary and implementation
     storage/           local SharedPreferences repository
   features/            home, profile, creation, library, reader, and settings

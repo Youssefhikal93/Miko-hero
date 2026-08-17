@@ -105,7 +105,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Miko-hero'**
+  /// **'Iam - hero'**
   String get appName;
 
   /// No description provided for @home.
@@ -141,13 +141,13 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'Create private, illustrated stories where your daughter is the hero.'**
+  /// **'Create private, illustrated stories where each child becomes the hero.'**
   String get welcomeBody;
 
   /// No description provided for @createFirstStory.
   ///
   /// In en, this message translates to:
-  /// **'Create her first story'**
+  /// **'Create a first story'**
   String get createFirstStory;
 
   /// No description provided for @createAnotherStory.
@@ -165,19 +165,19 @@ abstract class AppLocalizations {
   /// No description provided for @profileIncompleteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Set up her hero profile'**
+  /// **'Add a hero profile'**
   String get profileIncompleteTitle;
 
   /// No description provided for @profileIncompleteBody.
   ///
   /// In en, this message translates to:
-  /// **'Add her name, age, and a reference photo before creating a story.'**
+  /// **'Add a child\'s name, age, and reference photo before creating a story.'**
   String get profileIncompleteBody;
 
   /// No description provided for @setUpProfile.
   ///
   /// In en, this message translates to:
-  /// **'Set up profile'**
+  /// **'Add a profile'**
   String get setUpProfile;
 
   /// No description provided for @editProfile.
@@ -192,17 +192,59 @@ abstract class AppLocalizations {
   /// **'Hero profile'**
   String get profileTitle;
 
+  /// No description provided for @profilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hero profiles'**
+  String get profilesTitle;
+
+  /// No description provided for @profilesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add one private profile for each child who can star in a story.'**
+  String get profilesSubtitle;
+
+  /// No description provided for @addProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add profile'**
+  String get addProfile;
+
+  /// No description provided for @manageProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage hero profiles'**
+  String get manageProfiles;
+
+  /// No description provided for @profileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles: {count}'**
+  String profileCount(int count);
+
+  /// No description provided for @noProfilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No hero profiles yet'**
+  String get noProfilesTitle;
+
+  /// No description provided for @noProfilesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the first child profile to start creating personalized stories.'**
+  String get noProfilesBody;
+
   /// No description provided for @profileIntro.
   ///
   /// In en, this message translates to:
-  /// **'This information stays on this device and is never committed to the app\'s source code.'**
+  /// **'This child\'s information stays on this device and is never committed to the app\'s source code.'**
   String get profileIntro;
 
-  /// No description provided for @daughterName.
+  /// No description provided for @childName.
   ///
   /// In en, this message translates to:
-  /// **'Daughter\'s name'**
-  String get daughterName;
+  /// **'Child\'s name'**
+  String get childName;
 
   /// No description provided for @age.
   ///
@@ -249,7 +291,7 @@ abstract class AppLocalizations {
   /// No description provided for @nameRequired.
   ///
   /// In en, this message translates to:
-  /// **'Enter her name.'**
+  /// **'Enter the child\'s name.'**
   String get nameRequired;
 
   /// No description provided for @ageInvalid.
@@ -281,6 +323,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create a story'**
   String get createStoryTitle;
+
+  /// No description provided for @chooseHeroProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a hero profile'**
+  String get chooseHeroProfile;
+
+  /// No description provided for @selectHeroProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a child'**
+  String get selectHeroProfile;
+
+  /// No description provided for @profileSelectionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which child will be the hero.'**
+  String get profileSelectionRequired;
 
   /// No description provided for @storyLanguage.
   ///
@@ -375,7 +435,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileNeeded.
   ///
   /// In en, this message translates to:
-  /// **'Complete the hero profile first.'**
+  /// **'Add at least one hero profile first.'**
   String get profileNeeded;
 
   /// No description provided for @themeRequired.
@@ -411,7 +471,7 @@ abstract class AppLocalizations {
   /// No description provided for @libraryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Her story library'**
+  /// **'Family story library'**
   String get libraryTitle;
 
   /// No description provided for @librarySubtitle.
@@ -549,7 +609,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAllBody.
   ///
   /// In en, this message translates to:
-  /// **'The profile, photo, and every story will be permanently deleted from this device.'**
+  /// **'All profiles, photos, and stories will be permanently deleted from this device.'**
   String get deleteAllBody;
 
   /// No description provided for @allDataDeleted.
@@ -561,7 +621,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutTitle.
   ///
   /// In en, this message translates to:
-  /// **'About Miko-hero'**
+  /// **'About Iam - hero'**
   String get aboutTitle;
 
   /// No description provided for @aboutBody.

@@ -18,9 +18,10 @@ Relevant source files:
 - `lib/core/models/story_models.dart`
 - `lib/app/app_controller.dart`
 
-`StoryRequest` contains the hero name, theme, moral, language, story length,
-and illustration style. Each generated `StoryPage` contains reader prose and a
-`sceneDescription` reserved for the later image workflow.
+`StoryRequest` contains the selected profile identity, hero name, theme, moral,
+language, story length, and illustration style. Each generated `StoryPage`
+contains reader prose and a `sceneDescription` reserved for the later image
+workflow.
 
 ## Required local implementation
 

@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Miko-hero';
+  String get appName => 'Iam - hero';
 
   @override
   String get home => 'Home';
@@ -28,10 +28,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomeBody =>
-      'Create private, illustrated stories where your daughter is the hero.';
+      'Create private, illustrated stories where each child becomes the hero.';
 
   @override
-  String get createFirstStory => 'Create her first story';
+  String get createFirstStory => 'Create a first story';
 
   @override
   String get createAnotherStory => 'Create another story';
@@ -40,14 +40,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentStories => 'Recent stories';
 
   @override
-  String get profileIncompleteTitle => 'Set up her hero profile';
+  String get profileIncompleteTitle => 'Add a hero profile';
 
   @override
   String get profileIncompleteBody =>
-      'Add her name, age, and a reference photo before creating a story.';
+      'Add a child\'s name, age, and reference photo before creating a story.';
 
   @override
-  String get setUpProfile => 'Set up profile';
+  String get setUpProfile => 'Add a profile';
 
   @override
   String get editProfile => 'Edit hero profile';
@@ -56,11 +56,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileTitle => 'Hero profile';
 
   @override
-  String get profileIntro =>
-      'This information stays on this device and is never committed to the app\'s source code.';
+  String get profilesTitle => 'Hero profiles';
 
   @override
-  String get daughterName => 'Daughter\'s name';
+  String get profilesSubtitle =>
+      'Add one private profile for each child who can star in a story.';
+
+  @override
+  String get addProfile => 'Add profile';
+
+  @override
+  String get manageProfiles => 'Manage hero profiles';
+
+  @override
+  String profileCount(int count) {
+    return 'Profiles: $count';
+  }
+
+  @override
+  String get noProfilesTitle => 'No hero profiles yet';
+
+  @override
+  String get noProfilesBody =>
+      'Add the first child profile to start creating personalized stories.';
+
+  @override
+  String get profileIntro =>
+      'This child\'s information stays on this device and is never committed to the app\'s source code.';
+
+  @override
+  String get childName => 'Child\'s name';
 
   @override
   String get age => 'Age';
@@ -84,7 +109,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSaved => 'Profile saved';
 
   @override
-  String get nameRequired => 'Enter her name.';
+  String get nameRequired => 'Enter the child\'s name.';
 
   @override
   String get ageInvalid => 'Enter an age from 1 to 17.';
@@ -100,6 +125,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createStoryTitle => 'Create a story';
+
+  @override
+  String get chooseHeroProfile => 'Choose a hero profile';
+
+  @override
+  String get selectHeroProfile => 'Select a child';
+
+  @override
+  String get profileSelectionRequired => 'Choose which child will be the hero.';
 
   @override
   String get storyLanguage => 'Story language';
@@ -148,7 +182,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Local AI is not connected yet. Demo mode creates a clearly marked sample story so the complete app flow can be tested for free.';
 
   @override
-  String get profileNeeded => 'Complete the hero profile first.';
+  String get profileNeeded => 'Add at least one hero profile first.';
 
   @override
   String get themeRequired => 'Describe the adventure theme.';
@@ -167,7 +201,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyCreated => 'The story is ready';
 
   @override
-  String get libraryTitle => 'Her story library';
+  String get libraryTitle => 'Family story library';
 
   @override
   String get librarySubtitle =>
@@ -244,13 +278,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAllBody =>
-      'The profile, photo, and every story will be permanently deleted from this device.';
+      'All profiles, photos, and stories will be permanently deleted from this device.';
 
   @override
   String get allDataDeleted => 'All local data was deleted';
 
   @override
-  String get aboutTitle => 'About Miko-hero';
+  String get aboutTitle => 'About Iam - hero';
 
   @override
   String get aboutBody =>

@@ -99,17 +99,16 @@ class _SettingsContent extends ConsumerWidget {
     );
   }
 
-  /// Provides one route for replacing the private profile or photo.
+  /// Provides one route for adding or editing private child profiles.
   Widget _profileCard(BuildContext context, AppLocalizations text) {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: const Icon(Icons.face_retouching_natural_rounded),
-        title: Text(
-          state.profile == null ? text.setUpProfile : text.editProfile,
-        ),
+        leading: const Icon(Icons.groups_2_rounded),
+        title: Text(text.manageProfiles),
+        subtitle: Text(text.profileCount(state.profiles.length)),
         trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.go('/profile'),
+        onTap: () => context.go('/profiles'),
       ),
     );
   }
@@ -158,7 +157,7 @@ class _SettingsContent extends ConsumerWidget {
     );
   }
 
-  /// Requires confirmation before deleting the profile photo and every story.
+  /// Requires confirmation before deleting every profile, photo, and story.
   Future<void> _confirmDeleteAll(BuildContext context, WidgetRef ref) async {
     final text = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(

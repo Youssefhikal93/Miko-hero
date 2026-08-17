@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/miko_hero_app.dart';
+import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,12 +18,14 @@ void main() {
     appRouter.go('/');
   });
 
-  testWidgets('first launch offers private profile setup', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MikoHeroApp()));
+  testWidgets('first launch offers the first private child profile', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('A new adventure starts here'), findsOneWidget);
-    expect(find.text('Set up profile'), findsWidgets);
+    expect(find.text('Iam - hero'), findsOneWidget);
+    expect(find.text('Add a profile'), findsWidgets);
     expect(find.text('Sign in'), findsNothing);
   });
 
@@ -34,7 +36,7 @@ void main() {
       'app_locale': 'ar',
     });
 
-    await tester.pumpWidget(const ProviderScope(child: MikoHeroApp()));
+    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
     await tester.pumpAndSettle();
 
     final welcome = find.text('مغامرة جديدة تبدأ هنا');
@@ -42,15 +44,24 @@ void main() {
     expect(Directionality.of(tester.element(welcome)), TextDirection.rtl);
   });
 
-  testWidgets('valid request creates a persisted book and opens its reader', (
+  testWidgets('selected child receives the story and a separate library tab', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
-      'daughter_profile': jsonEncode(<String, Object>{
-        'name': 'Miko',
-        'age': 7,
-        'photoBase64': _transparentPixel,
-      }),
+      'child_profiles': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'miko',
+          'name': 'Miko',
+          'age': 7,
+          'photoBase64': _transparentPixel,
+        },
+        <String, Object>{
+          'id': 'abbas',
+          'name': 'Abbas',
+          'age': 9,
+          'photoBase64': _transparentPixel,
+        },
+      ]),
     });
     final fixedTime = DateTime.utc(2026, 8, 17, 12);
 
@@ -64,28 +75,40 @@ void main() {
             ),
           ),
         ],
-        child: const MikoHeroApp(),
+        child: const IamHeroApp(),
       ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Create another story'));
     await tester.pumpAndSettle();
+
+    expect(find.text('Choose a hero profile'), findsOneWidget);
+    final profileSelector = find.byKey(
+      const ValueKey<String>('story-profile-selector'),
+    );
+    await tester.ensureVisible(profileSelector);
+    await tester.tap(profileSelector);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Abbas hero').last);
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(0), 'a moon garden');
     await tester.enterText(find.byType(TextFormField).at(1), 'kindness');
     final generateButton = find.text('Generate demo story');
     await tester.ensureVisible(generateButton);
-    await tester.pumpAndSettle();
     await tester.tap(generateButton);
     await tester.pumpAndSettle();
 
     expect(find.text('Page 1 of 6'), findsOneWidget);
     expect(find.text('DEMO'), findsOneWidget);
-    final preferences = await SharedPreferences.getInstance();
-    expect(preferences.containsKey('story_library'), isTrue);
-    ScaffoldMessenger.of(
-      tester.element(find.byType(Scaffold).first),
-    ).hideCurrentSnackBar();
+    await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
+
+    expect(find.text('Miko hero'), findsOneWidget);
+    expect(find.text('Abbas hero'), findsOneWidget);
+    expect(find.text("a moon garden: Abbas's Adventure"), findsNothing);
+    await tester.tap(find.text('Abbas hero'));
+    await tester.pumpAndSettle();
+    expect(find.text("a moon garden: Abbas's Adventure"), findsWidgets);
   });
 }
 

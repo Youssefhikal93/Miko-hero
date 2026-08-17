@@ -4,7 +4,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:miko_hero/core/generation/story_generator.dart';
 import 'package:miko_hero/core/models/app_state.dart';
-import 'package:miko_hero/core/models/daughter_profile.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/device_narration_service.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
@@ -42,15 +42,27 @@ class AppController extends AsyncNotifier<AppState> {
     return repository.readState();
   }
 
-  /// Persists a validated profile before exposing it to feature screens.
-  Future<void> saveProfile(DaughterProfile profile) async {
-    final repository = await ref.read(localRepositoryProvider.future);
-    await repository.saveProfile(profile);
+  /// Adds a new child or replaces an existing profile after form validation.
+  Future<void> saveProfile({
+    required String? profileId,
+    required String name,
+    required int age,
+    required String photoBase64,
+  }) async {
     final current = state.requireValue;
+    final profile = ChildProfile(
+      id: profileId ?? _newProfileId(current.profiles),
+      name: name,
+      age: age,
+      photoBase64: photoBase64,
+    );
+    final profiles = _upsertProfile(current.profiles, profile);
+    final repository = await ref.read(localRepositoryProvider.future);
+    await repository.saveProfiles(profiles);
     state = AsyncData(
       AppState(
         locale: current.locale,
-        profile: profile,
+        profiles: profiles,
         stories: current.stories,
       ),
     );
@@ -58,9 +70,12 @@ class AppController extends AsyncNotifier<AppState> {
 
   /// Generates, persists, and returns a new book for immediate navigation.
   Future<StoryBook> createStory(StoryRequest request) async {
+    final current = state.requireValue;
+    if (current.profileById(request.profileId) == null) {
+      throw StateError('Cannot create a story for an unknown child profile.');
+    }
     final generator = ref.read(storyGeneratorProvider);
     final story = await generator.generate(request);
-    final current = state.requireValue;
     final stories = List<StoryBook>.unmodifiable(<StoryBook>[
       story,
       ...current.stories,
@@ -86,13 +101,13 @@ class AppController extends AsyncNotifier<AppState> {
     state = AsyncData(
       AppState(
         locale: locale,
-        profile: current.profile,
+        profiles: current.profiles,
         stories: current.stories,
       ),
     );
   }
 
-  /// Deletes the profile, photo, and stories while keeping language preference.
+  /// Deletes all profiles, photos, and stories while keeping language preference.
   Future<void> clearAll() async {
     final repository = await ref.read(localRepositoryProvider.future);
     await repository.clearAll();
@@ -100,7 +115,7 @@ class AppController extends AsyncNotifier<AppState> {
     state = AsyncData(
       AppState(
         locale: current.locale,
-        profile: null,
+        profiles: const <ChildProfile>[],
         stories: const <StoryBook>[],
       ),
     );
@@ -114,9 +129,37 @@ class AppController extends AsyncNotifier<AppState> {
     state = AsyncData(
       AppState(
         locale: current.locale,
-        profile: current.profile,
+        profiles: current.profiles,
         stories: stories,
       ),
     );
+  }
+
+  /// Replaces a matching identity or appends a newly created profile.
+  List<ChildProfile> _upsertProfile(
+    List<ChildProfile> profiles,
+    ChildProfile savedProfile,
+  ) {
+    final updatedProfiles = profiles
+        .map(
+          (profile) => profile.id == savedProfile.id ? savedProfile : profile,
+        )
+        .toList();
+    if (!profiles.any((profile) => profile.id == savedProfile.id)) {
+      updatedProfiles.add(savedProfile);
+    }
+    return List<ChildProfile>.unmodifiable(updatedProfiles);
+  }
+
+  /// Creates a device-local identity after a deliberate parent save action.
+  String _newProfileId(List<ChildProfile> profiles) {
+    final timePart = DateTime.now().toUtc().microsecondsSinceEpoch;
+    final baseId = 'profile-$timePart';
+    var candidateId = baseId;
+    var suffix = 1;
+    while (profiles.any((profile) => profile.id == candidateId)) {
+      candidateId = '$baseId-${suffix++}';
+    }
+    return candidateId;
   }
 }

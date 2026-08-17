@@ -44,6 +44,7 @@ StoryRequest _request({
   StoryLength length = StoryLength.short,
 }) {
   return StoryRequest(
+    profileId: 'miko',
     heroName: 'Miko',
     theme: 'a moon garden',
     moral: 'kindness',

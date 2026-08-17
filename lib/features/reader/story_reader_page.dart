@@ -8,7 +8,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
-import 'package:miko_hero/core/models/daughter_profile.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
@@ -94,7 +94,7 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
               return _ReaderPage(
                 story: story,
                 page: pages[index],
-                profile: state.profile,
+                profile: state.profileById(story.content.request.profileId),
               );
             },
           ),
@@ -184,7 +184,7 @@ class _ReaderPage extends StatelessWidget {
 
   final StoryBook story;
   final StoryPage page;
-  final DaughterProfile? profile;
+  final ChildProfile? profile;
 
   @override
   /// Switches between stacked phone content and a desktop two-column spread.
@@ -235,7 +235,7 @@ class _PageIllustration extends StatelessWidget {
 
   final StoryBook story;
   final StoryPage page;
-  final DaughterProfile? profile;
+  final ChildProfile? profile;
 
   @override
   /// Uses local photo bytes only and marks the surface as demo output.

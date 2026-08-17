@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'ميكو هيرو';
+  String get appName => 'Iam - hero';
 
   @override
   String get home => 'الرئيسية';
@@ -27,10 +27,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get welcomeTitle => 'مغامرة جديدة تبدأ هنا';
 
   @override
-  String get welcomeBody => 'أنشئ قصصًا خاصة ومصورة تكون فيها ابنتك هي البطلة.';
+  String get welcomeBody => 'أنشئ قصصًا خاصة ومصورة يصبح فيها كل طفل هو البطل.';
 
   @override
-  String get createFirstStory => 'أنشئ قصتها الأولى';
+  String get createFirstStory => 'أنشئ القصة الأولى';
 
   @override
   String get createAnotherStory => 'أنشئ قصة جديدة';
@@ -39,27 +39,51 @@ class AppLocalizationsAr extends AppLocalizations {
   String get recentStories => 'أحدث القصص';
 
   @override
-  String get profileIncompleteTitle => 'أنشئ ملف البطلة';
+  String get profileIncompleteTitle => 'أضف ملف بطل';
 
   @override
   String get profileIncompleteBody =>
-      'أضف اسمها وعمرها وصورة مرجعية قبل إنشاء القصة.';
+      'أضف اسم الطفل وعمره وصورة مرجعية قبل إنشاء القصة.';
 
   @override
-  String get setUpProfile => 'إنشاء الملف';
+  String get setUpProfile => 'إضافة ملف';
 
   @override
-  String get editProfile => 'تعديل ملف البطلة';
+  String get editProfile => 'تعديل ملف البطل';
 
   @override
-  String get profileTitle => 'ملف البطلة';
+  String get profileTitle => 'ملف البطل';
+
+  @override
+  String get profilesTitle => 'ملفات الأبطال';
+
+  @override
+  String get profilesSubtitle =>
+      'أضف ملفًا خاصًا لكل طفل يمكنه أن يكون بطل قصة.';
+
+  @override
+  String get addProfile => 'إضافة ملف';
+
+  @override
+  String get manageProfiles => 'إدارة ملفات الأبطال';
+
+  @override
+  String profileCount(int count) {
+    return 'الملفات: $count';
+  }
+
+  @override
+  String get noProfilesTitle => 'لا توجد ملفات أبطال بعد';
+
+  @override
+  String get noProfilesBody => 'أضف ملف الطفل الأول لبدء إنشاء قصص مخصصة.';
 
   @override
   String get profileIntro =>
-      'تبقى هذه المعلومات على الجهاز ولا تُحفظ أبدًا في الشفرة المصدرية للتطبيق.';
+      'تبقى معلومات هذا الطفل على الجهاز ولا تُحفظ أبدًا في الشفرة المصدرية للتطبيق.';
 
   @override
-  String get daughterName => 'اسم ابنتك';
+  String get childName => 'اسم الطفل';
 
   @override
   String get age => 'العمر';
@@ -83,7 +107,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileSaved => 'تم حفظ الملف';
 
   @override
-  String get nameRequired => 'أدخل اسمها.';
+  String get nameRequired => 'أدخل اسم الطفل.';
 
   @override
   String get ageInvalid => 'أدخل عمرًا من 1 إلى 17.';
@@ -99,6 +123,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get createStoryTitle => 'إنشاء قصة';
+
+  @override
+  String get chooseHeroProfile => 'اختر ملف البطل';
+
+  @override
+  String get selectHeroProfile => 'اختر طفلًا';
+
+  @override
+  String get profileSelectionRequired => 'اختر الطفل الذي سيكون بطل القصة.';
 
   @override
   String get storyLanguage => 'لغة القصة';
@@ -147,7 +180,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'لم يتم توصيل الذكاء الاصطناعي المحلي بعد. ينشئ الوضع التجريبي قصة نموذجية مميزة بوضوح لاختبار التطبيق كاملًا مجانًا.';
 
   @override
-  String get profileNeeded => 'أكمل ملف البطلة أولًا.';
+  String get profileNeeded => 'أضف ملف بطل واحدًا على الأقل أولًا.';
 
   @override
   String get themeRequired => 'صف موضوع المغامرة.';
@@ -165,7 +198,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get storyCreated => 'القصة جاهزة';
 
   @override
-  String get libraryTitle => 'مكتبة قصصها';
+  String get libraryTitle => 'مكتبة قصص العائلة';
 
   @override
   String get librarySubtitle => 'تُحفظ القصص المكتملة على هذا الجهاز فقط.';
@@ -238,13 +271,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteAllBody =>
-      'سيتم حذف الملف والصورة وجميع القصص نهائيًا من هذا الجهاز.';
+      'سيتم حذف جميع الملفات والصور والقصص نهائيًا من هذا الجهاز.';
 
   @override
   String get allDataDeleted => 'تم حذف جميع البيانات المحلية';
 
   @override
-  String get aboutTitle => 'عن ميكو هيرو';
+  String get aboutTitle => 'عن Iam - hero';
 
   @override
   String get aboutBody =>

@@ -42,8 +42,9 @@ class _HomeContent extends StatelessWidget {
         children: <Widget>[
           _WelcomePanel(state: state),
           const SizedBox(height: 30),
-          if (state.profile == null) _ProfilePrompt(text: text),
-          if (state.profile != null) _RecentStories(state: state, text: text),
+          if (state.profiles.isEmpty) _ProfilePrompt(text: text),
+          if (state.profiles.isNotEmpty)
+            _RecentStories(state: state, text: text),
         ],
       ),
     );
@@ -61,7 +62,7 @@ class _WelcomePanel extends StatelessWidget {
   /// Adapts the call to action while retaining one responsive composition.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
-    final profileReady = state.profile != null;
+    final profileReady = state.profiles.isNotEmpty;
     return AccentPanel(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -89,7 +90,7 @@ class _WelcomePanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const Text(
-          'Miko-hero',
+          'Iam - hero',
           style: TextStyle(color: AppTheme.amber, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 12),
@@ -101,7 +102,8 @@ class _WelcomePanel extends StatelessWidget {
         Text(text.welcomeBody, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: 24),
         FilledButton.icon(
-          onPressed: () => context.go(profileReady ? '/create' : '/profile'),
+          onPressed: () =>
+              context.go(profileReady ? '/create' : '/profiles/new'),
           icon: const Icon(Icons.auto_awesome_rounded),
           label: Text(
             profileReady ? text.createAnotherStory : text.setUpProfile,
@@ -112,7 +114,7 @@ class _WelcomePanel extends StatelessWidget {
   }
 }
 
-/// Abstract hero artwork that does not expose or bundle the daughter's photo.
+/// Abstract hero artwork that does not expose or bundle any child's photo.
 class _HeroEmblem extends StatelessWidget {
   /// Creates static placeholder art with no family image dependency.
   const _HeroEmblem();
@@ -170,7 +172,7 @@ class _ProfilePrompt extends StatelessWidget {
               ),
             ),
             IconButton(
-              onPressed: () => context.go('/profile'),
+              onPressed: () => context.go('/profiles/new'),
               icon: const Icon(Icons.arrow_forward_rounded),
             ),
           ],

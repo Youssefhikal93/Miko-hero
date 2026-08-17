@@ -173,7 +173,7 @@ class _Brand extends StatelessWidget {
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
-              'Miko-hero',
+              'Iam - hero',
               style: TextStyle(fontWeight: FontWeight.w900),
             ),
           ),
