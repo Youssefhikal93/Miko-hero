@@ -17,6 +17,8 @@ not connected yet; their integration boundary is documented in
 - Story text in the same four languages
 - Right-to-left interface and story layouts for Arabic
 - Multiple private child profiles with reference photos capped at 2 MB each
+- Required Girl/Boy choice stored with each profile
+- Pink theme for a selected girl profile and cyan/blue theme for a selected boy
 - Required hero-profile selection before every story is created
 - Personalized labels such as `Miko hero` and `Abbas hero`
 - Story theme, moral, length, language, and illustration-style selection
@@ -29,9 +31,10 @@ not connected yet; their integration boundary is documented in
 
 ## Privacy and storage
 
-`LocalRepository` stores the interface locale, profiles, base64-encoded
-reference photos, and story JSON through `shared_preferences`. The app contains
-no network client and sends no profile or story content to an external service.
+`LocalRepository` stores the interface locale, profiles, each profile's
+Girl/Boy choice, the active profile, base64-encoded reference photos, and story
+JSON through `shared_preferences`. The app contains no network client and sends
+no profile or story content to an external service.
 
 This storage is local but not an encrypted vault. It relies on the operating
 system and device account for access control. Browser storage belongs to the
@@ -43,9 +46,10 @@ repository contains no family data.
 
 ## Demo behavior
 
-`DemoStoryGenerator` creates deterministic language-specific sample prose and
-gradient placeholders. Every placeholder cover and page displays a demo label.
-It does not call an LLM or image model and must not be presented as AI output.
+`DemoStoryGenerator` creates deterministic, gender-aware, language-specific
+sample prose and profile-colored gradient placeholders. Every placeholder cover
+and page displays a demo label. It does not call an LLM or image model and must
+not be presented as AI output.
 
 `StoryGenerator` is the application boundary that a later local adapter will
 implement. Screens depend on that boundary rather than Ollama or ComfyUI APIs.

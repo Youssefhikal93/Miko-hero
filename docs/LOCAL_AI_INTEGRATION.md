@@ -18,10 +18,10 @@ Relevant source files:
 - `lib/core/models/story_models.dart`
 - `lib/app/app_controller.dart`
 
-`StoryRequest` contains the selected profile identity, hero name, theme, moral,
-language, story length, and illustration style. Each generated `StoryPage`
-contains reader prose and a `sceneDescription` reserved for the later image
-workflow.
+`StoryRequest` contains the selected profile identity, hero name, the
+parent-confirmed Girl/Boy context, theme, moral, language, story length, and
+illustration style. Each generated `StoryPage` contains reader prose and a
+`sceneDescription` reserved for the later image workflow.
 
 ## Required local implementation
 
@@ -32,9 +32,11 @@ hardcoded success value.
 
 The local workflow should perform these operations:
 
-1. Send the validated story request to an Ollama model on the parent's PC.
+1. Send the validated story request, including the Girl/Boy context, to an
+   Ollama model on the parent's PC.
 2. Validate structured model output before constructing `StoryPage` objects.
-3. Create one ComfyUI prompt per page using the private reference photo.
+3. Create one ComfyUI prompt per page using the private reference photo and the
+   parent-confirmed character context.
 4. Write generated image files into application-controlled local storage.
 5. Return a complete `StoryBook` only after required pages are available.
 6. Preserve the selected language and page order exactly.
@@ -63,6 +65,7 @@ Tests should replace only the PC process boundary. They should verify:
 - malformed output fails without persisting a partial story;
 - unavailable Ollama or ComfyUI leaves the existing library unchanged;
 - requested language and page order survive the complete adapter flow;
+- the parent-confirmed Girl/Boy context survives text and image generation;
 - cancellation stops the active job and does not report success.
 
 Tests must not assert exact prompt wording, model prose, internal call counts,

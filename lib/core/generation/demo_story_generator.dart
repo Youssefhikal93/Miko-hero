@@ -1,5 +1,6 @@
 import 'package:miko_hero/core/generation/story_generator.dart';
 import 'package:miko_hero/core/models/app_language.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
 /// Local sample generator used only until Ollama and ComfyUI are connected.
@@ -16,10 +17,13 @@ class DemoStoryGenerator implements StoryGenerator {
   @override
   /// Builds an explicitly marked sample without pretending to call local AI.
   Future<StoryBook> generate(StoryRequest request) async {
+    if (!request.gender.isSpecified) {
+      throw ArgumentError.value(request.gender, 'request.gender');
+    }
     await Future<void>.delayed(latency);
     final script = _scriptFor(request);
     final pageTexts = script.pages.take(request.presentation.length.pageCount);
-    final pages = _numberPages(pageTexts, request.theme);
+    final pages = _numberPages(pageTexts, request);
     final createdAt = currentTime().toUtc();
     return StoryBook(
       id: createdAt.microsecondsSinceEpoch.toString(),
@@ -43,14 +47,15 @@ class DemoStoryGenerator implements StoryGenerator {
   }
 
   /// Adds stable page numbers and future illustration directions.
-  List<StoryPage> _numberPages(Iterable<String> texts, String theme) {
+  List<StoryPage> _numberPages(Iterable<String> texts, StoryRequest request) {
     return texts.indexed
         .map((entry) {
           final pageNumber = entry.$1 + 1;
           return StoryPage(
             number: pageNumber,
             text: entry.$2,
-            sceneDescription: '$theme — illustrated scene $pageNumber',
+            sceneDescription:
+                '${request.theme} — ${request.gender.name} hero — illustrated scene $pageNumber',
           );
         })
         .toList(growable: false);
@@ -59,16 +64,29 @@ class DemoStoryGenerator implements StoryGenerator {
   /// Creates the English demo script from parent-authored details.
   _DemoScript _englishScript(StoryRequest request) {
     final name = request.heroName;
+    final voice = request.gender == ChildGender.girl
+        ? (
+            subject: 'She',
+            subjectLower: 'she',
+            possessive: 'her',
+            possessiveUpper: 'Her',
+          )
+        : (
+            subject: 'He',
+            subjectLower: 'he',
+            possessive: 'his',
+            possessiveUpper: 'His',
+          );
     return _DemoScript('${request.theme}: $name\'s Adventure', <String>[
       '$name discovered a secret path leading toward ${request.theme}.',
-      'She stepped forward with a curious heart and a very brave smile.',
+      '${voice.subject} stepped forward with a curious heart and a very brave smile.',
       'A small new friend needed help finding the way through the unfamiliar world.',
       '$name listened carefully and remembered the importance of ${request.moral}.',
       'Together they solved a puzzle that neither of them could solve alone.',
       'The path glowed brighter each time $name made a kind choice.',
-      'A sudden challenge tested her courage, but she did not give up.',
-      '$name shared what she had learned, and the whole world began to shine.',
-      'Her new friend thanked her for turning a difficult day into an adventure.',
+      'A sudden challenge tested ${voice.possessive} courage, but ${voice.subjectLower} did not give up.',
+      '$name shared what ${voice.subjectLower} had learned, and the whole world began to shine.',
+      '${voice.possessiveUpper} new friend gave thanks for turning a difficult day into an adventure.',
       '$name returned home knowing that ${request.moral} can change any story.',
     ]);
   }
@@ -76,33 +94,81 @@ class DemoStoryGenerator implements StoryGenerator {
   /// Creates the Arabic demo script from parent-authored details.
   _DemoScript _arabicScript(StoryRequest request) {
     final name = request.heroName;
+    final voice = request.gender == ChildGender.girl
+        ? (
+            discovered: 'اكتشفت',
+            advanced: 'تقدمت',
+            found: 'وجدت',
+            help: 'مساعدتها',
+            listened: 'استمعت',
+            remembered: 'وتذكرت',
+            chose: 'اختارت',
+            courage: 'شجاعتها',
+            resisted: 'لكنها لم تستسلم',
+            shared: 'شاركت',
+            learned: 'تعلمته',
+            thanked: 'شكرها صديقها',
+            changed: 'حولت',
+            returned: 'عادت',
+            knows: 'وهي تعرف',
+          )
+        : (
+            discovered: 'اكتشف',
+            advanced: 'تقدم',
+            found: 'وجد',
+            help: 'مساعدته',
+            listened: 'استمع',
+            remembered: 'وتذكر',
+            chose: 'اختار',
+            courage: 'شجاعته',
+            resisted: 'لكنه لم يستسلم',
+            shared: 'شارك',
+            learned: 'تعلمه',
+            thanked: 'شكره صديقه',
+            changed: 'حول',
+            returned: 'عاد',
+            knows: 'وهو يعرف',
+          );
     return _DemoScript('${request.theme}: مغامرة $name', <String>[
-      'اكتشفت $name طريقًا سريًا يقود إلى ${request.theme}.',
-      'تقدمت بقلب فضولي وابتسامة مليئة بالشجاعة.',
-      'وجدت صديقًا صغيرًا يحتاج إلى مساعدتها في هذا العالم الجديد.',
-      'استمعت $name بعناية وتذكرت أهمية ${request.moral}.',
+      '${voice.discovered} $name طريقًا سريًا يقود إلى ${request.theme}.',
+      '${voice.advanced} بقلب فضولي وابتسامة مليئة بالشجاعة.',
+      '${voice.found} صديقًا صغيرًا يحتاج إلى ${voice.help} في هذا العالم الجديد.',
+      '${voice.listened} $name بعناية ${voice.remembered} أهمية ${request.moral}.',
       'تعاونا معًا وحلا لغزًا لم يستطع أي منهما حله وحده.',
-      'كان الطريق يزداد نورًا كلما اختارت $name فعلًا لطيفًا.',
-      'ظهر تحدٍ مفاجئ اختبر شجاعتها، لكنها لم تستسلم.',
-      'شاركت $name ما تعلمته، فبدأ العالم كله يتلألأ.',
-      'شكرها صديقها لأنها حولت يومًا صعبًا إلى مغامرة جميلة.',
-      'عادت $name إلى بيتها وهي تعرف أن ${request.moral} يغير أي قصة.',
+      'كان الطريق يزداد نورًا كلما ${voice.chose} $name فعلًا لطيفًا.',
+      'ظهر تحدٍ مفاجئ اختبر ${voice.courage}، ${voice.resisted}.',
+      '${voice.shared} $name ما ${voice.learned}، فبدأ العالم كله يتلألأ.',
+      '${voice.thanked} لأن $name ${voice.changed} يومًا صعبًا إلى مغامرة جميلة.',
+      '${voice.returned} $name إلى البيت ${voice.knows} أن ${request.moral} يغير أي قصة.',
     ]);
   }
 
   /// Creates the Swedish demo script from parent-authored details.
   _DemoScript _swedishScript(StoryRequest request) {
     final name = request.heroName;
+    final voice = request.gender == ChildGender.girl
+        ? (
+            subject: 'Hon',
+            subjectLower: 'hon',
+            possessive: 'hennes',
+            object: 'henne',
+          )
+        : (
+            subject: 'Han',
+            subjectLower: 'han',
+            possessive: 'hans',
+            object: 'honom',
+          );
     return _DemoScript('${request.theme}: ${name}s äventyr', <String>[
       '$name upptäckte en hemlig stig som ledde till ${request.theme}.',
-      'Hon gick vidare med nyfiket hjärta och ett mycket modigt leende.',
+      '${voice.subject} gick vidare med nyfiket hjärta och ett mycket modigt leende.',
       'En liten ny vän behövde hjälp att hitta genom den främmande världen.',
       '$name lyssnade noga och mindes vikten av ${request.moral}.',
       'Tillsammans löste de en gåta som ingen av dem klarade ensam.',
       'Stigen lyste starkare varje gång $name gjorde ett vänligt val.',
-      'En plötslig utmaning prövade hennes mod, men hon gav inte upp.',
-      '$name delade med sig av det hon lärt sig och hela världen började glittra.',
-      'Hennes nya vän tackade henne för att hon förvandlat dagen till ett äventyr.',
+      'En plötslig utmaning prövade ${voice.possessive} mod, men ${voice.subjectLower} gav inte upp.',
+      '$name delade med sig av det ${voice.subjectLower} lärt sig och hela världen började glittra.',
+      '${voice.possessive} nya vän tackade ${voice.object} för att dagen blivit ett äventyr.',
       '$name kom hem och visste att ${request.moral} kan förändra varje berättelse.',
     ]);
   }
@@ -110,17 +176,42 @@ class DemoStoryGenerator implements StoryGenerator {
   /// Creates the Somali demo script from parent-authored details.
   _DemoScript _somaliScript(StoryRequest request) {
     final name = request.heroName;
+    final voice = request.gender == ChildGender.girl
+        ? (
+            found: 'waxay heshay',
+            advanced: 'Waxay hore ugu dhaqaaqday',
+            listened: 'si taxaddar leh ayay u dhagaysatay',
+            remembered: 'waxayna xasuusatay',
+            chose: 'ay dooratay',
+            courage: 'geesinimadeeda',
+            shared: 'waxay la wadaagtay wixii ay baratay',
+            friend: 'Saaxiibkeed',
+            returning: 'iyadoo',
+            returned: 'guriga ayay ku soo noqotay',
+          )
+        : (
+            found: 'wuxuu helay',
+            advanced: 'Wuxuu hore ugu dhaqaaqay',
+            listened: 'si taxaddar leh ayuu u dhagaystay',
+            remembered: 'wuxuuna xasuustay',
+            chose: 'uu doortay',
+            courage: 'geesinimadiisa',
+            shared: 'wuxuu la wadaagay wixii uu bartay',
+            friend: 'Saaxiibkiis',
+            returning: 'isagoo',
+            returned: 'guriga ayuu ku soo noqday',
+          );
     return _DemoScript('${request.theme}: Tacaburkii $name', <String>[
-      '$name waxay heshay waddo qarsoon oo u socota ${request.theme}.',
-      'Waxay hore ugu dhaqaaqday qalbi xiisaynaya iyo dhoolla-caddayn geesinimo leh.',
+      '$name ${voice.found} waddo qarsoon oo u socota ${request.theme}.',
+      '${voice.advanced} qalbi xiisaynaya iyo dhoolla-caddayn geesinimo leh.',
       'Saaxiib yar oo cusub ayaa u baahday caawimo si uu jidka u helo.',
-      '$name si taxaddar leh ayay u dhagaysatay, waxayna xasuusatay ${request.moral}.',
+      '$name ${voice.listened}, ${voice.remembered} ${request.moral}.',
       'Iyagoo wadajira ayay xalliyeen halxiraale uusan midkood keligiis xallin karin.',
-      'Waddadu way sii iftiimaysay mar kasta oo $name ay dooratay fal wanaagsan.',
-      'Caqabad lama filaan ah ayaa tijaabisay geesinimadeeda, laakiin ma quusan.',
-      '$name waxay la wadaagtay wixii ay baratay, adduunkiina wuu iftiimay.',
-      'Saaxiibkeed cusub ayaa uga mahadceliyay tacaburka quruxda badan.',
-      '$name guriga ayay ku soo noqotay iyadoo og in ${request.moral} ay sheeko beddeli karto.',
+      'Waddadu way sii iftiimaysay mar kasta oo $name ${voice.chose} fal wanaagsan.',
+      'Caqabad lama filaan ah ayaa tijaabisay ${voice.courage}, laakiin ma quusan.',
+      '$name ${voice.shared}, adduunkiina wuu iftiimay.',
+      '${voice.friend} cusub ayaa uga mahadceliyay tacaburka quruxda badan.',
+      '$name ${voice.returned} ${voice.returning} og in ${request.moral} ay sheeko beddeli karto.',
     ]);
   }
 }

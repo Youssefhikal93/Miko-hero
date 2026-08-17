@@ -171,7 +171,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileIncompleteBody.
   ///
   /// In en, this message translates to:
-  /// **'Add a child\'s name, age, and reference photo before creating a story.'**
+  /// **'Add a child\'s name, age, Girl/Boy choice, and reference photo before creating a story.'**
   String get profileIncompleteBody;
 
   /// No description provided for @setUpProfile.
@@ -251,6 +251,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Age'**
   String get age;
+
+  /// No description provided for @genderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this hero a girl or a boy?'**
+  String get genderTitle;
+
+  /// No description provided for @girl.
+  ///
+  /// In en, this message translates to:
+  /// **'Girl'**
+  String get girl;
+
+  /// No description provided for @boy.
+  ///
+  /// In en, this message translates to:
+  /// **'Boy'**
+  String get boy;
+
+  /// No description provided for @genderRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Girl or Boy.'**
+  String get genderRequired;
+
+  /// No description provided for @genderNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Girl/Boy not selected'**
+  String get genderNotSet;
 
   /// No description provided for @referencePhoto.
   ///

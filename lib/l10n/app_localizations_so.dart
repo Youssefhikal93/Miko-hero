@@ -44,7 +44,7 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get profileIncompleteBody =>
-      'Ku dar magaca ilmaha, da\'da, iyo sawir tixraac ah ka hor intaadan sheeko abuurin.';
+      'Ku dar magaca ilmaha iyo da\'da, dooro gabar ama wiil, dabadeedna ku dar sawir tixraac ah ka hor intaadan sheeko abuurin.';
 
   @override
   String get setUpProfile => 'Ku dar bog';
@@ -89,6 +89,21 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get age => 'Da\'da';
+
+  @override
+  String get genderTitle => 'Halyeygani ma gabar baa mise wiil?';
+
+  @override
+  String get girl => 'Gabar';
+
+  @override
+  String get boy => 'Wiil';
+
+  @override
+  String get genderRequired => 'Dooro gabar ama wiil.';
+
+  @override
+  String get genderNotSet => 'Gabar/wiil lama dooran';
 
   @override
   String get referencePhoto => 'Sawirka tixraaca';

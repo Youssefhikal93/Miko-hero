@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Local profile manager for every child who can star in a story.
@@ -91,7 +91,7 @@ class _ProfileCard extends StatelessWidget {
           profile.heroName,
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        subtitle: Text(text.yearsOld(profile.age)),
+        subtitle: Text('${text.yearsOld(profile.age)} · ${_genderName(text)}'),
         trailing: IconButton(
           tooltip: text.editProfile,
           onPressed: () => context.go('/profiles/${profile.id}'),
@@ -100,6 +100,15 @@ class _ProfileCard extends StatelessWidget {
         onTap: () => context.go('/profiles/${profile.id}'),
       ),
     );
+  }
+
+  /// Localizes a saved choice while exposing profiles awaiting migration input.
+  String _genderName(AppLocalizations text) {
+    return switch (profile.gender) {
+      ChildGender.unspecified => text.genderNotSet,
+      ChildGender.girl => text.girl,
+      ChildGender.boy => text.boy,
+    };
   }
 }
 
@@ -197,6 +206,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   late final TextEditingController _nameController;
   late final TextEditingController _ageController;
   String? _photoBase64;
+  ChildGender? _gender;
   bool _saving = false;
 
   @override
@@ -208,6 +218,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       text: widget.initialProfile?.age.toString(),
     );
     _photoBase64 = widget.initialProfile?.photoBase64;
+    final storedGender = widget.initialProfile?.gender;
+    _gender = storedGender?.isSpecified == true ? storedGender : null;
   }
 
   @override
@@ -252,6 +264,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: text.age),
               validator: _validateAge,
+            ),
+            const SizedBox(height: 20),
+            GenderSelector(
+              selectedGender: _gender,
+              enabled: !_saving,
+              onSelected: (gender) => setState(() => _gender = gender),
             ),
             if (_photoBase64 == null) ...<Widget>[
               const SizedBox(height: 12),
@@ -327,7 +345,10 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   Future<void> _saveProfile() async {
     final text = AppLocalizations.of(context);
     final photoBase64 = _photoBase64;
-    if (!_formKey.currentState!.validate() || photoBase64 == null) {
+    final gender = _gender;
+    if (!_formKey.currentState!.validate() ||
+        photoBase64 == null ||
+        gender == null) {
       if (photoBase64 == null) _showMessage(text.photoRequired);
       return;
     }
@@ -337,9 +358,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           .read(appControllerProvider.notifier)
           .saveProfile(
             profileId: widget.initialProfile?.id,
-            name: _nameController.text.trim(),
-            age: int.parse(_ageController.text),
-            photoBase64: photoBase64,
+            draft: ChildProfileDraft(
+              name: _nameController.text.trim(),
+              age: int.parse(_ageController.text),
+              photoBase64: photoBase64,
+              gender: gender,
+            ),
           );
       if (!mounted) return;
       _showMessage(text.profileSaved);
@@ -382,7 +406,7 @@ class _PhotoEditor extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Row(
           children: <Widget>[
-            _preview(),
+            _preview(context),
             const SizedBox(width: 18),
             Expanded(
               child: Column(
@@ -424,19 +448,19 @@ class _PhotoEditor extends StatelessWidget {
   }
 
   /// Decodes the selected local image or displays a neutral private placeholder.
-  Widget _preview() {
+  Widget _preview(BuildContext context) {
     final encodedPhoto = photoBase64;
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: SizedBox.square(
         dimension: 112,
         child: encodedPhoto == null
-            ? const ColoredBox(
+            ? ColoredBox(
                 color: Color(0xFF222635),
                 child: Icon(
                   Icons.add_a_photo_outlined,
                   size: 36,
-                  color: AppTheme.amber,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               )
             : Image.memory(base64Decode(encodedPhoto), fit: BoxFit.cover),

@@ -9,6 +9,7 @@ class AppState {
     required this.locale,
     required this.profiles,
     required this.stories,
+    required this.activeProfileId,
   });
 
   /// Current interface locale.
@@ -19,6 +20,15 @@ class AppState {
 
   /// Books sorted newest first.
   final List<StoryBook> stories;
+
+  /// Profile currently controlling the personalized application theme.
+  final String? activeProfileId;
+
+  /// Active profile, or null until the parent selects or saves one.
+  ChildProfile? get activeProfile {
+    final profileId = activeProfileId;
+    return profileId == null ? null : profileById(profileId);
+  }
 
   /// Resolves the child associated with a story, including its private photo.
   ChildProfile? profileById(String profileId) {

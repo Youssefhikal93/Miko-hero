@@ -43,7 +43,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get profileIncompleteBody =>
-      'أضف اسم الطفل وعمره وصورة مرجعية قبل إنشاء القصة.';
+      'أضف اسم الطفل وعمره واختر فتاة أو فتى وأضف صورة مرجعية قبل إنشاء القصة.';
 
   @override
   String get setUpProfile => 'إضافة ملف';
@@ -87,6 +87,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get age => 'العمر';
+
+  @override
+  String get genderTitle => 'هل هذا البطل فتاة أم فتى؟';
+
+  @override
+  String get girl => 'فتاة';
+
+  @override
+  String get boy => 'فتى';
+
+  @override
+  String get genderRequired => 'اختر فتاة أو فتى.';
+
+  @override
+  String get genderNotSet => 'لم يتم اختيار فتاة أو فتى';
 
   @override
   String get referencePhoto => 'الصورة المرجعية';

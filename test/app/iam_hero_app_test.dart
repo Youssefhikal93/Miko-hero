@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -54,6 +55,7 @@ void main() {
           'name': 'Miko',
           'age': 7,
           'photoBase64': _transparentPixel,
+          'gender': 'girl',
         },
         <String, Object>{
           'id': 'abbas',
@@ -91,6 +93,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Abbas hero').last);
     await tester.pumpAndSettle();
+    expect(find.text('Is this hero a girl or a boy?'), findsOneWidget);
+    await tester.tap(find.text('Boy'));
+    await tester.pumpAndSettle();
+    final storyTitle = find.text('Create a story');
+    expect(
+      Theme.of(tester.element(storyTitle)).colorScheme.primary,
+      AppTheme.boyCyan,
+    );
     await tester.enterText(find.byType(TextFormField).at(0), 'a moon garden');
     await tester.enterText(find.byType(TextFormField).at(1), 'kindness');
     final generateButton = find.text('Generate demo story');
@@ -100,6 +110,16 @@ void main() {
 
     expect(find.text('Page 1 of 6'), findsOneWidget);
     expect(find.text('DEMO'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'He stepped forward with a curious heart and a very brave smile.',
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
 

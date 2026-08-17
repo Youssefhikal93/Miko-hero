@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Guided story request form backed by the explicit local demo generator.
@@ -83,9 +85,11 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   final _themeController = TextEditingController();
   final _moralController = TextEditingController();
   String? _selectedProfileId;
+  ChildGender? _selectedGender;
   late AppLanguage _language;
   StoryLength _length = StoryLength.short;
   IllustrationStyle _style = IllustrationStyle.pictureBook;
+  bool _savingProfileSelection = false;
   bool _generating = false;
 
   @override
@@ -120,6 +124,15 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
             ),
             const SizedBox(height: 20),
             _profileField(text),
+            if (_selectedProfileId != null) ...<Widget>[
+              const SizedBox(height: 16),
+              GenderSelector(
+                key: ValueKey<String>(_selectedProfileId!),
+                selectedGender: _selectedGender,
+                enabled: !_generating && !_savingProfileSelection,
+                onSelected: _genderSelected,
+              ),
+            ],
             const SizedBox(height: 16),
             _DemoNotice(text: text),
             const SizedBox(height: 20),
@@ -160,10 +173,64 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
       validator: (profileId) {
         return profileId == null ? text.profileSelectionRequired : null;
       },
-      onChanged: _generating
+      onChanged: _generating || _savingProfileSelection
           ? null
-          : (profileId) => setState(() => _selectedProfileId = profileId),
+          : (profileId) => _profileSelected(profileId),
     );
+  }
+
+  /// Loads a profile's saved choice and applies its theme when already known.
+  void _profileSelected(String? profileId) {
+    if (profileId == null) return;
+    final profile = widget.profiles.firstWhere(
+      (candidate) => candidate.id == profileId,
+    );
+    final selectedGender = profile.gender.isSpecified ? profile.gender : null;
+    setState(() {
+      _selectedProfileId = profileId;
+      _selectedGender = selectedGender;
+    });
+    if (selectedGender != null) {
+      setState(() => _savingProfileSelection = true);
+      unawaited(_persistProfileSelection(profileId, selectedGender));
+    }
+  }
+
+  /// Persists a deliberate Girl/Boy choice and updates the active app palette.
+  void _genderSelected(ChildGender gender) {
+    final profileId = _selectedProfileId;
+    if (profileId == null || _savingProfileSelection) return;
+    setState(() {
+      _selectedGender = gender;
+      _savingProfileSelection = true;
+    });
+    unawaited(_persistProfileSelection(profileId, gender));
+  }
+
+  /// Serializes profile selection and restores persisted input after a failure.
+  Future<void> _persistProfileSelection(
+    String profileId,
+    ChildGender gender,
+  ) async {
+    try {
+      await ref
+          .read(appControllerProvider.notifier)
+          .selectProfile(profileId, gender);
+    } on Exception {
+      if (!mounted) return;
+      final persistedProfile = ref
+          .read(appControllerProvider)
+          .value
+          ?.profileById(profileId);
+      setState(() {
+        _selectedGender = persistedProfile?.gender.isSpecified == true
+            ? persistedProfile?.gender
+            : null;
+      });
+      _showError();
+    } finally {
+      if (mounted) setState(() => _savingProfileSelection = false);
+    }
   }
 
   /// Builds the language selector from the four supported story contracts.
@@ -258,7 +325,9 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        onPressed: _generating ? null : _generateStory,
+        onPressed: _generating || _savingProfileSelection
+            ? null
+            : _generateStory,
         icon: _generating
             ? const SizedBox.square(
                 dimension: 20,
@@ -273,12 +342,15 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   /// Validates the request, persists the demo book, and opens its reader.
   Future<void> _generateStory() async {
     if (!_formKey.currentState!.validate()) return;
+    final profile = _selectedProfile();
+    final gender = _selectedGender!;
     setState(() => _generating = true);
-    final request = _storyRequest();
     try {
-      final story = await ref
-          .read(appControllerProvider.notifier)
-          .createStory(request);
+      final controller = ref.read(appControllerProvider.notifier);
+      await controller.selectProfile(profile.id, gender);
+      final story = await controller.createStory(
+        _storyRequest(profile, gender),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).storyCreated)),
@@ -287,22 +359,18 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     } on Exception {
       if (!mounted) return;
       setState(() => _generating = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).somethingWentWrong),
-        ),
-      );
+      _showError();
     }
   }
 
   /// Captures one immutable request from the already-validated edit buffer.
-  StoryRequest _storyRequest() {
-    final profile = widget.profiles.firstWhere(
-      (candidate) => candidate.id == _selectedProfileId,
-    );
+  StoryRequest _storyRequest(ChildProfile profile, ChildGender gender) {
     return StoryRequest(
-      profileId: profile.id,
-      heroName: profile.name,
+      hero: StoryHero(
+        profileId: profile.id,
+        name: profile.name,
+        gender: gender,
+      ),
       theme: _themeController.text.trim(),
       moral: _moralController.text.trim(),
       presentation: StoryPresentation(
@@ -310,6 +378,20 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
         length: _length,
         style: _style,
       ),
+    );
+  }
+
+  /// Resolves the validated profile identity from the current widget snapshot.
+  ChildProfile _selectedProfile() {
+    return widget.profiles.firstWhere(
+      (candidate) => candidate.id == _selectedProfileId,
+    );
+  }
+
+  /// Shows recoverable local-write or generation failure feedback.
+  void _showError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).somethingWentWrong)),
     );
   }
 
@@ -359,7 +441,10 @@ class _DemoNotice extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Icon(Icons.science_outlined, color: AppTheme.amber),
+            Icon(
+              Icons.science_outlined,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 12),
             Expanded(child: Text(text.demoModeNotice)),
           ],

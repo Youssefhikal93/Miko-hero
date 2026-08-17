@@ -288,15 +288,17 @@ class _PageIllustration extends StatelessWidget {
 
   /// Keeps placeholder art stable for each selected illustration style.
   LinearGradient _pageGradient() {
+    final primary = AppTheme.primaryFor(story.content.request.gender);
+    final secondary = AppTheme.secondaryFor(story.content.request.gender);
     return switch (story.content.request.presentation.style) {
-      IllustrationStyle.pictureBook => const LinearGradient(
-        colors: <Color>[Color(0xFF4C33A5), Color(0xFFDA5B67)],
+      IllustrationStyle.pictureBook => LinearGradient(
+        colors: <Color>[primary, secondary],
       ),
-      IllustrationStyle.watercolor => const LinearGradient(
-        colors: <Color>[Color(0xFF26778A), Color(0xFF8E6487)],
+      IllustrationStyle.watercolor => LinearGradient(
+        colors: <Color>[secondary, primary.withValues(alpha: 0.78)],
       ),
-      IllustrationStyle.colorful3d => const LinearGradient(
-        colors: <Color>[AppTheme.orange, Color(0xFF8A31CB)],
+      IllustrationStyle.colorful3d => LinearGradient(
+        colors: <Color>[primary, secondary, const Color(0xFF8A31CB)],
       ),
     };
   }

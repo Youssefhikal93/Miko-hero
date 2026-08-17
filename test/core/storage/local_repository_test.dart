@@ -26,17 +26,24 @@ void main() {
           name: 'Miko',
           age: 7,
           photoBase64: 'cHJpdmF0ZS1waG90bw==',
+          gender: ChildGender.girl,
         ),
         ChildProfile(
           id: 'abbas',
           name: 'Abbas',
           age: 9,
           photoBase64: 'c2Vjb25kLXBob3Rv',
+          gender: ChildGender.boy,
         ),
       ];
-      final story = _story(profileId: 'abbas', heroName: 'Abbas');
+      final story = _story(
+        profileId: 'abbas',
+        heroName: 'Abbas',
+        gender: ChildGender.boy,
+      );
 
       await repository.saveProfiles(profiles);
+      await repository.saveActiveProfileId('abbas');
       await repository.saveStories(<StoryBook>[story]);
       final reopened = await LocalRepository.open();
       final state = await reopened.readState();
@@ -47,6 +54,7 @@ void main() {
       ]);
       expect(state.storiesForProfile('miko'), isEmpty);
       expect(state.storiesForProfile('abbas').single.toJson(), story.toJson());
+      expect(state.activeProfile?.gender, ChildGender.boy);
     },
   );
 
@@ -56,11 +64,18 @@ void main() {
       final repository = await LocalRepository.open();
       await repository.saveLocale(const Locale('sv'));
       await repository.saveProfiles(const <ChildProfile>[
-        ChildProfile(id: 'miko', name: 'Miko', age: 7, photoBase64: 'cGhvdG8='),
+        ChildProfile(
+          id: 'miko',
+          name: 'Miko',
+          age: 7,
+          photoBase64: 'cGhvdG8=',
+          gender: ChildGender.girl,
+        ),
       ]);
       await repository.saveStories(<StoryBook>[
-        _story(profileId: 'miko', heroName: 'Miko'),
+        _story(profileId: 'miko', heroName: 'Miko', gender: ChildGender.girl),
       ]);
+      await repository.saveActiveProfileId('miko');
 
       await repository.clearAll();
       final state = await repository.readState();
@@ -68,6 +83,7 @@ void main() {
       expect(state.locale.languageCode, 'sv');
       expect(state.profiles, isEmpty);
       expect(state.stories, isEmpty);
+      expect(state.activeProfileId, isNull);
     },
   );
 
@@ -75,10 +91,12 @@ void main() {
     final legacyStory = _story(
       profileId: 'discarded-during-legacy-encoding',
       heroName: 'Miko',
+      gender: ChildGender.girl,
     ).toJson();
     final content = legacyStory['content']! as Map<String, Object>;
     final request = content['request']! as Map<String, Object>;
     request.remove('profileId');
+    request.remove('gender');
     SharedPreferences.setMockInitialValues(<String, Object>{
       'daughter_profile': jsonEncode(<String, Object>{
         'name': 'Miko',
@@ -94,10 +112,13 @@ void main() {
     final persisted = await reopened.readState();
 
     expect(migrated.profiles.single.id, legacyChildProfileId);
+    expect(migrated.profiles.single.gender, ChildGender.girl);
+    expect(migrated.activeProfileId, legacyChildProfileId);
     expect(
       migrated.stories.single.content.request.profileId,
       legacyChildProfileId,
     );
+    expect(migrated.stories.single.content.request.gender, ChildGender.girl);
     expect(persisted.storiesForProfile(legacyChildProfileId), hasLength(1));
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.containsKey('daughter_profile'), isFalse);
@@ -119,18 +140,43 @@ void main() {
       expect(preferences.containsKey('child_profiles'), isTrue);
     },
   );
+
+  test(
+    'current profiles without gender remain unspecified for parent choice',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'child_profiles': jsonEncode(<Map<String, Object>>[
+          <String, Object>{
+            'id': 'abbas',
+            'name': 'Abbas',
+            'age': 9,
+            'photoBase64': 'cGhvdG8=',
+          },
+        ]),
+      });
+      final repository = await LocalRepository.open();
+
+      final state = await repository.readState();
+
+      expect(state.profiles.single.gender, ChildGender.unspecified);
+      expect(state.activeProfileId, isNull);
+    },
+  );
 }
 
 /// Builds a complete book so persistence tests exercise nested model decoding.
-StoryBook _story({required String profileId, required String heroName}) {
+StoryBook _story({
+  required String profileId,
+  required String heroName,
+  required ChildGender gender,
+}) {
   return StoryBook(
     id: 'story-$profileId',
     createdAt: DateTime.utc(2026, 8, 17),
     content: StoryContent(
       title: 'Moon Garden',
       request: StoryRequest(
-        profileId: profileId,
-        heroName: heroName,
+        hero: StoryHero(profileId: profileId, name: heroName, gender: gender),
         theme: 'moon garden',
         moral: 'kindness',
         presentation: const StoryPresentation(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -89,9 +88,12 @@ class _WelcomePanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
+        Text(
           'Iam - hero',
-          style: TextStyle(color: AppTheme.amber, fontWeight: FontWeight.w900),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 12),
         Text(
@@ -122,12 +124,13 @@ class _HeroEmblem extends StatelessWidget {
   @override
   /// Uses layered shapes to provide visual identity before real illustrations exist.
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return AspectRatio(
       aspectRatio: 1.2,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: <Color>[AppTheme.orange, Color(0xFF7A42F4)],
+          gradient: LinearGradient(
+            colors: <Color>[colors.secondary, colors.primary],
           ),
           borderRadius: BorderRadius.circular(28),
         ),
@@ -241,10 +244,10 @@ class _EmptyLibrary extends StatelessWidget {
         padding: const EdgeInsets.all(28),
         child: Column(
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.menu_book_outlined,
               size: 48,
-              color: AppTheme.amber,
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 14),
             Text(

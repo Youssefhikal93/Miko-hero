@@ -45,25 +45,55 @@ class AppController extends AsyncNotifier<AppState> {
   /// Adds a new child or replaces an existing profile after form validation.
   Future<void> saveProfile({
     required String? profileId,
-    required String name,
-    required int age,
-    required String photoBase64,
+    required ChildProfileDraft draft,
   }) async {
+    if (!draft.gender.isSpecified) {
+      throw ArgumentError.value(draft.gender, 'gender');
+    }
     final current = state.requireValue;
     final profile = ChildProfile(
       id: profileId ?? _newProfileId(current.profiles),
-      name: name,
-      age: age,
-      photoBase64: photoBase64,
+      name: draft.name,
+      age: draft.age,
+      photoBase64: draft.photoBase64,
+      gender: draft.gender,
     );
     final profiles = _upsertProfile(current.profiles, profile);
     final repository = await ref.read(localRepositoryProvider.future);
     await repository.saveProfiles(profiles);
+    await repository.saveActiveProfileId(profile.id);
     state = AsyncData(
       AppState(
         locale: current.locale,
         profiles: profiles,
         stories: current.stories,
+        activeProfileId: profile.id,
+      ),
+    );
+  }
+
+  /// Persists a profile's Girl/Boy choice and applies its color theme.
+  Future<void> selectProfile(String profileId, ChildGender gender) async {
+    if (!gender.isSpecified) {
+      throw ArgumentError.value(gender, 'gender');
+    }
+    final current = state.requireValue;
+    final profile = current.profileById(profileId);
+    if (profile == null) throw StateError('Unknown child profile.');
+    final profiles = profile.gender == gender
+        ? current.profiles
+        : _upsertProfile(current.profiles, profile.withGender(gender));
+    final repository = await ref.read(localRepositoryProvider.future);
+    if (!identical(profiles, current.profiles)) {
+      await repository.saveProfiles(profiles);
+    }
+    await repository.saveActiveProfileId(profileId);
+    state = AsyncData(
+      AppState(
+        locale: current.locale,
+        profiles: profiles,
+        stories: current.stories,
+        activeProfileId: profileId,
       ),
     );
   }
@@ -71,8 +101,12 @@ class AppController extends AsyncNotifier<AppState> {
   /// Generates, persists, and returns a new book for immediate navigation.
   Future<StoryBook> createStory(StoryRequest request) async {
     final current = state.requireValue;
-    if (current.profileById(request.profileId) == null) {
+    final profile = current.profileById(request.profileId);
+    if (profile == null) {
       throw StateError('Cannot create a story for an unknown child profile.');
+    }
+    if (!request.gender.isSpecified || request.gender != profile.gender) {
+      throw StateError('Story gender must match the selected child profile.');
     }
     final generator = ref.read(storyGeneratorProvider);
     final story = await generator.generate(request);
@@ -103,6 +137,7 @@ class AppController extends AsyncNotifier<AppState> {
         locale: locale,
         profiles: current.profiles,
         stories: current.stories,
+        activeProfileId: current.activeProfileId,
       ),
     );
   }
@@ -117,6 +152,7 @@ class AppController extends AsyncNotifier<AppState> {
         locale: current.locale,
         profiles: const <ChildProfile>[],
         stories: const <StoryBook>[],
+        activeProfileId: null,
       ),
     );
   }
@@ -131,6 +167,7 @@ class AppController extends AsyncNotifier<AppState> {
         locale: current.locale,
         profiles: current.profiles,
         stories: stories,
+        activeProfileId: current.activeProfileId,
       ),
     );
   }

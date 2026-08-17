@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
 /// Responsive navigation frame shared by the four primary destinations.
@@ -128,18 +127,21 @@ class _DesktopShell extends StatelessWidget {
           const <String>['/', '/create', '/library', '/settings'][index],
         );
       },
-      destinations: destinations.map(_railDestination).toList(),
+      destinations: destinations
+          .map((destination) => _railDestination(context, destination))
+          .toList(),
     );
   }
 
   /// Converts a bottom destination into the equivalent rail destination.
   NavigationRailDestination _railDestination(
+    BuildContext context,
     NavigationDestination destination,
   ) {
     return NavigationRailDestination(
       icon: destination.icon,
       selectedIcon: IconTheme(
-        data: const IconThemeData(color: AppTheme.amber),
+        data: IconThemeData(color: Theme.of(context).colorScheme.primary),
         child: destination.icon,
       ),
       label: Text(destination.label),
@@ -155,6 +157,7 @@ class _Brand extends StatelessWidget {
   @override
   /// Keeps the logo recognizable without relying on an external image asset.
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 16, 12),
       child: Row(
@@ -163,8 +166,8 @@ class _Brand extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: <Color>[AppTheme.amber, AppTheme.orange],
+              gradient: LinearGradient(
+                colors: <Color>[colors.primary, colors.secondary],
               ),
               borderRadius: BorderRadius.circular(14),
             ),

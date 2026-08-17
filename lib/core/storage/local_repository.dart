@@ -29,6 +29,7 @@ class LocalRepository {
   static const _legacyProfileKey = 'daughter_profile';
   static const _profilesKey = 'child_profiles';
   static const _storiesKey = 'story_library';
+  static const _activeProfileKey = 'active_profile_id';
 
   final SharedPreferences _preferences;
 
@@ -43,14 +44,29 @@ class LocalRepository {
     try {
       final profiles = _readProfiles();
       final fallbackProfileId = _legacyStoryProfileId(profiles);
+      final fallbackGender = fallbackProfileId == null
+          ? null
+          : profiles.single.gender;
+      final activeProfileId = _readActiveProfileId(
+        profiles,
+        legacyProfileId: fallbackProfileId,
+      );
       final state = AppState(
         locale: _readLocale(),
         profiles: profiles,
-        stories: _readStories(fallbackProfileId: fallbackProfileId),
+        stories: _readStories(
+          fallbackProfileId: fallbackProfileId,
+          fallbackGender: fallbackGender,
+        ),
+        activeProfileId: activeProfileId,
       );
       _validateStoryProfiles(state);
       if (fallbackProfileId != null) {
-        await _finishLegacyProfileMigration(profiles, state.stories);
+        await _finishLegacyProfileMigration(
+          profiles,
+          state.stories,
+          activeProfileId,
+        );
       }
       return state;
     } on FormatException catch (error) {
@@ -77,12 +93,18 @@ class LocalRepository {
     await _preferences.setString(_storiesKey, jsonEncode(encodedStories));
   }
 
+  /// Persists the profile currently controlling the application color palette.
+  Future<void> saveActiveProfileId(String profileId) async {
+    await _preferences.setString(_activeProfileKey, profileId);
+  }
+
   /// Permanently removes every Iam - hero family value from this device.
   Future<void> clearAll() async {
     await Future.wait(<Future<bool>>[
       _preferences.remove(_legacyProfileKey),
       _preferences.remove(_profilesKey),
       _preferences.remove(_storiesKey),
+      _preferences.remove(_activeProfileKey),
     ]);
   }
 
@@ -115,7 +137,10 @@ class LocalRepository {
   }
 
   /// Decodes books and returns them newest first for deterministic rendering.
-  List<StoryBook> _readStories({String? fallbackProfileId}) {
+  List<StoryBook> _readStories({
+    String? fallbackProfileId,
+    ChildGender? fallbackGender,
+  }) {
     final encodedStories = _preferences.getString(_storiesKey);
     if (encodedStories == null) {
       return const <StoryBook>[];
@@ -129,6 +154,7 @@ class LocalRepository {
           (encodedStory) => _decodeStoryBook(
             encodedStory,
             fallbackProfileId: fallbackProfileId,
+            fallbackGender: fallbackGender,
           ),
         )
         .toList();
@@ -149,6 +175,7 @@ class LocalRepository {
   StoryBook _decodeStoryBook(
     Object? encodedStory, {
     String? fallbackProfileId,
+    ChildGender? fallbackGender,
   }) {
     if (encodedStory is! Map<String, Object?>) {
       throw const FormatException('Malformed story library entry.');
@@ -156,6 +183,7 @@ class LocalRepository {
     return StoryBook.fromJson(
       encodedStory,
       fallbackProfileId: fallbackProfileId,
+      fallbackGender: fallbackGender,
     );
   }
 
@@ -179,6 +207,7 @@ class LocalRepository {
   Future<void> _finishLegacyProfileMigration(
     List<ChildProfile> profiles,
     List<StoryBook> stories,
+    String? activeProfileId,
   ) async {
     if (_preferences.containsKey(_profilesKey) ||
         !_preferences.containsKey(_legacyProfileKey)) {
@@ -186,7 +215,23 @@ class LocalRepository {
     }
     await saveStories(stories);
     await saveProfiles(profiles);
+    if (activeProfileId != null) {
+      await saveActiveProfileId(activeProfileId);
+    }
     await _preferences.remove(_legacyProfileKey);
+  }
+
+  /// Resolves a valid active identity or adopts the migrated singleton profile.
+  String? _readActiveProfileId(
+    List<ChildProfile> profiles, {
+    String? legacyProfileId,
+  }) {
+    final activeProfileId = _preferences.getString(_activeProfileKey);
+    if (activeProfileId == null) return legacyProfileId;
+    if (!profiles.any((profile) => profile.id == activeProfileId)) {
+      throw const FormatException('Active child profile does not exist.');
+    }
+    return activeProfileId;
   }
 
   /// Rejects stories whose child identity cannot resolve to a saved profile.

@@ -44,7 +44,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get profileIncompleteBody =>
-      'Lägg till barnets namn, ålder och referensfoto innan du skapar en berättelse.';
+      'Lägg till barnets namn, ålder, välj flicka eller pojke och lägg till ett referensfoto innan du skapar en berättelse.';
 
   @override
   String get setUpProfile => 'Lägg till profil';
@@ -89,6 +89,21 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get age => 'Ålder';
+
+  @override
+  String get genderTitle => 'Är hjälten en flicka eller pojke?';
+
+  @override
+  String get girl => 'Flicka';
+
+  @override
+  String get boy => 'Pojke';
+
+  @override
+  String get genderRequired => 'Välj flicka eller pojke.';
+
+  @override
+  String get genderNotSet => 'Flicka/pojke har inte valts';
 
   @override
   String get referencePhoto => 'Referensfoto';

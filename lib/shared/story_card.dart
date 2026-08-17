@@ -154,15 +154,17 @@ class StoryCover extends StatelessWidget {
 
   /// Selects a stable palette corresponding to the requested visual style.
   LinearGradient _gradient() {
+    final primary = AppTheme.primaryFor(story.content.request.gender);
+    final secondary = AppTheme.secondaryFor(story.content.request.gender);
     return switch (story.content.request.presentation.style) {
-      IllustrationStyle.pictureBook => const LinearGradient(
-        colors: <Color>[Color(0xFF6D3AE8), Color(0xFFFF7A38)],
+      IllustrationStyle.pictureBook => LinearGradient(
+        colors: <Color>[primary, secondary],
       ),
-      IllustrationStyle.watercolor => const LinearGradient(
-        colors: <Color>[Color(0xFF246F8E), Color(0xFFB96F7D)],
+      IllustrationStyle.watercolor => LinearGradient(
+        colors: <Color>[secondary, primary.withValues(alpha: 0.78)],
       ),
-      IllustrationStyle.colorful3d => const LinearGradient(
-        colors: <Color>[AppTheme.orange, Color(0xFFDC2F88), Color(0xFF5545D9)],
+      IllustrationStyle.colorful3d => LinearGradient(
+        colors: <Color>[primary, secondary, const Color(0xFF5545D9)],
       ),
     };
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/app_theme.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
 /// Root widget that binds persisted locale state to the routed application.
@@ -15,10 +16,12 @@ class IamHeroApp extends ConsumerWidget {
   /// Renders routed features while local state loads in their own boundaries.
   Widget build(BuildContext context, WidgetRef ref) {
     final appState = ref.watch(appControllerProvider);
+    final activeGender =
+        appState.value?.activeProfile?.gender ?? ChildGender.unspecified;
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Iam - hero',
-      theme: AppTheme.dark(),
+      theme: AppTheme.dark(activeGender),
       routerConfig: appRouter,
       locale: appState.value?.locale,
       supportedLocales: AppLocalizations.supportedLocales,

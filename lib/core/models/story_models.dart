@@ -1,4 +1,5 @@
 import 'package:miko_hero/core/models/app_language.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 
 /// Supported story sizes and their exact number of illustrated pages.
 enum StoryLength {
@@ -77,22 +78,80 @@ class StoryPresentation {
   }
 }
 
-/// Parent-authored inputs supplied to a story generator.
-class StoryRequest {
-  /// Creates an immutable request after user input validation.
-  const StoryRequest({
+/// Stable child identity and parent-selected character context for a story.
+class StoryHero {
+  /// Creates a hero after profile and gender selection have been validated.
+  const StoryHero({
     required this.profileId,
-    required this.heroName,
-    required this.theme,
-    required this.moral,
-    required this.presentation,
+    required this.name,
+    required this.gender,
   });
 
   /// Stable child identity used to group stories even when names are edited.
   final String profileId;
 
   /// Child's name used as the story protagonist.
-  final String heroName;
+  final String name;
+
+  /// Girl/Boy context used by prose and future illustration prompts.
+  final ChildGender gender;
+
+  /// Converts hero context to fields retained by the existing storage schema.
+  Map<String, Object> toJson() {
+    return <String, Object>{
+      'profileId': profileId,
+      'heroName': name,
+      'gender': gender.name,
+    };
+  }
+
+  /// Restores hero fields with explicit fallbacks for older stored stories.
+  factory StoryHero.fromJson(
+    Map<String, Object?> json, {
+    String? fallbackProfileId,
+    ChildGender? fallbackGender,
+  }) {
+    final storedProfileId = json['profileId'];
+    if (storedProfileId != null && storedProfileId is! String) {
+      throw const FormatException('Malformed story profile identity.');
+    }
+    final profileId = storedProfileId as String? ?? fallbackProfileId;
+    final heroName = json['heroName'];
+    if (profileId == null ||
+        profileId.trim().isEmpty ||
+        heroName is! String ||
+        heroName.trim().isEmpty) {
+      throw const FormatException('Malformed story hero.');
+    }
+    return StoryHero(
+      profileId: profileId,
+      name: heroName,
+      gender: _storyGender(json['gender'], fallbackGender: fallbackGender),
+    );
+  }
+}
+
+/// Parent-authored inputs supplied to a story generator.
+class StoryRequest {
+  /// Creates an immutable request after user input validation.
+  const StoryRequest({
+    required this.hero,
+    required this.theme,
+    required this.moral,
+    required this.presentation,
+  });
+
+  /// Selected child identity, name, and Girl/Boy story context.
+  final StoryHero hero;
+
+  /// Stable child identity used by library grouping.
+  String get profileId => hero.profileId;
+
+  /// Child's name used as the story protagonist.
+  String get heroName => hero.name;
+
+  /// Parent-confirmed gender context used by generation.
+  ChildGender get gender => hero.gender;
 
   /// Parent-entered setting or adventure idea.
   final String theme;
@@ -106,33 +165,23 @@ class StoryRequest {
   /// Converts the request into a JSON-compatible local storage object.
   Map<String, Object> toJson() {
     return <String, Object>{
-      'profileId': profileId,
-      'heroName': heroName,
+      ...hero.toJson(),
       'theme': theme,
       'moral': moral,
       'presentation': presentation.toJson(),
     };
   }
 
-  /// Restores local JSON, using [fallbackProfileId] only for legacy payloads.
+  /// Restores local JSON with optional identity and gender migration context.
   factory StoryRequest.fromJson(
     Map<String, Object?> json, {
     String? fallbackProfileId,
+    ChildGender? fallbackGender,
   }) {
-    final storedProfileId = json['profileId'];
-    if (storedProfileId != null && storedProfileId is! String) {
-      throw const FormatException('Malformed story profile identity.');
-    }
-    final profileId = storedProfileId as String? ?? fallbackProfileId;
-    final heroName = json['heroName'];
     final theme = json['theme'];
     final moral = json['moral'];
     final presentation = json['presentation'];
-    if (profileId == null ||
-        profileId.trim().isEmpty ||
-        heroName is! String ||
-        heroName.trim().isEmpty ||
-        theme is! String ||
+    if (theme is! String ||
         theme.trim().isEmpty ||
         moral is! String ||
         moral.trim().isEmpty) {
@@ -142,8 +191,11 @@ class StoryRequest {
       throw const FormatException('Malformed story presentation.');
     }
     return StoryRequest(
-      profileId: profileId,
-      heroName: heroName,
+      hero: StoryHero.fromJson(
+        json,
+        fallbackProfileId: fallbackProfileId,
+        fallbackGender: fallbackGender,
+      ),
       theme: theme,
       moral: moral,
       presentation: StoryPresentation.fromJson(presentation),
@@ -221,10 +273,11 @@ class StoryContent {
     };
   }
 
-  /// Restores content while forwarding a legacy profile identity to its request.
+  /// Restores content while forwarding legacy hero context to its request.
   factory StoryContent.fromJson(
     Map<String, Object?> json, {
     String? fallbackProfileId,
+    ChildGender? fallbackGender,
   }) {
     final title = json['title'];
     final request = json['request'];
@@ -243,6 +296,7 @@ class StoryContent {
       request: StoryRequest.fromJson(
         request,
         fallbackProfileId: fallbackProfileId,
+        fallbackGender: fallbackGender,
       ),
       pages: decodedPages,
     );
@@ -280,6 +334,7 @@ class StoryBook {
   factory StoryBook.fromJson(
     Map<String, Object?> json, {
     String? fallbackProfileId,
+    ChildGender? fallbackGender,
   }) {
     final id = json['id'];
     final createdAt = json['createdAt'];
@@ -295,8 +350,24 @@ class StoryBook {
       content: StoryContent.fromJson(
         content,
         fallbackProfileId: fallbackProfileId,
+        fallbackGender: fallbackGender,
       ),
     );
+  }
+}
+
+/// Decodes current gender names or preserves pre-gender stories as unspecified.
+ChildGender _storyGender(Object? encodedGender, {ChildGender? fallbackGender}) {
+  if (encodedGender == null) {
+    return fallbackGender ?? ChildGender.unspecified;
+  }
+  if (encodedGender is! String) {
+    throw const FormatException('Malformed story gender.');
+  }
+  try {
+    return ChildGender.values.byName(encodedGender);
+  } on ArgumentError {
+    throw const FormatException('Unsupported story gender.');
   }
 }
 

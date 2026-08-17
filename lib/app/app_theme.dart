@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 
 /// Iam - hero visual system shared by every target platform.
 abstract final class AppTheme {
@@ -8,30 +9,62 @@ abstract final class AppTheme {
   /// Deeper orange used in gradients and focused states.
   static const orange = Color(0xFFFF7426);
 
+  /// Pink accent applied after selecting a girl profile.
+  static const girlPink = Color(0xFFFF5CA8);
+
+  /// Soft pink used for girl-profile gradients and secondary controls.
+  static const girlRose = Color(0xFFFF91C5);
+
+  /// Cyan accent applied after selecting a boy profile.
+  static const boyCyan = Color(0xFF31D7E8);
+
+  /// Blue used for boy-profile gradients and secondary controls.
+  static const boyBlue = Color(0xFF3987FF);
+
   /// Near-black navy used behind the premium storybook surfaces.
   static const ink = Color(0xFF090B12);
 
   /// Raised surface color that remains distinct from the background.
   static const panel = Color(0xFF151823);
 
-  /// Creates the accessible dark Material theme used throughout the app.
-  static ThemeData dark() {
+  /// Creates a dark Material theme colored by the active child profile.
+  static ThemeData dark(ChildGender gender) {
+    final primary = primaryFor(gender);
+    final secondary = secondaryFor(gender);
     final scheme = ColorScheme.fromSeed(
-      seedColor: amber,
+      seedColor: primary,
       brightness: Brightness.dark,
       surface: panel,
     );
     return ThemeData(
       brightness: Brightness.dark,
-      colorScheme: scheme.copyWith(primary: amber, secondary: orange),
+      colorScheme: scheme.copyWith(primary: primary, secondary: secondary),
       scaffoldBackgroundColor: ink,
       useMaterial3: true,
       textTheme: _textTheme(),
       cardTheme: _cardTheme(),
       inputDecorationTheme: _inputTheme(),
-      filledButtonTheme: _buttonTheme(),
-      navigationBarTheme: _navigationTheme(),
+      filledButtonTheme: _buttonTheme(primary),
+      navigationBarTheme: _navigationTheme(primary),
     );
+  }
+
+  /// Resolves the primary accent for neutral, girl, and boy profile states.
+  static Color primaryFor(ChildGender gender) {
+    return switch (gender) {
+      ChildGender.unspecified => amber,
+      ChildGender.girl => girlPink,
+      ChildGender.boy => boyCyan,
+    };
+  }
+
+  /// Resolves the secondary gradient color paired with a profile accent.
+  static Color secondaryFor(ChildGender gender) {
+    return switch (gender) {
+      ChildGender.unspecified => orange,
+      ChildGender.girl => girlRose,
+      ChildGender.boy => boyBlue,
+    };
   }
 
   /// Defines a compact display scale that remains readable on small phones.
@@ -73,10 +106,10 @@ abstract final class AppTheme {
   }
 
   /// Styles primary calls to action as warm storybook highlights.
-  static FilledButtonThemeData _buttonTheme() {
+  static FilledButtonThemeData _buttonTheme(Color primary) {
     return FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: amber,
+        backgroundColor: primary,
         foregroundColor: const Color(0xFF211400),
         minimumSize: const Size(48, 52),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
@@ -87,10 +120,10 @@ abstract final class AppTheme {
   }
 
   /// Highlights the current bottom destination without an opaque bar.
-  static NavigationBarThemeData _navigationTheme() {
+  static NavigationBarThemeData _navigationTheme(Color primary) {
     return NavigationBarThemeData(
       backgroundColor: const Color(0xF20F121A),
-      indicatorColor: amber.withValues(alpha: 0.18),
+      indicatorColor: primary.withValues(alpha: 0.18),
       height: 72,
       labelTextStyle: WidgetStateProperty.all(
         const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),

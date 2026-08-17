@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
@@ -121,7 +120,10 @@ class _SettingsContent extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Icon(Icons.shield_rounded, color: AppTheme.amber),
+            Icon(
+              Icons.shield_rounded,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

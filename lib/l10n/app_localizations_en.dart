@@ -44,7 +44,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileIncompleteBody =>
-      'Add a child\'s name, age, and reference photo before creating a story.';
+      'Add a child\'s name, age, Girl/Boy choice, and reference photo before creating a story.';
 
   @override
   String get setUpProfile => 'Add a profile';
@@ -89,6 +89,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get age => 'Age';
+
+  @override
+  String get genderTitle => 'Is this hero a girl or a boy?';
+
+  @override
+  String get girl => 'Girl';
+
+  @override
+  String get boy => 'Boy';
+
+  @override
+  String get genderRequired => 'Choose Girl or Boy.';
+
+  @override
+  String get genderNotSet => 'Girl/Boy not selected';
 
   @override
   String get referencePhoto => 'Reference photo';
