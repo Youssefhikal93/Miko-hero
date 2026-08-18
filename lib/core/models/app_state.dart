@@ -44,4 +44,47 @@ class AppState {
         .where((story) => story.content.request.profileId == profileId)
         .toList(growable: false);
   }
+
+  /// Returns a snapshot with a newly persisted interface locale.
+  AppState withLocale(Locale savedLocale) {
+    return AppState(
+      locale: savedLocale,
+      profiles: profiles,
+      stories: stories,
+      activeProfileId: activeProfileId,
+    );
+  }
+
+  /// Returns a snapshot after profile persistence selects an active child.
+  AppState withProfiles(
+    List<ChildProfile> savedProfiles, {
+    required String? savedActiveProfileId,
+  }) {
+    return AppState(
+      locale: locale,
+      profiles: savedProfiles,
+      stories: stories,
+      activeProfileId: savedActiveProfileId,
+    );
+  }
+
+  /// Returns a snapshot after the newest-first story library is persisted.
+  AppState withStories(List<StoryBook> savedStories) {
+    return AppState(
+      locale: locale,
+      profiles: profiles,
+      stories: savedStories,
+      activeProfileId: activeProfileId,
+    );
+  }
+
+  /// Removes family content while retaining the parent's interface language.
+  AppState withoutFamilyData() {
+    return AppState(
+      locale: locale,
+      profiles: const <ChildProfile>[],
+      stories: const <StoryBook>[],
+      activeProfileId: null,
+    );
+  }
 }

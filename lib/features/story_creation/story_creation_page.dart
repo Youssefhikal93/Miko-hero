@@ -7,6 +7,8 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/features/profile/profile_controller.dart';
+import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -215,7 +217,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   ) async {
     try {
       await ref
-          .read(appControllerProvider.notifier)
+          .read(profileControllerProvider)
           .selectProfile(profileId, gender);
     } on Exception {
       if (!mounted) return;
@@ -340,11 +342,12 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     final gender = _selectedGender!;
     setState(() => _generating = true);
     try {
-      final controller = ref.read(appControllerProvider.notifier);
-      await controller.selectProfile(profile.id, gender);
-      final story = await controller.createStory(
-        _storyRequest(profile, gender),
-      );
+      await ref
+          .read(profileControllerProvider)
+          .selectProfile(profile.id, gender);
+      final story = await ref
+          .read(storyControllerProvider)
+          .createStory(_storyRequest(profile, gender));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).storyCreated)),

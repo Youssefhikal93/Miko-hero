@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
@@ -349,7 +350,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     setState(() => _saving = true);
     try {
       await ref
-          .read(appControllerProvider.notifier)
+          .read(profileControllerProvider)
           .saveProfile(
             profileId: widget.initialProfile?.id,
             draft: ChildProfileDraft(

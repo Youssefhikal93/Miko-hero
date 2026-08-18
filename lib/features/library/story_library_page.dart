@@ -5,6 +5,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -192,7 +193,7 @@ class _ProfileShelf extends ConsumerWidget {
       ),
     );
     if (confirmed == true) {
-      await ref.read(appControllerProvider.notifier).deleteStory(story.id);
+      await ref.read(storyControllerProvider).deleteStory(story.id);
     }
   }
 }

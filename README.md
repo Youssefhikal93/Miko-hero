@@ -61,13 +61,13 @@ implement. Screens depend on that boundary rather than Ollama or ComfyUI APIs.
 
 ```text
 lib/
-  app/                 routing, theme, providers, and persisted state commands
+  app/                 routing, theme, service providers, and shared state loading
   core/
     generation/        StoryGenerator boundary and demo implementation
     models/            validated child-profile and story value objects
     narration/         device text-to-speech boundary and implementation
     storage/           local SharedPreferences repository
-  features/            home, profile, creation, library, reader, and settings
+  features/            pages, widgets, and focused profile/story/settings commands
   l10n/                ARB translations and generated localization classes
   shared/              responsive layout and reusable story widgets
 test/

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
+import 'package:miko_hero/features/settings/settings_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -82,7 +83,7 @@ class _SettingsContent extends ConsumerWidget {
           selectedLanguage: selectedLanguage,
           label: text.appLanguage,
           onSelected: (language) {
-            ref.read(appControllerProvider.notifier).setLocale(language.locale);
+            ref.read(settingsControllerProvider).setLocale(language.locale);
           },
         ),
       ),
@@ -171,7 +172,7 @@ class _SettingsContent extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    await ref.read(appControllerProvider.notifier).clearAll();
+    await ref.read(settingsControllerProvider).clearFamilyData();
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,

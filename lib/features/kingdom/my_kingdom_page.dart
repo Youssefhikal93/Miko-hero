@@ -7,6 +7,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -86,9 +87,7 @@ class _KingdomContent extends ConsumerWidget {
     ChildProfile profile,
   ) async {
     try {
-      await ref
-          .read(appControllerProvider.notifier)
-          .activateProfile(profile.id);
+      await ref.read(profileControllerProvider).activateProfile(profile.id);
     } on Exception {
       if (context.mounted) _showError(context);
     }
@@ -104,8 +103,8 @@ class _KingdomContent extends ConsumerWidget {
     final text = AppLocalizations.of(context);
     try {
       await ref
-          .read(appControllerProvider.notifier)
-          .setProfileThemeColor(profile.id, color.toARGB32());
+          .read(profileControllerProvider)
+          .setThemeColor(profile.id, color.toARGB32());
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(text.profileThemeSaved(profile.name))),
