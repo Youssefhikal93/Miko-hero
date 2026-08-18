@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_shell.dart';
 import 'package:miko_hero/features/home/home_page.dart';
+import 'package:miko_hero/features/kingdom/my_kingdom_page.dart';
 import 'package:miko_hero/features/library/story_library_page.dart';
 import 'package:miko_hero/features/profile/profile_page.dart';
 import 'package:miko_hero/features/reader/story_reader_page.dart';
@@ -28,28 +29,34 @@ final appRouter = GoRouter(
           path: '/settings',
           builder: (context, state) => const SettingsPage(),
         ),
+        GoRoute(
+          path: '/kingdom',
+          builder: (context, state) => const MyKingdomPage(),
+        ),
+        GoRoute(
+          path: '/profiles',
+          builder: (context, state) => const ProfilePage(),
+        ),
+        GoRoute(
+          path: '/profiles/new',
+          builder: (context, state) => const ProfileEditorPage(),
+        ),
+        GoRoute(
+          path: '/profiles/:profileId',
+          builder: (context, state) {
+            return ProfileEditorPage(
+              profileId: state.pathParameters['profileId'],
+            );
+          },
+        ),
+        GoRoute(path: '/profile', redirect: (context, state) => '/profiles'),
+        GoRoute(
+          path: '/story/:storyId',
+          builder: (context, state) {
+            return StoryReaderPage(storyId: state.pathParameters['storyId']!);
+          },
+        ),
       ],
-    ),
-    GoRoute(
-      path: '/profiles',
-      builder: (context, state) => const ProfilePage(),
-    ),
-    GoRoute(
-      path: '/profiles/new',
-      builder: (context, state) => const ProfileEditorPage(),
-    ),
-    GoRoute(
-      path: '/profiles/:profileId',
-      builder: (context, state) {
-        return ProfileEditorPage(profileId: state.pathParameters['profileId']);
-      },
-    ),
-    GoRoute(path: '/profile', redirect: (context, state) => '/profiles'),
-    GoRoute(
-      path: '/story/:storyId',
-      builder: (context, state) {
-        return StoryReaderPage(storyId: state.pathParameters['storyId']!);
-      },
     ),
   ],
 );

@@ -335,4 +335,72 @@ class AppLocalizationsSo extends AppLocalizations {
   String storyByHero(String name) {
     return 'Tacabur ay $name halyey ka tahay';
   }
+
+  @override
+  String get myKingdom => 'Boqortooyadayda';
+
+  @override
+  String get kingdomTitle => 'Boqortooyadayda';
+
+  @override
+  String get kingdomSubtitle =>
+      'Dooro halyey, wax ka beddel boggiisa, ilmo kastana sii midab app oo u gaar ah.';
+
+  @override
+  String get activeHero => 'Halyeyga hadda';
+
+  @override
+  String get chooseHero => 'Dooro ilmo';
+
+  @override
+  String get editHeroProfile => 'Beddel magaca iyo bogga';
+
+  @override
+  String get addAnotherHero => 'Ku dar halyey kale';
+
+  @override
+  String get themeColor => 'Midabka boqortooyada';
+
+  @override
+  String themeColorHint(String name) {
+    return 'Midabkan waxaa lagu kaydiyaa bogga $name oo keliya.';
+  }
+
+  @override
+  String get goldenTheme => 'Dahabi';
+
+  @override
+  String get roseTheme => 'Casaan khafiif ah';
+
+  @override
+  String get purpleTheme => 'Guduud';
+
+  @override
+  String get cyanTheme => 'Buluug-cagaar';
+
+  @override
+  String get greenTheme => 'Cagaar';
+
+  @override
+  String get customColor => 'Midab gaar ah';
+
+  @override
+  String get customColorTitle => 'Dooro midab gaar ah';
+
+  @override
+  String get hue => 'Midabka';
+
+  @override
+  String get intensity => 'Xoogga midabka';
+
+  @override
+  String get brightness => 'Iftiinka';
+
+  @override
+  String get applyColor => 'Isticmaal midabkan';
+
+  @override
+  String profileThemeSaved(String name) {
+    return 'Midabka $name waa la kaydiyay';
+  }
 }

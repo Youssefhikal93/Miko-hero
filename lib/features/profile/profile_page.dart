@@ -22,7 +22,6 @@ class ProfilePage extends ConsumerWidget {
     final state = ref.watch(appControllerProvider);
     final text = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(text.profilesTitle)),
       body: AppStateBoundary(
         state: state,
         builder: (snapshot) => _ProfileList(profiles: snapshot.profiles),
@@ -169,18 +168,9 @@ class ProfileEditorPage extends ConsumerWidget {
         if (profileId != null && profile == null) {
           return const _MissingProfile();
         }
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(
-              profile == null
-                  ? AppLocalizations.of(context).addProfile
-                  : profile.heroName,
-            ),
-          ),
-          body: _ProfileForm(
-            key: ValueKey<String>(profile?.id ?? 'new-profile'),
-            initialProfile: profile,
-          ),
+        return _ProfileForm(
+          key: ValueKey<String>(profile?.id ?? 'new-profile'),
+          initialProfile: profile,
         );
       },
     );
@@ -241,6 +231,10 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            SectionHeading(
+              title: widget.initialProfile?.heroName ?? text.addProfile,
+            ),
+            const SizedBox(height: 12),
             Text(
               text.profileIntro,
               style: Theme.of(context).textTheme.bodyLarge,
@@ -367,7 +361,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           );
       if (!mounted) return;
       _showMessage(text.profileSaved);
-      context.go('/profiles');
+      context.go('/kingdom');
     } on Exception {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -477,12 +471,10 @@ class _MissingProfile extends StatelessWidget {
   @override
   /// Returns the parent to profiles without exposing the unresolved identity.
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: FilledButton.tonal(
-          onPressed: () => context.go('/profiles'),
-          child: Text(AppLocalizations.of(context).somethingWentWrong),
-        ),
+    return Center(
+      child: FilledButton.tonal(
+        onPressed: () => context.go('/kingdom'),
+        child: Text(AppLocalizations.of(context).somethingWentWrong),
       ),
     );
   }

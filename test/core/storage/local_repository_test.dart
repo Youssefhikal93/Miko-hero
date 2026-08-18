@@ -27,6 +27,8 @@ void main() {
           age: 7,
           photoBase64: 'cHJpdmF0ZS1waG90bw==',
           gender: ChildGender.girl,
+          themeColorValue: roseProfileThemeColorValue,
+          hasCustomThemeColor: false,
         ),
         ChildProfile(
           id: 'abbas',
@@ -34,6 +36,8 @@ void main() {
           age: 9,
           photoBase64: 'c2Vjb25kLXBob3Rv',
           gender: ChildGender.boy,
+          themeColorValue: _customPurpleThemeColorValue,
+          hasCustomThemeColor: true,
         ),
       ];
       final story = _story(
@@ -55,6 +59,11 @@ void main() {
       expect(state.storiesForProfile('miko'), isEmpty);
       expect(state.storiesForProfile('abbas').single.toJson(), story.toJson());
       expect(state.activeProfile?.gender, ChildGender.boy);
+      expect(
+        state.activeProfile?.themeColorValue,
+        _customPurpleThemeColorValue,
+      );
+      expect(state.activeProfile?.hasCustomThemeColor, isTrue);
     },
   );
 
@@ -70,6 +79,8 @@ void main() {
           age: 7,
           photoBase64: 'cGhvdG8=',
           gender: ChildGender.girl,
+          themeColorValue: roseProfileThemeColorValue,
+          hasCustomThemeColor: false,
         ),
       ]);
       await repository.saveStories(<StoryBook>[
@@ -113,6 +124,11 @@ void main() {
 
     expect(migrated.profiles.single.id, legacyChildProfileId);
     expect(migrated.profiles.single.gender, ChildGender.girl);
+    expect(
+      migrated.profiles.single.themeColorValue,
+      roseProfileThemeColorValue,
+    );
+    expect(migrated.profiles.single.hasCustomThemeColor, isFalse);
     expect(migrated.activeProfileId, legacyChildProfileId);
     expect(
       migrated.stories.single.content.request.profileId,
@@ -159,10 +175,18 @@ void main() {
       final state = await repository.readState();
 
       expect(state.profiles.single.gender, ChildGender.unspecified);
+      expect(
+        state.profiles.single.themeColorValue,
+        goldenProfileThemeColorValue,
+      );
+      expect(state.profiles.single.hasCustomThemeColor, isFalse);
       expect(state.activeProfileId, isNull);
     },
   );
 }
+
+/// Custom value proves storage does not collapse colors back to gender defaults.
+const _customPurpleThemeColorValue = 0xFF9C6BFF;
 
 /// Builds a complete book so persistence tests exercise nested model decoding.
 StoryBook _story({

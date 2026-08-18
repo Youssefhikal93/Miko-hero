@@ -328,4 +328,72 @@ class AppLocalizationsAr extends AppLocalizations {
   String storyByHero(String name) {
     return 'مغامرة من بطولة $name';
   }
+
+  @override
+  String get myKingdom => 'مملكتي';
+
+  @override
+  String get kingdomTitle => 'مملكتي';
+
+  @override
+  String get kingdomSubtitle =>
+      'اختر بطلاً، وعدّل ملفه، وامنح كل طفل لوناً خاصاً للتطبيق.';
+
+  @override
+  String get activeHero => 'البطل الحالي';
+
+  @override
+  String get chooseHero => 'اختر طفلاً';
+
+  @override
+  String get editHeroProfile => 'تعديل الاسم والملف';
+
+  @override
+  String get addAnotherHero => 'إضافة بطل آخر';
+
+  @override
+  String get themeColor => 'لون المملكة';
+
+  @override
+  String themeColorHint(String name) {
+    return 'يُحفظ هذا اللون في ملف $name فقط.';
+  }
+
+  @override
+  String get goldenTheme => 'ذهبي';
+
+  @override
+  String get roseTheme => 'وردي';
+
+  @override
+  String get purpleTheme => 'بنفسجي';
+
+  @override
+  String get cyanTheme => 'سماوي';
+
+  @override
+  String get greenTheme => 'أخضر';
+
+  @override
+  String get customColor => 'لون مخصص';
+
+  @override
+  String get customColorTitle => 'اختر لوناً مخصصاً';
+
+  @override
+  String get hue => 'اللون';
+
+  @override
+  String get intensity => 'قوة اللون';
+
+  @override
+  String get brightness => 'السطوع';
+
+  @override
+  String get applyColor => 'استخدام هذا اللون';
+
+  @override
+  String profileThemeSaved(String name) {
+    return 'تم حفظ لون $name';
+  }
 }

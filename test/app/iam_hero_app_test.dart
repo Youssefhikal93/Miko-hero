@@ -25,7 +25,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Iam - hero'), findsOneWidget);
+    expect(find.text('Iam - hero'), findsWidgets);
     expect(find.text('Add a profile'), findsWidgets);
     expect(find.text('Sign in'), findsNothing);
   });
@@ -65,6 +65,121 @@ void main() {
     expect(somaliTitle, findsOneWidget);
     expect(MaterialLocalizations.of(tester.element(somaliTitle)), isNotNull);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('profile editor keeps the family drawer available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
+    await tester.pumpAndSettle();
+    appRouter.go('/profiles/new');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('My Kingdom'), findsWidgets);
+    await tester.tap(find.text('My Kingdom').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Choose a hero, update their profile, and give each child their own app color.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('each hero restores the custom color saved in My Kingdom', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'active_profile_id': 'miko',
+      'child_profiles': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'miko',
+          'name': 'Miko',
+          'age': 7,
+          'photoBase64': _transparentPixel,
+          'gender': 'girl',
+          'themeColorValue': AppTheme.girlPink.toARGB32(),
+        },
+        <String, Object>{
+          'id': 'abbas',
+          'name': 'Abbas',
+          'age': 9,
+          'photoBase64': _transparentPixel,
+          'gender': 'boy',
+          'themeColorValue': AppTheme.boyCyan.toARGB32(),
+        },
+      ]),
+    });
+    appRouter.go('/kingdom');
+    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
+    await tester.pumpAndSettle();
+
+    final themeTitle = find.text('Kingdom color');
+    expect(
+      Theme.of(tester.element(themeTitle)).colorScheme.primary,
+      AppTheme.girlPink,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('kingdom-profile-abbas')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(themeTitle)).colorScheme.primary,
+      AppTheme.boyCyan,
+    );
+
+    final customColorButton = find.text('Custom color');
+    await tester.ensureVisible(customColorButton);
+    await tester.tap(customColorButton);
+    await tester.pumpAndSettle();
+    expect(find.byType(Slider), findsNWidgets(3));
+    await tester.drag(find.byType(Slider).first, const Offset(90, 0));
+    await tester.pump();
+    await tester.tap(find.text('Use this color'));
+    await tester.pumpAndSettle();
+    final customColor = Theme.of(
+      tester.element(themeTitle),
+    ).colorScheme.primary;
+    expect(customColor, isNot(AppTheme.boyCyan));
+
+    final mikoProfile = find.byKey(
+      const ValueKey<String>('kingdom-profile-miko'),
+    );
+    await tester.ensureVisible(mikoProfile);
+    await tester.tap(mikoProfile);
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(themeTitle)).colorScheme.primary,
+      AppTheme.girlPink,
+    );
+    final abbasProfile = find.byKey(
+      const ValueKey<String>('kingdom-profile-abbas'),
+    );
+    await tester.ensureVisible(abbasProfile);
+    await tester.tap(abbasProfile);
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(themeTitle)).colorScheme.primary,
+      customColor,
+    );
+
+    await tester.tap(find.text('Edit name and profile'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, 'Abbas New');
+    final saveProfileButton = find.text('Save profile');
+    await tester.ensureVisible(saveProfileButton);
+    await tester.tap(saveProfileButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Abbas New hero'), findsWidgets);
+    expect(
+      Theme.of(tester.element(find.text('Kingdom color'))).colorScheme.primary,
+      customColor,
+    );
   });
 
   testWidgets('selected child receives the story and a separate library tab', (

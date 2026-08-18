@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
-/// Responsive navigation frame shared by the four primary destinations.
+/// Responsive navigation frame retained around every application route.
 class AppShell extends StatelessWidget {
   /// Creates a shell around the currently selected routed child.
   const AppShell({required this.location, required this.child, super.key});
@@ -14,9 +14,10 @@ class AppShell extends StatelessWidget {
   final Widget child;
 
   @override
-  /// Switches between bottom navigation and a desktop navigation rail.
+  /// Keeps a drawer and bottom navigation on mobile or a rail on desktop.
   Widget build(BuildContext context) {
-    final destinations = _destinations(AppLocalizations.of(context));
+    final text = AppLocalizations.of(context);
+    final destinations = _destinations(text);
     final selectedIndex = _selectedIndex(location);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -27,55 +28,166 @@ class AppShell extends StatelessWidget {
             child: child,
           );
         }
-        return Scaffold(
-          body: child,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: selectedIndex,
-            onDestinationSelected: (index) => context.go(_routeFor(index)),
-            destinations: destinations,
-          ),
+        return _MobileShell(
+          location: location,
+          destinations: destinations,
+          selectedIndex: selectedIndex,
+          child: child,
         );
       },
     );
   }
 
-  /// Builds localized destinations in the stable route order.
-  List<NavigationDestination> _destinations(AppLocalizations text) {
-    return <NavigationDestination>[
-      NavigationDestination(
-        icon: const Icon(Icons.home_rounded),
+  /// Builds the five localized destinations in their stable route order.
+  List<_NavigationDestination> _destinations(AppLocalizations text) {
+    return <_NavigationDestination>[
+      _NavigationDestination(
+        icon: Icons.home_rounded,
         label: text.home,
+        route: '/',
       ),
-      NavigationDestination(
-        icon: const Icon(Icons.auto_awesome_rounded),
+      _NavigationDestination(
+        icon: Icons.auto_awesome_rounded,
         label: text.create,
+        route: '/create',
       ),
-      NavigationDestination(
-        icon: const Icon(Icons.menu_book_rounded),
+      _NavigationDestination(
+        icon: Icons.menu_book_rounded,
         label: text.library,
+        route: '/library',
       ),
-      NavigationDestination(
-        icon: const Icon(Icons.settings_rounded),
+      _NavigationDestination(
+        icon: Icons.castle_rounded,
+        label: text.myKingdom,
+        route: '/kingdom',
+      ),
+      _NavigationDestination(
+        icon: Icons.settings_rounded,
         label: text.settings,
+        route: '/settings',
       ),
     ];
   }
 
-  /// Maps a URL to its navigation index and treats unknown paths as home.
+  /// Highlights the parent destination for detail and editor routes.
   int _selectedIndex(String path) {
     if (path.startsWith('/create')) return 1;
-    if (path.startsWith('/library')) return 2;
-    if (path.startsWith('/settings')) return 3;
+    if (path.startsWith('/library') || path.startsWith('/story/')) return 2;
+    if (path.startsWith('/kingdom') || path.startsWith('/profile')) return 3;
+    if (path.startsWith('/settings')) return 4;
     return 0;
-  }
-
-  /// Maps the selected navigation index to a stable application route.
-  String _routeFor(int index) {
-    return const <String>['/', '/create', '/library', '/settings'][index];
   }
 }
 
-/// Desktop shell with persistent branding and a compact navigation rail.
+/// Immutable navigation label, icon, and route shared by every breakpoint.
+class _NavigationDestination {
+  /// Keeps drawer, rail, and bottom navigation route knowledge in one place.
+  const _NavigationDestination({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+
+  final IconData icon;
+  final String label;
+  final String route;
+}
+
+/// Mobile frame with both an always-available drawer and compact bottom routes.
+class _MobileShell extends StatelessWidget {
+  /// Creates the mobile frame around any primary or detail route.
+  const _MobileShell({
+    required this.location,
+    required this.destinations,
+    required this.selectedIndex,
+    required this.child,
+  });
+
+  final String location;
+  final List<_NavigationDestination> destinations;
+  final int selectedIndex;
+  final Widget child;
+
+  @override
+  /// Keeps the menu button visible inside profile editors and story readers.
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Iam - hero'),
+        actions: _readerActions(context),
+      ),
+      drawer: _AppDrawer(
+        destinations: destinations,
+        selectedIndex: selectedIndex,
+      ),
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedIndex,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        onDestinationSelected: (index) {
+          context.go(destinations[index].route);
+        },
+        destinations: destinations.map(_bottomDestination).toList(),
+      ),
+    );
+  }
+
+  /// Adds a library exit while the global drawer remains the leading action.
+  List<Widget> _readerActions(BuildContext context) {
+    if (!location.startsWith('/story/')) return const <Widget>[];
+    return <Widget>[
+      IconButton(
+        tooltip: AppLocalizations.of(context).library,
+        onPressed: () => context.go('/library'),
+        icon: const Icon(Icons.close_rounded),
+      ),
+    ];
+  }
+
+  /// Adapts shared route data to Material's compact navigation destination.
+  NavigationDestination _bottomDestination(_NavigationDestination destination) {
+    return NavigationDestination(
+      icon: Icon(destination.icon),
+      label: destination.label,
+    );
+  }
+}
+
+/// Drawer opened by the persistent mobile app-bar menu button.
+class _AppDrawer extends StatelessWidget {
+  /// Creates a drawer from the same destinations used by the bottom bar.
+  const _AppDrawer({required this.destinations, required this.selectedIndex});
+
+  final List<_NavigationDestination> destinations;
+  final int selectedIndex;
+
+  @override
+  /// Closes before routing so the next screen never inherits an open drawer.
+  Widget build(BuildContext context) {
+    return NavigationDrawer(
+      selectedIndex: selectedIndex,
+      onDestinationSelected: (index) {
+        Navigator.of(context).pop();
+        context.go(destinations[index].route);
+      },
+      children: <Widget>[
+        const SafeArea(bottom: false, child: _Brand()),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Divider(),
+        ),
+        ...destinations.map((destination) {
+          return NavigationDrawerDestination(
+            icon: Icon(destination.icon),
+            label: Text(destination.label),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+/// Desktop shell with persistent branding and an extended navigation rail.
 class _DesktopShell extends StatelessWidget {
   /// Creates the rail using already-localized destination labels.
   const _DesktopShell({
@@ -84,18 +196,18 @@ class _DesktopShell extends StatelessWidget {
     required this.child,
   });
 
-  final List<NavigationDestination> destinations;
+  final List<_NavigationDestination> destinations;
   final int selectedIndex;
   final Widget child;
 
   @override
-  /// Renders a side rail while leaving feature content independently scrollable.
+  /// Retains navigation while content scrolls or opens a detail route.
   Widget build(BuildContext context) {
     return Scaffold(
       body: Row(
         children: <Widget>[
           Container(
-            width: 220,
+            width: 270,
             decoration: const BoxDecoration(
               color: Color(0xFF0F121A),
               border: Border(right: BorderSide(color: Color(0xFF262A37))),
@@ -116,46 +228,37 @@ class _DesktopShell extends StatelessWidget {
     );
   }
 
-  /// Builds the extended rail and routes taps without rebuilding destination data.
+  /// Routes selections using the same stable destinations as mobile navigation.
   Widget _rail(BuildContext context) {
     return NavigationRail(
       backgroundColor: Colors.transparent,
       extended: true,
+      minExtendedWidth: 270,
       selectedIndex: selectedIndex,
       onDestinationSelected: (index) {
-        context.go(
-          const <String>['/', '/create', '/library', '/settings'][index],
-        );
+        context.go(destinations[index].route);
       },
-      destinations: destinations
-          .map((destination) => _railDestination(context, destination))
-          .toList(),
-    );
-  }
-
-  /// Converts a bottom destination into the equivalent rail destination.
-  NavigationRailDestination _railDestination(
-    BuildContext context,
-    NavigationDestination destination,
-  ) {
-    return NavigationRailDestination(
-      icon: destination.icon,
-      selectedIcon: IconTheme(
-        data: IconThemeData(color: Theme.of(context).colorScheme.primary),
-        child: destination.icon,
-      ),
-      label: Text(destination.label),
+      destinations: destinations.map((destination) {
+        return NavigationRailDestination(
+          icon: Icon(destination.icon),
+          selectedIcon: Icon(
+            destination.icon,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          label: Text(destination.label),
+        );
+      }).toList(),
     );
   }
 }
 
-/// Compact brand lockup shown on desktop navigation.
+/// Compact brand lockup rendered without external image assets.
 class _Brand extends StatelessWidget {
-  /// Creates a code-rendered mark that needs no external brand asset.
+  /// Creates the shared drawer and rail header.
   const _Brand();
 
   @override
-  /// Keeps the logo recognizable without relying on an external image asset.
+  /// Uses the current child's palette while keeping the app name stable.
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Padding(

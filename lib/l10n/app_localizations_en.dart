@@ -335,4 +335,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String storyByHero(String name) {
     return 'An adventure starring $name';
   }
+
+  @override
+  String get myKingdom => 'My Kingdom';
+
+  @override
+  String get kingdomTitle => 'My Kingdom';
+
+  @override
+  String get kingdomSubtitle =>
+      'Choose a hero, update their profile, and give each child their own app color.';
+
+  @override
+  String get activeHero => 'Active hero';
+
+  @override
+  String get chooseHero => 'Choose a child';
+
+  @override
+  String get editHeroProfile => 'Edit name and profile';
+
+  @override
+  String get addAnotherHero => 'Add another hero';
+
+  @override
+  String get themeColor => 'Kingdom color';
+
+  @override
+  String themeColorHint(String name) {
+    return 'This color is saved only for $name\'s profile.';
+  }
+
+  @override
+  String get goldenTheme => 'Golden';
+
+  @override
+  String get roseTheme => 'Rose';
+
+  @override
+  String get purpleTheme => 'Purple';
+
+  @override
+  String get cyanTheme => 'Cyan';
+
+  @override
+  String get greenTheme => 'Green';
+
+  @override
+  String get customColor => 'Custom color';
+
+  @override
+  String get customColorTitle => 'Choose a custom color';
+
+  @override
+  String get hue => 'Color';
+
+  @override
+  String get intensity => 'Intensity';
+
+  @override
+  String get brightness => 'Brightness';
+
+  @override
+  String get applyColor => 'Use this color';
+
+  @override
+  String profileThemeSaved(String name) {
+    return 'Color saved for $name';
+  }
 }

@@ -54,13 +54,6 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => context.go('/library'),
-          icon: const Icon(Icons.close_rounded),
-        ),
-        title: Text(AppLocalizations.of(context).readStory),
-      ),
       body: AppStateBoundary(
         state: state,
         builder: (snapshot) {

@@ -334,4 +334,72 @@ class AppLocalizationsSv extends AppLocalizations {
   String storyByHero(String name) {
     return 'Ett äventyr med $name i huvudrollen';
   }
+
+  @override
+  String get myKingdom => 'Mitt kungarike';
+
+  @override
+  String get kingdomTitle => 'Mitt kungarike';
+
+  @override
+  String get kingdomSubtitle =>
+      'Välj en hjälte, uppdatera profilen och ge varje barn sin egen appfärg.';
+
+  @override
+  String get activeHero => 'Aktiv hjälte';
+
+  @override
+  String get chooseHero => 'Välj ett barn';
+
+  @override
+  String get editHeroProfile => 'Redigera namn och profil';
+
+  @override
+  String get addAnotherHero => 'Lägg till en hjälte';
+
+  @override
+  String get themeColor => 'Kungarikets färg';
+
+  @override
+  String themeColorHint(String name) {
+    return 'Färgen sparas endast i profilen för $name.';
+  }
+
+  @override
+  String get goldenTheme => 'Guld';
+
+  @override
+  String get roseTheme => 'Rosa';
+
+  @override
+  String get purpleTheme => 'Lila';
+
+  @override
+  String get cyanTheme => 'Cyan';
+
+  @override
+  String get greenTheme => 'Grön';
+
+  @override
+  String get customColor => 'Egen färg';
+
+  @override
+  String get customColorTitle => 'Välj en egen färg';
+
+  @override
+  String get hue => 'Färg';
+
+  @override
+  String get intensity => 'Intensitet';
+
+  @override
+  String get brightness => 'Ljusstyrka';
+
+  @override
+  String get applyColor => 'Använd färgen';
+
+  @override
+  String profileThemeSaved(String name) {
+    return 'Färgen sparades för $name';
+  }
 }

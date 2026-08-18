@@ -713,6 +713,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An adventure starring {name}'**
   String storyByHero(String name);
+
+  /// No description provided for @myKingdom.
+  ///
+  /// In en, this message translates to:
+  /// **'My Kingdom'**
+  String get myKingdom;
+
+  /// No description provided for @kingdomTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Kingdom'**
+  String get kingdomTitle;
+
+  /// No description provided for @kingdomSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a hero, update their profile, and give each child their own app color.'**
+  String get kingdomSubtitle;
+
+  /// No description provided for @activeHero.
+  ///
+  /// In en, this message translates to:
+  /// **'Active hero'**
+  String get activeHero;
+
+  /// No description provided for @chooseHero.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a child'**
+  String get chooseHero;
+
+  /// No description provided for @editHeroProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit name and profile'**
+  String get editHeroProfile;
+
+  /// No description provided for @addAnotherHero.
+  ///
+  /// In en, this message translates to:
+  /// **'Add another hero'**
+  String get addAnotherHero;
+
+  /// No description provided for @themeColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Kingdom color'**
+  String get themeColor;
+
+  /// No description provided for @themeColorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This color is saved only for {name}\'s profile.'**
+  String themeColorHint(String name);
+
+  /// No description provided for @goldenTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Golden'**
+  String get goldenTheme;
+
+  /// No description provided for @roseTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Rose'**
+  String get roseTheme;
+
+  /// No description provided for @purpleTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get purpleTheme;
+
+  /// No description provided for @cyanTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyan'**
+  String get cyanTheme;
+
+  /// No description provided for @greenTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get greenTheme;
+
+  /// No description provided for @customColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom color'**
+  String get customColor;
+
+  /// No description provided for @customColorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a custom color'**
+  String get customColorTitle;
+
+  /// No description provided for @hue.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get hue;
+
+  /// No description provided for @intensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensity'**
+  String get intensity;
+
+  /// No description provided for @brightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get brightness;
+
+  /// No description provided for @applyColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this color'**
+  String get applyColor;
+
+  /// No description provided for @profileThemeSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Color saved for {name}'**
+  String profileThemeSaved(String name);
 }
 
 class _AppLocalizationsDelegate

@@ -51,12 +51,20 @@ class AppController extends AsyncNotifier<AppState> {
       throw ArgumentError.value(draft.gender, 'gender');
     }
     final current = state.requireValue;
+    final existingProfile = profileId == null
+        ? null
+        : current.profileById(profileId);
+    final hasCustomThemeColor = existingProfile?.hasCustomThemeColor ?? false;
     final profile = ChildProfile(
       id: profileId ?? _newProfileId(current.profiles),
       name: draft.name,
       age: draft.age,
       photoBase64: draft.photoBase64,
       gender: draft.gender,
+      themeColorValue: hasCustomThemeColor
+          ? existingProfile!.themeColorValue
+          : defaultProfileThemeColorValue(draft.gender),
+      hasCustomThemeColor: hasCustomThemeColor,
     );
     final profiles = _upsertProfile(current.profiles, profile);
     final repository = await ref.read(localRepositoryProvider.future);
@@ -68,6 +76,51 @@ class AppController extends AsyncNotifier<AppState> {
         profiles: profiles,
         stories: current.stories,
         activeProfileId: profile.id,
+      ),
+    );
+  }
+
+  /// Makes one saved child active without changing their story or color choices.
+  Future<void> activateProfile(String profileId) async {
+    final current = state.requireValue;
+    if (current.profileById(profileId) == null) {
+      throw StateError('Unknown child profile.');
+    }
+    final repository = await ref.read(localRepositoryProvider.future);
+    await repository.saveActiveProfileId(profileId);
+    state = AsyncData(
+      AppState(
+        locale: current.locale,
+        profiles: current.profiles,
+        stories: current.stories,
+        activeProfileId: profileId,
+      ),
+    );
+  }
+
+  /// Persists one child's opaque theme color and immediately refreshes the UI.
+  Future<void> setProfileThemeColor(
+    String profileId,
+    int themeColorValue,
+  ) async {
+    if (!isValidProfileThemeColorValue(themeColorValue)) {
+      throw ArgumentError.value(themeColorValue, 'themeColorValue');
+    }
+    final current = state.requireValue;
+    final profile = current.profileById(profileId);
+    if (profile == null) throw StateError('Unknown child profile.');
+    final profiles = _upsertProfile(
+      current.profiles,
+      profile.withThemeColor(themeColorValue),
+    );
+    final repository = await ref.read(localRepositoryProvider.future);
+    await repository.saveProfiles(profiles);
+    state = AsyncData(
+      AppState(
+        locale: current.locale,
+        profiles: profiles,
+        stories: current.stories,
+        activeProfileId: current.activeProfileId,
       ),
     );
   }

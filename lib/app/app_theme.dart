@@ -4,19 +4,25 @@ import 'package:miko_hero/core/models/child_profile.dart';
 /// Iam - hero visual system shared by every target platform.
 abstract final class AppTheme {
   /// Warm amber used for primary actions and story highlights.
-  static const amber = Color(0xFFFFB43A);
+  static const amber = Color(goldenProfileThemeColorValue);
 
   /// Deeper orange used in gradients and focused states.
   static const orange = Color(0xFFFF7426);
 
   /// Pink accent applied after selecting a girl profile.
-  static const girlPink = Color(0xFFFF5CA8);
+  static const girlPink = Color(roseProfileThemeColorValue);
 
   /// Soft pink used for girl-profile gradients and secondary controls.
   static const girlRose = Color(0xFFFF91C5);
 
   /// Cyan accent applied after selecting a boy profile.
-  static const boyCyan = Color(0xFF31D7E8);
+  static const boyCyan = Color(cyanProfileThemeColorValue);
+
+  /// Purple palette offered as a one-tap My Kingdom choice.
+  static const purple = Color(0xFF9C6BFF);
+
+  /// Green palette offered as a one-tap My Kingdom choice.
+  static const green = Color(0xFF43D19E);
 
   /// Blue used for boy-profile gradients and secondary controls.
   static const boyBlue = Color(0xFF3987FF);
@@ -27,10 +33,10 @@ abstract final class AppTheme {
   /// Raised surface color that remains distinct from the background.
   static const panel = Color(0xFF151823);
 
-  /// Creates a dark Material theme colored by the active child profile.
-  static ThemeData dark(ChildGender gender) {
-    final primary = primaryFor(gender);
-    final secondary = secondaryFor(gender);
+  /// Creates a dark Material theme from the active child's saved opaque color.
+  static ThemeData dark(ChildProfile? profile) {
+    final primary = profile == null ? amber : Color(profile.themeColorValue);
+    final secondary = _secondaryForPrimary(primary);
     final scheme = ColorScheme.fromSeed(
       seedColor: primary,
       brightness: Brightness.dark,
@@ -44,7 +50,7 @@ abstract final class AppTheme {
       textTheme: _textTheme(),
       cardTheme: _cardTheme(),
       inputDecorationTheme: _inputTheme(),
-      filledButtonTheme: _buttonTheme(primary),
+      filledButtonTheme: _buttonTheme(primary, scheme.onPrimary),
       navigationBarTheme: _navigationTheme(primary),
     );
   }
@@ -65,6 +71,15 @@ abstract final class AppTheme {
       ChildGender.girl => girlRose,
       ChildGender.boy => boyBlue,
     };
+  }
+
+  /// Produces a softer companion shade for arbitrary parent-selected colors.
+  static Color _secondaryForPrimary(Color primary) {
+    final hsl = HSLColor.fromColor(primary);
+    return hsl
+        .withSaturation((hsl.saturation * 0.78).clamp(0.35, 0.86))
+        .withLightness((hsl.lightness + 0.16).clamp(0.48, 0.82))
+        .toColor();
   }
 
   /// Defines a compact display scale that remains readable on small phones.
@@ -105,12 +120,12 @@ abstract final class AppTheme {
     );
   }
 
-  /// Styles primary calls to action as warm storybook highlights.
-  static FilledButtonThemeData _buttonTheme(Color primary) {
+  /// Styles primary calls to action with the active child's saved accent.
+  static FilledButtonThemeData _buttonTheme(Color primary, Color foreground) {
     return FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: primary,
-        foregroundColor: const Color(0xFF211400),
+        foregroundColor: foreground,
         minimumSize: const Size(48, 52),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
