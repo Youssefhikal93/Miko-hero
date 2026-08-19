@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +5,8 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/features/kingdom/kingdom_decorations.dart';
+import 'package:miko_hero/features/kingdom/kingdom_style_card.dart';
 import 'package:miko_hero/features/kingdom/story_preferences_card.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
@@ -43,9 +43,19 @@ class _KingdomContent extends ConsumerWidget {
     final activeProfile = state.activeProfile;
     return ScreenLayout(
       maxWidth: 900,
+      backgroundGradient: activeProfile == null
+          ? null
+          : kingdomBackdropGradient(activeProfile.kingdomTheme.backdrop),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          if (activeProfile != null) ...<Widget>[
+            KingdomCastle(
+              style: activeProfile.kingdomTheme.castle,
+              color: Color(activeProfile.themeColorValue),
+            ),
+            const SizedBox(height: 12),
+          ],
           SectionHeading(
             title: text.kingdomTitle,
             subtitle: text.kingdomSubtitle,
@@ -66,6 +76,8 @@ class _KingdomContent extends ConsumerWidget {
               _ProfileSummary(profile: activeProfile),
               const SizedBox(height: 18),
               StoryPreferencesCard(profile: activeProfile),
+              const SizedBox(height: 18),
+              KingdomStyleCard(profile: activeProfile),
               const SizedBox(height: 18),
               _ThemeCard(
                 profile: activeProfile,
@@ -217,10 +229,11 @@ class _ProfileChooser extends StatelessWidget {
                       key: ValueKey<String>('kingdom-profile-${profile.id}'),
                       selected: profile.id == activeProfileId,
                       onSelected: (_) => onSelected(profile),
-                      avatar: CircleAvatar(
-                        backgroundImage: MemoryImage(
-                          base64Decode(profile.photoBase64),
-                        ),
+                      avatar: KingdomAvatar(
+                        photoBase64: profile.photoBase64,
+                        frame: profile.kingdomTheme.frame,
+                        color: Color(profile.themeColorValue),
+                        radius: 12,
                       ),
                       label: Text(profile.heroName),
                     );
@@ -276,18 +289,30 @@ class _ProfileSummary extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            CircleAvatar(
-              radius: 42,
-              backgroundImage: MemoryImage(base64Decode(profile.photoBase64)),
+            KingdomAvatar(
+              photoBase64: profile.photoBase64,
+              frame: profile.kingdomTheme.frame,
+              color: Color(profile.themeColorValue),
             ),
             const SizedBox(width: 18),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    profile.heroName,
-                    style: Theme.of(context).textTheme.titleLarge,
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        kingdomSymbolIcon(profile.kingdomTheme.symbol),
+                        color: Color(profile.themeColorValue),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          profile.heroName,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(text.yearsOld(profile.age)),

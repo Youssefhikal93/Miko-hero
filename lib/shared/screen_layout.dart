@@ -4,7 +4,12 @@ import 'package:miko_hero/app/app_theme.dart';
 /// Constrains feature content while retaining comfortable phone padding.
 class ScreenLayout extends StatelessWidget {
   /// Creates a scrollable screen with an optional narrower content width.
-  const ScreenLayout({required this.child, this.maxWidth = 1160, super.key});
+  const ScreenLayout({
+    required this.child,
+    this.maxWidth = 1160,
+    this.backgroundGradient,
+    super.key,
+  });
 
   /// Feature content rendered inside the responsive constraint.
   final Widget child;
@@ -12,16 +17,18 @@ class ScreenLayout extends StatelessWidget {
   /// Largest content width before centered gutters grow.
   final double maxWidth;
 
+  /// Optional per-page backdrop replacing the shared ambient gradient.
+  ///
+  /// Used by My Kingdom for the active child's chosen flavor; every accepted
+  /// gradient must stay dark enough for the shared light-on-dark text.
+  final Gradient? backgroundGradient;
+
   @override
   /// Adds safe-area spacing and a subtle ambient background gradient.
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0.8, -0.9),
-          radius: 1.2,
-          colors: <Color>[Color(0x222F2340), AppTheme.ink],
-        ),
+      decoration: BoxDecoration(
+        gradient: backgroundGradient ?? _ambientGradient,
       ),
       child: SafeArea(
         bottom: false,
@@ -37,6 +44,13 @@ class ScreenLayout extends StatelessWidget {
       ),
     );
   }
+
+  /// Shared ambient wash used by every page without its own backdrop.
+  static const _ambientGradient = RadialGradient(
+    center: Alignment(0.8, -0.9),
+    radius: 1.2,
+    colors: <Color>[Color(0x222F2340), AppTheme.ink],
+  );
 }
 
 /// Reusable card with warm gradient reserved for hero-level content.

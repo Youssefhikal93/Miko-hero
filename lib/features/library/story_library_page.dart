@@ -5,6 +5,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/features/kingdom/kingdom_decorations.dart';
 import 'package:miko_hero/features/library/story_collections_dialog.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
@@ -110,7 +111,10 @@ class _SingleProfileShelf extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(profile.heroName, style: Theme.of(context).textTheme.titleLarge),
+        _HeroLabel(
+          profile: profile,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 16),
         _ProfileShelf(stories: stories),
       ],
@@ -150,7 +154,7 @@ class _TabbedProfileShelvesState extends State<_TabbedProfileShelves> {
             tabAlignment: TabAlignment.start,
             onTap: (index) => setState(() => _selectedIndex = index),
             tabs: profiles
-                .map((profile) => Tab(text: profile.heroName))
+                .map((profile) => Tab(child: _HeroLabel(profile: profile)))
                 .toList(),
           ),
           const SizedBox(height: 20),
@@ -159,6 +163,32 @@ class _TabbedProfileShelvesState extends State<_TabbedProfileShelves> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Hero name preceded by the favourite symbol chosen in My Kingdom.
+class _HeroLabel extends StatelessWidget {
+  /// Creates a shelf label from one child's saved personalization.
+  const _HeroLabel({required this.profile, this.style});
+
+  final ChildProfile profile;
+  final TextStyle? style;
+
+  @override
+  /// Keeps the label compact enough for a scrollable tab bar.
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(
+          kingdomSymbolIcon(profile.kingdomTheme.symbol),
+          size: 18,
+          color: Color(profile.themeColorValue),
+        ),
+        const SizedBox(width: 8),
+        Flexible(child: Text(profile.heroName, style: style)),
+      ],
     );
   }
 }

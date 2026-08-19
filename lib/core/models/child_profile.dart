@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:miko_hero/core/models/child_story_preferences.dart';
+import 'package:miko_hero/core/models/kingdom_theme.dart';
 
 /// Largest accepted reference photo after picker-side compression.
 const maximumReferencePhotoBytes = 2 * 1024 * 1024;
@@ -127,6 +128,7 @@ class ChildProfile {
     required this.hasCustomThemeColor,
     this.birthDate,
     this.storyPreferences = const ChildStoryPreferences(),
+    this.kingdomTheme = const KingdomTheme(),
   });
 
   /// Stable local identity used to associate stories with this child.
@@ -162,6 +164,9 @@ class ChildProfile {
   /// Parent-selected language, inspiration, world, and safety defaults.
   final ChildStoryPreferences storyPreferences;
 
+  /// Castle, photo frame, backdrop, and symbol chosen for this child's kingdom.
+  final KingdomTheme kingdomTheme;
+
   /// User-facing personalized label requested for profile selection and tabs.
   String get heroName => '$name hero';
 
@@ -190,6 +195,7 @@ class ChildProfile {
       'themeColorValue': themeColorValue,
       'hasCustomThemeColor': hasCustomThemeColor,
       'storyPreferences': storyPreferences.toJson(),
+      'kingdomTheme': kingdomTheme.toJson(),
     };
   }
 
@@ -225,6 +231,7 @@ class ChildProfile {
           : defaultProfileThemeColorValue(selectedGender),
       hasCustomThemeColor: hasCustomThemeColor,
       storyPreferences: storyPreferences,
+      kingdomTheme: kingdomTheme,
     );
   }
 
@@ -243,6 +250,7 @@ class ChildProfile {
       themeColorValue: selectedColorValue,
       hasCustomThemeColor: true,
       storyPreferences: storyPreferences,
+      kingdomTheme: kingdomTheme,
     );
   }
 
@@ -258,6 +266,23 @@ class ChildProfile {
       themeColorValue: themeColorValue,
       hasCustomThemeColor: hasCustomThemeColor,
       storyPreferences: preferences,
+      kingdomTheme: kingdomTheme,
+    );
+  }
+
+  /// Returns the same identity with newly confirmed kingdom decoration.
+  ChildProfile withKingdomTheme(KingdomTheme theme) {
+    return ChildProfile(
+      id: id,
+      name: name,
+      legacyAge: legacyAge,
+      birthDate: birthDate,
+      photoBase64: photoBase64,
+      gender: gender,
+      themeColorValue: themeColorValue,
+      hasCustomThemeColor: hasCustomThemeColor,
+      storyPreferences: storyPreferences,
+      kingdomTheme: theme,
     );
   }
 }
@@ -279,6 +304,7 @@ ChildProfile _validatedProfile({
     gender,
   );
   final storyPreferences = _decodedStoryPreferences(json['storyPreferences']);
+  final kingdomTheme = _decodedKingdomTheme(json['kingdomTheme']);
   if (profileId is! String || profileId.trim().isEmpty) {
     throw const FormatException('Malformed child profile identity.');
   }
@@ -302,7 +328,17 @@ ChildProfile _validatedProfile({
     themeColorValue: theme.colorValue,
     hasCustomThemeColor: theme.isCustom,
     storyPreferences: storyPreferences,
+    kingdomTheme: kingdomTheme,
   );
+}
+
+/// Defaults profiles saved before personalization and validates current ones.
+KingdomTheme _decodedKingdomTheme(Object? encodedTheme) {
+  if (encodedTheme == null) return const KingdomTheme();
+  if (encodedTheme is! Map<String, Object?>) {
+    throw const FormatException('Malformed child kingdom theme.');
+  }
+  return KingdomTheme.fromJson(encodedTheme);
 }
 
 /// Accepts a missing legacy birth date but rejects unusable stored dates.

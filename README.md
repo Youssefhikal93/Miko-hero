@@ -23,6 +23,8 @@ source tree lives in [Codebase map](docs/CODEBASE.md).
 - Rose theme for a new girl profile and cyan theme for a new boy profile
 - My Kingdom profile switching with a separately saved color for each child
 - Golden, rose, purple, cyan, and green palettes plus a local custom color picker
+- Per-child kingdom personalization: castle style, photo frame, backdrop, and a
+  favourite symbol, all drawn on the device with no extra image files
 - Persistent mobile drawer, bottom navigation, and desktop rail on detail screens
 - Optional local parent PIN for profiles, My Kingdom, settings, and deletion
 - PIN attempt throttling, automatic re-lock on backgrounding, and Change PIN
@@ -42,8 +44,11 @@ source tree lives in [Codebase map](docs/CODEBASE.md).
   library filtering
 - Device-local story library and permanent deletion behind the parent gate
 - Responsive phone, tablet, and desktop reader
-- Free narration through voices installed on the current device, with
-  selectable speed and a current-page or rest-of-story scope
+- Free narration through voices installed on the current device, spoken one
+  sentence at a time with the sentence being read highlighted on the page
+- Narration play, pause, resume, and stop, with selectable speed, a
+  current-page or rest-of-story scope that turns pages by itself, and an
+  optional 5, 10, or 20 minute sleep timer
 - Offline PDF export of any approved story with embedded fonts, including
   right-to-left Arabic script, with a per-export choice of whether the cover
   carries the child's photo
@@ -52,8 +57,8 @@ source tree lives in [Codebase map](docs/CODEBASE.md).
 ## Privacy and storage
 
 `LocalRepository` stores the interface locale, profiles, each profile's
-Girl/Boy choice and theme color, the active profile, base64-encoded reference
-photos, and story JSON through `shared_preferences`. The app contains no network
+Girl/Boy choice, theme color and kingdom decoration, the active profile,
+base64-encoded reference photos, and story JSON through `shared_preferences`. The app contains no network
 client and sends no profile or story content to an external service.
 
 Local app storage is not an encrypted vault. It relies on the operating system
@@ -110,15 +115,15 @@ lib/
     export/            offline PDF rendering and the platform save flow
     generation/        StoryGenerator boundary and demo implementation
     models/            validated profile, preference, story, and queue models
-    narration/         device text-to-speech boundary, options, implementation
+    narration/         speech boundary, options, implementation, splitter
     security/          parent-PIN verifier model and Argon2id service
     storage/           local SharedPreferences repository
   features/
     home/              personalized dashboard
-    kingdom/           hero switching, per-child colors, story preferences
+    kingdom/           hero switching, colors, decoration, story preferences
     library/           per-child shelves, favorites, collections
     profile/           child profile management
-    reader/            story reader, narration controls, PDF export
+    reader/            story reader, narration queue and controls, PDF export
     review/            parent-only draft review and approval
     settings/          language, backup, parent PIN, data deletion
     story_creation/    request form, generation queue, generation center
@@ -185,6 +190,11 @@ release keystore before any store distribution.
   and desktop. Flutter web has no isolates, so `compute` runs inline there and
   the interface still pauses briefly during those actions.
 - Somali narration depends on whether the device has a compatible voice.
+- Narration speaks one sentence per utterance so sentence progress, pausing,
+  and the sleep timer behave identically on Android, iOS, and the web. Some
+  speech engines insert a short gap between sentences, and resuming after a
+  pause repeats the paused sentence from its beginning rather than relying on
+  platform pause support.
 - Stories and profiles do not sync automatically; moving them requires a manual
   encrypted backup and its separate password.
 - The Flutter TTS web plugin currently prevents a WebAssembly build; the

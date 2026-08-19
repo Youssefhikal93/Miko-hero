@@ -54,8 +54,9 @@ Rules that every change must respect:
 | File | Responsibility |
 | --- | --- |
 | `app_language.dart` | The four supported languages (English, Arabic, Swedish, Somali) with ISO codes, used for both interface chrome and story text. |
-| `app_state.dart` | The complete persisted application snapshot: `schemaVersion`, locale, profiles, active profile, and stories. `AppState.validated` enforces uniqueness, referential integrity (every story belongs to an existing profile), and newest-first story order. Reads accept versions 1 and 2 and refuse anything newer with `UnsupportedSchemaVersionException`. |
-| `child_profile.dart` | One child's private profile: name, optional `birthDate` plus the legacy stored age it replaced, required Girl/Boy choice, optional base64 reference photo (≤ 2 MB), saved theme color, and story preferences. `ageOn`/`age` compute a birthday-accurate age and fall back to the legacy value. Includes the validated editor form model. |
+| `app_state.dart` | The complete persisted application snapshot: `schemaVersion`, locale, profiles, active profile, and stories. `AppState.validated` enforces uniqueness, referential integrity (every story belongs to an existing profile), and newest-first story order. Writes version 3 (kingdom personalization; 2 added birth dates), reads versions 1 through 3, and refuses anything newer with `UnsupportedSchemaVersionException`. |
+| `child_profile.dart` | One child's private profile: name, optional `birthDate` plus the legacy stored age it replaced, required Girl/Boy choice, optional base64 reference photo (≤ 2 MB), saved theme color, story preferences, and the `KingdomTheme` decoration. `ageOn`/`age` compute a birthday-accurate age and fall back to the legacy value. Includes the validated editor form model. |
+| `kingdom_theme.dart` | One child's My Kingdom decoration: castle style, avatar frame, backdrop flavor, and favourite symbol. Every choice is optional and enum-name encoded; an absent field decodes to its default and an unknown stored name is refused with a `FormatException`. |
 | `unknown_entity_exception.dart` | `UnknownEntityException`, the recoverable error thrown when a command targets a profile, story, or queued job that no longer exists locally. |
 | `child_story_preferences.dart` | Per-child story defaults chosen by the parent: favorite topics, recurring story world, default story language, and `SafetyTopic` exclusions destined for future local AI prompts. |
 | `generation_job.dart` | One durable story-generation request with lifecycle states (`queued`, `running`, `failed`, `cancelled`). Jobs survive app restarts so requests are never silently lost. |
@@ -94,9 +95,10 @@ Rules that every change must respect:
 
 | File | Responsibility |
 | --- | --- |
-| `narration_service.dart` | Device text-to-speech boundary (`supports`, `speak`, `stop`) so the reader never depends on a TTS plugin directly. |
+| `narration_service.dart` | Device text-to-speech boundary (`supports`, `speak`, `stop`) so the reader never depends on a TTS plugin directly. Deliberately thin: one utterance at a time, with completion the only progress signal required from a platform. |
 | `device_narration_service.dart` | The real implementation using voices already installed on the device; free and offline. |
-| `narration_options.dart` | Validated narration settings: speech speed presets, narration scope (current page or rest of story), and the `NarrationRequest` value passed across the boundary. |
+| `narration_options.dart` | Validated narration settings: speech speed presets, narration scope (current page or rest of story), the off/5/10/20-minute `NarrationSleepTimer`, and the `NarrationRequest` value passed across the boundary. |
+| `sentence_splitter.dart` | Pure sentence splitter shared by narration and the reader highlight. Splits on `.` `!` `?` `؟` `…` and line breaks, keeps a run of terminators with its sentence, drops blank fragments, and reports each sentence's offsets inside the original page text so the highlight never rewrites the story. |
 
 ### Parent security — `core/security/`
 
@@ -117,14 +119,16 @@ Rules that every change must respect:
 
 | File | Responsibility |
 | --- | --- |
-| `profile_controller.dart` | Commands for child identity: add/edit/delete profiles, active-profile switching, gender, theme color, and story preferences. Resolves the saved birth date and rejects any resulting age outside 1–17, while letting a legacy age-only profile keep its stored age. New profiles seed their default story language from the current locale. |
+| `profile_controller.dart` | Commands for child identity: add/edit/delete profiles, active-profile switching, gender, theme color, story preferences, and the kingdom decoration. Resolves the saved birth date and rejects any resulting age outside 1–17, while letting a legacy age-only profile keep its stored age. New profiles seed their default story language from the current locale. |
 | `profile_page.dart` | Profile list and the editor form (name, localized birth-date picker bounded to ages 1–17, Girl/Boy choice, reference photo). |
 
 ### My Kingdom — `features/kingdom/`
 
 | File | Responsibility |
 | --- | --- |
-| `my_kingdom_page.dart` | Family hub for switching the active hero and personalizing each child's app color palette. |
+| `my_kingdom_page.dart` | Family hub for switching the active hero and personalizing each child's app color palette, plus the active child's castle header, framed avatar, favourite symbol, and page backdrop. |
+| `kingdom_style_card.dart` | Parent-editable castle, photo frame, backdrop, and favourite-symbol choices for the active child. Each selection persists immediately through `ProfileController` and confirms with a snackbar. |
+| `kingdom_decorations.dart` | Every kingdom decoration drawn locally: `KingdomCastle` and the framed `KingdomAvatar` (`CustomPaint`), the backdrop gradient, and the bounded Material icon for each favourite symbol. Adds no binary asset and makes no network call. |
 | `story_preferences_card.dart` | Parent-editable per-child story preferences: favorite topics, recurring world, default language, and safety-topic exclusions, with a four-language chip dialog. |
 
 ### Story creation — `features/story_creation/`
@@ -146,14 +150,15 @@ Rules that every change must respect:
 
 | File | Responsibility |
 | --- | --- |
-| `story_library_page.dart` | The bookshelf: per-child tabs when multiple profiles exist, favorites and collection filters, a parent-only badge when drafts await review, and story deletion behind the parent gate. |
+| `story_library_page.dart` | The bookshelf: per-child tabs carrying each child's favourite symbol when multiple profiles exist, favorites and collection filters, a parent-only badge when drafts await review, and story deletion behind the parent gate. |
 | `story_collections_dialog.dart` | Editor for a story's collection labels (for example bedtime, learning, adventures) with bounded, deduplicated parsing. |
 
 ### Reader — `features/reader/`
 
 | File | Responsibility |
 | --- | --- |
-| `story_reader_page.dart` | Full-screen reader: swipeable pages, placeholder illustrations until ComfyUI, device narration with speed and scope settings, Arabic RTL story layout, and PDF export behind a small dialog asking whether the cover carries the child's photo. Only approved stories can be opened. |
+| `story_reader_page.dart` | Full-screen reader: swipeable pages, placeholder illustrations until ComfyUI, narration play/pause/stop with the spoken sentence tinted in place, speed, scope and sleep-timer settings, Arabic RTL story layout, and PDF export behind a small dialog asking whether the cover carries the child's photo. The control bar moves page progress above the buttons below 430 px so a 360 px phone keeps full touch targets. Only approved stories can be opened. |
+| `narration_controller.dart` | Owns the reader's sentence queue, position, playback state, and sleep timer above the `NarrationService` boundary: speaks one sentence per utterance, pauses by remembering the sentence and resuming from its start, follows rest-of-story narration onto the next page, and stops when the reader turns to a page the queue did not ask for. The clock and countdown are injectable so all of it is testable without a device. |
 | `story_export_controller.dart` | Coordinates PDF rendering and the save dialog; refuses to export unapproved drafts and resolves the hero's photo only when the parent opted in. |
 
 ### Settings — `features/settings/`
@@ -175,7 +180,7 @@ Rules that every change must respect:
 | `parent_access_gate.dart` | Two parent-PIN surfaces: a full-page gate for parent-only routes and a modal prompt for destructive actions (deletion, export, collection edits). Refuses input while a cooldown is stored and shows the remaining wait; PIN fields never retain the secret. Also owns the shared localization of one attempt outcome. |
 | `gender_selector.dart` | The required Girl/Boy selector shared by profile and story forms. |
 | `app_language_dropdown.dart` | Four-language dropdown with ISO badges, shared by app settings and story settings. |
-| `screen_layout.dart` | Width-constrained page scaffold, hero gradient card, and section headings. |
+| `screen_layout.dart` | Width-constrained page scaffold, hero gradient card, and section headings. Accepts an optional per-page backdrop gradient, used by My Kingdom for the active child's chosen flavor. |
 | `story_card.dart` | Library card with cover treatment, demo badge, favorite toggle, collections, and delete commands. |
 
 ## Localization — `lib/l10n/`
@@ -210,6 +215,11 @@ Rules that every change must respect:
 | `test/features/story_creation/generation_queue_controller_test.dart` | A request interrupted mid-run reopens as a durable queued job after restart. |
 | `test/features/story_creation/story_controller_test.dart` | Retrying, cancelling, favouriting, or generating for deleted content fails as a catchable `Exception` instead of crashing the screen. |
 | `test/shared/parent_access_gate_test.dart` | A configured PIN hides settings, a wrong PIN keeps them hidden, the right PIN opens them, and repeated wrong PINs refuse input with the remaining wait. |
+| `test/core/narration/sentence_splitter_test.dart` | Pages split the way they are read aloud: English terminators, the Arabic `؟`, ellipses and terminator runs, line breaks, a single-sentence page, blank pages, and offsets that still point at the original characters. |
+| `test/features/reader/narration_controller_test.dart` | Sentences are spoken in order, pause freezes the position while resume repeats that sentence, stop clears the queue, an unrequested page turn stops narration while rest-of-story follows the queue onto the next page, an injected sleep timer stops narration at expiry, and the selected speed reaches the boundary. |
+| `test/features/reader/story_reader_narration_test.dart` | What the reader sees: starting narration tints the first sentence and advances it, pausing keeps the sentence and resuming re-speaks it, stopping clears the tint and hides the stop control, and the settings dialog offers the sleep timer. |
+| `test/core/models/kingdom_theme_test.dart` | Kingdom decoration round-trips through JSON, an absent field decodes to its default, an unknown stored name is refused, a profile keeps its decoration through an encrypted backup, and snapshots are written at schema version 3 while version 4 is refused. |
+| `test/features/kingdom/my_kingdom_page_test.dart` | Choosing a castle, frame, backdrop, or symbol saves it and re-renders My Kingdom, and a second hero keeps decoration choices independent of the first. |
 
 ## Documentation — `docs/`
 
@@ -228,7 +238,8 @@ Rules that every change must respect:
 | Durable generation queue | `core/models/generation_job.dart`, `features/story_creation/generation_queue_controller.dart`, `generation_center_page.dart` |
 | Parent review of drafts | `core/models/story_models.dart` (`StoryReviewStatus`), `features/review/story_review_page.dart` |
 | Library, favorites, collections | `features/library/*`, `shared/story_card.dart` |
-| Reader and narration | `features/reader/story_reader_page.dart`, `core/narration/*` |
+| Reader and narration | `features/reader/story_reader_page.dart`, `features/reader/narration_controller.dart`, `core/narration/*` |
+| My Kingdom personalization | `core/models/kingdom_theme.dart`, `features/kingdom/kingdom_style_card.dart`, `kingdom_decorations.dart`, `features/profile/profile_controller.dart` |
 | PDF export | `core/export/*`, `features/reader/story_export_controller.dart`, `assets/fonts/` |
 | Parent PIN | `core/security/*`, `features/settings/parent_access_controller.dart`, `parent_security_settings_card.dart`, `shared/parent_access_gate.dart` |
 | Encrypted backup and restore | `core/backup/*`, `features/settings/backup_controller.dart`, `backup_settings_card.dart` |

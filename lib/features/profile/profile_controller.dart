@@ -4,6 +4,7 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
+import 'package:miko_hero/core/models/kingdom_theme.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 
 /// Supplies profile commands without exposing persistence details to widgets.
@@ -88,6 +89,25 @@ class ProfileController {
     );
   }
 
+  /// Saves the castle, frame, backdrop, and symbol of one child's kingdom.
+  Future<void> setKingdomTheme(String profileId, KingdomTheme theme) async {
+    final current = _currentState;
+    final profile = _requireProfile(current, profileId);
+    final validatedTheme = KingdomTheme.fromJson(theme.toJson());
+    final savedProfiles = _upsertProfile(
+      current.profiles,
+      profile.withKingdomTheme(validatedTheme),
+    );
+    final repository = await _ref.read(localRepositoryProvider.future);
+    await repository.saveProfiles(savedProfiles);
+    _commit(
+      current.withProfiles(
+        savedProfiles,
+        savedActiveProfileId: current.activeProfileId,
+      ),
+    );
+  }
+
   /// Persists a Girl/Boy choice and activates the selected story hero.
   Future<void> selectProfile(String profileId, ChildGender gender) async {
     if (!gender.isSpecified) throw ArgumentError.value(gender, 'gender');
@@ -131,6 +151,7 @@ class ProfileController {
           ChildStoryPreferences(
             defaultLanguage: AppLanguage.fromCode(current.locale.languageCode),
           ),
+      kingdomTheme: existingProfile?.kingdomTheme ?? const KingdomTheme(),
     );
   }
 

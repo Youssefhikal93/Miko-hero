@@ -281,6 +281,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get playNarration => 'تشغيل السرد';
 
   @override
+  String get pauseNarration => 'إيقاف السرد مؤقتًا';
+
+  @override
+  String get resumeNarration => 'متابعة السرد';
+
+  @override
   String get stopNarration => 'إيقاف السرد';
 
   @override
@@ -891,4 +897,117 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get applyNarrationSettings => 'تطبيق';
+
+  @override
+  String get sleepTimer => 'مؤقّت النوم';
+
+  @override
+  String get sleepTimerOff => 'متوقّف';
+
+  @override
+  String sleepTimerMinutes(int minutes) {
+    return '$minutes دقيقة';
+  }
+
+  @override
+  String sleepTimerRemaining(int minutes) {
+    return 'سيتوقّف السرد بعد $minutes دقيقة تقريبًا.';
+  }
+
+  @override
+  String get kingdomStyleTitle => 'طراز المملكة';
+
+  @override
+  String kingdomStyleBody(String name) {
+    return 'اختر القلعة وإطار الصورة والخلفية والرمز لمملكة $name.';
+  }
+
+  @override
+  String kingdomStyleSaved(String name) {
+    return 'تم حفظ طراز المملكة لـ $name';
+  }
+
+  @override
+  String get kingdomCastle => 'القلعة';
+
+  @override
+  String get castleClassicTowers => 'أبراج كلاسيكية';
+
+  @override
+  String get castleRoundDomes => 'قباب مستديرة';
+
+  @override
+  String get castleCrystalSpires => 'أبراج بلّورية';
+
+  @override
+  String get castleForestTreehouse => 'بيت الشجرة في الغابة';
+
+  @override
+  String get kingdomAvatarFrame => 'إطار الصورة';
+
+  @override
+  String get avatarFrameNone => 'دائرة بسيطة';
+
+  @override
+  String get avatarFrameStars => 'نجوم';
+
+  @override
+  String get avatarFrameHearts => 'قلوب';
+
+  @override
+  String get avatarFrameLaurel => 'إكليل غار';
+
+  @override
+  String get kingdomBackdrop => 'الخلفية';
+
+  @override
+  String get backdropNightSky => 'سماء الليل';
+
+  @override
+  String get backdropMeadow => 'مرج أخضر';
+
+  @override
+  String get backdropOcean => 'المحيط';
+
+  @override
+  String get backdropSunset => 'غروب الشمس';
+
+  @override
+  String get kingdomSymbol => 'الرمز المفضّل';
+
+  @override
+  String get symbolStar => 'نجمة';
+
+  @override
+  String get symbolRocket => 'صاروخ';
+
+  @override
+  String get symbolCrown => 'تاج';
+
+  @override
+  String get symbolButterfly => 'فراشة';
+
+  @override
+  String get symbolDragon => 'تنّين';
+
+  @override
+  String get symbolFlower => 'زهرة';
+
+  @override
+  String get symbolFootball => 'كرة قدم';
+
+  @override
+  String get symbolMusic => 'موسيقى';
+
+  @override
+  String get symbolBook => 'كتاب';
+
+  @override
+  String get symbolPaw => 'مخلب';
+
+  @override
+  String get symbolRainbow => 'قوس قزح';
+
+  @override
+  String get symbolSparkles => 'بريق';
 }

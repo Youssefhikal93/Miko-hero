@@ -286,6 +286,12 @@ class AppLocalizationsSv extends AppLocalizations {
   String get playNarration => 'Spela berättarröst';
 
   @override
+  String get pauseNarration => 'Pausa berättarröst';
+
+  @override
+  String get resumeNarration => 'Fortsätt berättarröst';
+
+  @override
   String get stopNarration => 'Stoppa berättarröst';
 
   @override
@@ -908,4 +914,117 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get applyNarrationSettings => 'Tillämpa';
+
+  @override
+  String get sleepTimer => 'Insomningstimer';
+
+  @override
+  String get sleepTimerOff => 'Av';
+
+  @override
+  String sleepTimerMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String sleepTimerRemaining(int minutes) {
+    return 'Berättarrösten slutar om cirka $minutes min.';
+  }
+
+  @override
+  String get kingdomStyleTitle => 'Kungarikets stil';
+
+  @override
+  String kingdomStyleBody(String name) {
+    return 'Välj slott, fotoram, bakgrund och symbol för ${name}s kungarike.';
+  }
+
+  @override
+  String kingdomStyleSaved(String name) {
+    return 'Kungarikets stil sparad för $name';
+  }
+
+  @override
+  String get kingdomCastle => 'Slott';
+
+  @override
+  String get castleClassicTowers => 'Klassiska torn';
+
+  @override
+  String get castleRoundDomes => 'Runda kupoler';
+
+  @override
+  String get castleCrystalSpires => 'Kristallspiror';
+
+  @override
+  String get castleForestTreehouse => 'Trädkoja i skogen';
+
+  @override
+  String get kingdomAvatarFrame => 'Fotoram';
+
+  @override
+  String get avatarFrameNone => 'Enkel cirkel';
+
+  @override
+  String get avatarFrameStars => 'Stjärnor';
+
+  @override
+  String get avatarFrameHearts => 'Hjärtan';
+
+  @override
+  String get avatarFrameLaurel => 'Lagerkrans';
+
+  @override
+  String get kingdomBackdrop => 'Bakgrund';
+
+  @override
+  String get backdropNightSky => 'Natthimmel';
+
+  @override
+  String get backdropMeadow => 'Äng';
+
+  @override
+  String get backdropOcean => 'Hav';
+
+  @override
+  String get backdropSunset => 'Solnedgång';
+
+  @override
+  String get kingdomSymbol => 'Favoritsymbol';
+
+  @override
+  String get symbolStar => 'Stjärna';
+
+  @override
+  String get symbolRocket => 'Raket';
+
+  @override
+  String get symbolCrown => 'Krona';
+
+  @override
+  String get symbolButterfly => 'Fjäril';
+
+  @override
+  String get symbolDragon => 'Drake';
+
+  @override
+  String get symbolFlower => 'Blomma';
+
+  @override
+  String get symbolFootball => 'Fotboll';
+
+  @override
+  String get symbolMusic => 'Musik';
+
+  @override
+  String get symbolBook => 'Bok';
+
+  @override
+  String get symbolPaw => 'Tass';
+
+  @override
+  String get symbolRainbow => 'Regnbåge';
+
+  @override
+  String get symbolSparkles => 'Gnistror';
 }

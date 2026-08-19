@@ -624,6 +624,18 @@ abstract class AppLocalizations {
   /// **'Play narration'**
   String get playNarration;
 
+  /// No description provided for @pauseNarration.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause narration'**
+  String get pauseNarration;
+
+  /// No description provided for @resumeNarration.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue narration'**
+  String get resumeNarration;
+
   /// No description provided for @stopNarration.
   ///
   /// In en, this message translates to:
@@ -1715,6 +1727,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apply'**
   String get applyNarrationSettings;
+
+  /// No description provided for @sleepTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep timer'**
+  String get sleepTimer;
+
+  /// No description provided for @sleepTimerOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get sleepTimerOff;
+
+  /// No description provided for @sleepTimerMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String sleepTimerMinutes(int minutes);
+
+  /// No description provided for @sleepTimerRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Narration stops in about {minutes} min.'**
+  String sleepTimerRemaining(int minutes);
+
+  /// No description provided for @kingdomStyleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kingdom style'**
+  String get kingdomStyleTitle;
+
+  /// No description provided for @kingdomStyleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the castle, photo frame, backdrop, and symbol of {name}\'s kingdom.'**
+  String kingdomStyleBody(String name);
+
+  /// No description provided for @kingdomStyleSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Kingdom style saved for {name}'**
+  String kingdomStyleSaved(String name);
+
+  /// No description provided for @kingdomCastle.
+  ///
+  /// In en, this message translates to:
+  /// **'Castle'**
+  String get kingdomCastle;
+
+  /// No description provided for @castleClassicTowers.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic towers'**
+  String get castleClassicTowers;
+
+  /// No description provided for @castleRoundDomes.
+  ///
+  /// In en, this message translates to:
+  /// **'Round domes'**
+  String get castleRoundDomes;
+
+  /// No description provided for @castleCrystalSpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Crystal spires'**
+  String get castleCrystalSpires;
+
+  /// No description provided for @castleForestTreehouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Forest treehouse'**
+  String get castleForestTreehouse;
+
+  /// No description provided for @kingdomAvatarFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo frame'**
+  String get kingdomAvatarFrame;
+
+  /// No description provided for @avatarFrameNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple circle'**
+  String get avatarFrameNone;
+
+  /// No description provided for @avatarFrameStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Stars'**
+  String get avatarFrameStars;
+
+  /// No description provided for @avatarFrameHearts.
+  ///
+  /// In en, this message translates to:
+  /// **'Hearts'**
+  String get avatarFrameHearts;
+
+  /// No description provided for @avatarFrameLaurel.
+  ///
+  /// In en, this message translates to:
+  /// **'Laurel wreath'**
+  String get avatarFrameLaurel;
+
+  /// No description provided for @kingdomBackdrop.
+  ///
+  /// In en, this message translates to:
+  /// **'Backdrop'**
+  String get kingdomBackdrop;
+
+  /// No description provided for @backdropNightSky.
+  ///
+  /// In en, this message translates to:
+  /// **'Night sky'**
+  String get backdropNightSky;
+
+  /// No description provided for @backdropMeadow.
+  ///
+  /// In en, this message translates to:
+  /// **'Meadow'**
+  String get backdropMeadow;
+
+  /// No description provided for @backdropOcean.
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean'**
+  String get backdropOcean;
+
+  /// No description provided for @backdropSunset.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunset'**
+  String get backdropSunset;
+
+  /// No description provided for @kingdomSymbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Favourite symbol'**
+  String get kingdomSymbol;
+
+  /// No description provided for @symbolStar.
+  ///
+  /// In en, this message translates to:
+  /// **'Star'**
+  String get symbolStar;
+
+  /// No description provided for @symbolRocket.
+  ///
+  /// In en, this message translates to:
+  /// **'Rocket'**
+  String get symbolRocket;
+
+  /// No description provided for @symbolCrown.
+  ///
+  /// In en, this message translates to:
+  /// **'Crown'**
+  String get symbolCrown;
+
+  /// No description provided for @symbolButterfly.
+  ///
+  /// In en, this message translates to:
+  /// **'Butterfly'**
+  String get symbolButterfly;
+
+  /// No description provided for @symbolDragon.
+  ///
+  /// In en, this message translates to:
+  /// **'Dragon'**
+  String get symbolDragon;
+
+  /// No description provided for @symbolFlower.
+  ///
+  /// In en, this message translates to:
+  /// **'Flower'**
+  String get symbolFlower;
+
+  /// No description provided for @symbolFootball.
+  ///
+  /// In en, this message translates to:
+  /// **'Football'**
+  String get symbolFootball;
+
+  /// No description provided for @symbolMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get symbolMusic;
+
+  /// No description provided for @symbolBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Book'**
+  String get symbolBook;
+
+  /// No description provided for @symbolPaw.
+  ///
+  /// In en, this message translates to:
+  /// **'Paw'**
+  String get symbolPaw;
+
+  /// No description provided for @symbolRainbow.
+  ///
+  /// In en, this message translates to:
+  /// **'Rainbow'**
+  String get symbolRainbow;
+
+  /// No description provided for @symbolSparkles.
+  ///
+  /// In en, this message translates to:
+  /// **'Sparkles'**
+  String get symbolSparkles;
 }
 
 class _AppLocalizationsDelegate

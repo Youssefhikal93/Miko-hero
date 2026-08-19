@@ -3,8 +3,11 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
-/// Snapshot schema written by this version; 2 introduced profile birth dates.
-const appStateSchemaVersion = 2;
+/// Snapshot schema written by this version; 3 introduced kingdom themes.
+///
+/// Version 2 introduced profile birth dates; version 3 added the per-child
+/// castle, photo frame, backdrop, and favourite symbol.
+const appStateSchemaVersion = 3;
 
 /// Oldest snapshot schema this version still reads; 1 predates birth dates.
 const minimumAppStateSchemaVersion = 1;
@@ -81,7 +84,8 @@ class AppState {
 
   /// Validates and restores a complete current-schema family snapshot.
   ///
-  /// An absent `schemaVersion` is the original version 1. A newer version is
+  /// An absent `schemaVersion` is the original version 1, and versions 1
+  /// through [appStateSchemaVersion] are all accepted. A newer version is
   /// refused with [UnsupportedSchemaVersionException] rather than guessed at.
   factory AppState.fromJson(Map<String, Object?> json) {
     _requireSupportedSchemaVersion(json['schemaVersion']);

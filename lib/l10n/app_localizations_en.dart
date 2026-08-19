@@ -287,6 +287,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playNarration => 'Play narration';
 
   @override
+  String get pauseNarration => 'Pause narration';
+
+  @override
+  String get resumeNarration => 'Continue narration';
+
+  @override
   String get stopNarration => 'Stop narration';
 
   @override
@@ -901,4 +907,117 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get applyNarrationSettings => 'Apply';
+
+  @override
+  String get sleepTimer => 'Sleep timer';
+
+  @override
+  String get sleepTimerOff => 'Off';
+
+  @override
+  String sleepTimerMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String sleepTimerRemaining(int minutes) {
+    return 'Narration stops in about $minutes min.';
+  }
+
+  @override
+  String get kingdomStyleTitle => 'Kingdom style';
+
+  @override
+  String kingdomStyleBody(String name) {
+    return 'Choose the castle, photo frame, backdrop, and symbol of $name\'s kingdom.';
+  }
+
+  @override
+  String kingdomStyleSaved(String name) {
+    return 'Kingdom style saved for $name';
+  }
+
+  @override
+  String get kingdomCastle => 'Castle';
+
+  @override
+  String get castleClassicTowers => 'Classic towers';
+
+  @override
+  String get castleRoundDomes => 'Round domes';
+
+  @override
+  String get castleCrystalSpires => 'Crystal spires';
+
+  @override
+  String get castleForestTreehouse => 'Forest treehouse';
+
+  @override
+  String get kingdomAvatarFrame => 'Photo frame';
+
+  @override
+  String get avatarFrameNone => 'Simple circle';
+
+  @override
+  String get avatarFrameStars => 'Stars';
+
+  @override
+  String get avatarFrameHearts => 'Hearts';
+
+  @override
+  String get avatarFrameLaurel => 'Laurel wreath';
+
+  @override
+  String get kingdomBackdrop => 'Backdrop';
+
+  @override
+  String get backdropNightSky => 'Night sky';
+
+  @override
+  String get backdropMeadow => 'Meadow';
+
+  @override
+  String get backdropOcean => 'Ocean';
+
+  @override
+  String get backdropSunset => 'Sunset';
+
+  @override
+  String get kingdomSymbol => 'Favourite symbol';
+
+  @override
+  String get symbolStar => 'Star';
+
+  @override
+  String get symbolRocket => 'Rocket';
+
+  @override
+  String get symbolCrown => 'Crown';
+
+  @override
+  String get symbolButterfly => 'Butterfly';
+
+  @override
+  String get symbolDragon => 'Dragon';
+
+  @override
+  String get symbolFlower => 'Flower';
+
+  @override
+  String get symbolFootball => 'Football';
+
+  @override
+  String get symbolMusic => 'Music';
+
+  @override
+  String get symbolBook => 'Book';
+
+  @override
+  String get symbolPaw => 'Paw';
+
+  @override
+  String get symbolRainbow => 'Rainbow';
+
+  @override
+  String get symbolSparkles => 'Sparkles';
 }

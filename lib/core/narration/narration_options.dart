@@ -27,6 +27,30 @@ enum NarrationScope {
   remainingStory,
 }
 
+/// Bounded bedtime limits after which narration stops on its own.
+enum NarrationSleepTimer {
+  /// Narration keeps going until the story or the listener ends it.
+  off(null),
+
+  /// Stops narration five minutes after playback started.
+  fiveMinutes(Duration(minutes: 5)),
+
+  /// Stops narration ten minutes after playback started.
+  tenMinutes(Duration(minutes: 10)),
+
+  /// Stops narration twenty minutes after playback started.
+  twentyMinutes(Duration(minutes: 20));
+
+  /// Associates the choice with the countdown it starts, or null when off.
+  const NarrationSleepTimer(this.duration);
+
+  /// Time narration may still run, or null when no limit is selected.
+  final Duration? duration;
+
+  /// Whether this choice actually limits how long narration continues.
+  bool get isActive => duration != null;
+}
+
 /// One validated speech command passed to the platform boundary.
 class NarrationRequest {
   /// Creates an immutable command from reader-owned choices.

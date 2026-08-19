@@ -287,6 +287,12 @@ class AppLocalizationsSo extends AppLocalizations {
   String get playNarration => 'Daar akhriska';
 
   @override
+  String get pauseNarration => 'Hakad akhriska';
+
+  @override
+  String get resumeNarration => 'Sii wad akhriska';
+
+  @override
   String get stopNarration => 'Jooji akhriska';
 
   @override
@@ -907,4 +913,117 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get applyNarrationSettings => 'Dhaqan geli';
+
+  @override
+  String get sleepTimer => 'Waqtiga hurdada';
+
+  @override
+  String get sleepTimerOff => 'Damin';
+
+  @override
+  String sleepTimerMinutes(int minutes) {
+    return '$minutes daqiiqo';
+  }
+
+  @override
+  String sleepTimerRemaining(int minutes) {
+    return 'Akhrisku wuxuu joogsan doonaa qiyaastii $minutes daqiiqo.';
+  }
+
+  @override
+  String get kingdomStyleTitle => 'Qaabka boqortooyada';
+
+  @override
+  String kingdomStyleBody(String name) {
+    return 'Dooro qalcadda, qaybta sawirka, gadaasha iyo calaamadda boqortooyada $name.';
+  }
+
+  @override
+  String kingdomStyleSaved(String name) {
+    return 'Qaabka boqortooyada waa loo keydiyay $name';
+  }
+
+  @override
+  String get kingdomCastle => 'Qalcad';
+
+  @override
+  String get castleClassicTowers => 'Munaarado hore';
+
+  @override
+  String get castleRoundDomes => 'Qubado wareegsan';
+
+  @override
+  String get castleCrystalSpires => 'Fiiqyo dhalaalaya';
+
+  @override
+  String get castleForestTreehouse => 'Guri geed oo kaynta ku yaal';
+
+  @override
+  String get kingdomAvatarFrame => 'Qaybta sawirka';
+
+  @override
+  String get avatarFrameNone => 'Goobaabin fudud';
+
+  @override
+  String get avatarFrameStars => 'Xiddigo';
+
+  @override
+  String get avatarFrameHearts => 'Wadnayaal';
+
+  @override
+  String get avatarFrameLaurel => 'Taaj caleemo ah';
+
+  @override
+  String get kingdomBackdrop => 'Gadaasha';
+
+  @override
+  String get backdropNightSky => 'Cirka habeenkii';
+
+  @override
+  String get backdropMeadow => 'Doog cagaaran';
+
+  @override
+  String get backdropOcean => 'Badweyn';
+
+  @override
+  String get backdropSunset => 'Qorrax dhac';
+
+  @override
+  String get kingdomSymbol => 'Calaamadda la jecel yahay';
+
+  @override
+  String get symbolStar => 'Xiddig';
+
+  @override
+  String get symbolRocket => 'Gantaal';
+
+  @override
+  String get symbolCrown => 'Taaj';
+
+  @override
+  String get symbolButterfly => 'Balanbaalis';
+
+  @override
+  String get symbolDragon => 'Masduulaa';
+
+  @override
+  String get symbolFlower => 'Ubax';
+
+  @override
+  String get symbolFootball => 'Kubbadda cagta';
+
+  @override
+  String get symbolMusic => 'Muusik';
+
+  @override
+  String get symbolBook => 'Buug';
+
+  @override
+  String get symbolPaw => 'Cago xayawaan';
+
+  @override
+  String get symbolRainbow => 'Qaanso roobaad';
+
+  @override
+  String get symbolSparkles => 'Dhalaal';
 }
