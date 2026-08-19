@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:cryptography/helpers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 
 /// Maximum encrypted backup size accepted before parsing or decryption.
@@ -41,19 +41,52 @@ class BackupTooLargeException implements Exception {
   const BackupTooLargeException();
 }
 
+/// One Argon2id job sent to a background isolate.
+class BackupKeyDerivation {
+  /// Groups the password and its salt into one message the isolate receives.
+  const BackupKeyDerivation({required this.password, required this.salt});
+
+  /// Parent-entered backup password; never stored anywhere.
+  final String password;
+
+  /// Random salt saved in the public part of the backup envelope.
+  final Uint8List salt;
+}
+
+/// Runs one Argon2id derivation, by default on a background isolate.
+typedef BackupKeyDeriver =
+    Future<Uint8List> Function(BackupKeyDerivation derivation);
+
+/// Derives the AES-256 backup key using fixed, versioned resource parameters.
+///
+/// Top-level so it can be the entry point of a background isolate. Tests may
+/// pass it directly to [EncryptedBackupCodec] to skip the isolate hop.
+Future<Uint8List> deriveBackupKey(BackupKeyDerivation derivation) async {
+  final argon2id = Argon2id(
+    parallelism: _kdfParallelism,
+    memory: _kdfMemory,
+    iterations: _kdfIterations,
+    hashLength: _keyLength,
+  );
+  final key = await argon2id.deriveKeyFromPassword(
+    password: derivation.password,
+    nonce: derivation.salt,
+  );
+  return Uint8List.fromList(await key.extractBytes());
+}
+
 /// Encrypts and validates portable, password-protected family snapshots.
 class EncryptedBackupCodec {
   /// Creates the version-one Argon2id and AES-GCM codec.
-  EncryptedBackupCodec()
-    : _keyDerivation = Argon2id(
-        parallelism: _kdfParallelism,
-        memory: _kdfMemory,
-        iterations: _kdfIterations,
-        hashLength: _keyLength,
-      ),
+  ///
+  /// [deriver] exists so tests can substitute the isolate boundary; production
+  /// code keeps the default `compute` hop, which runs inline on Flutter web
+  /// because that platform has no isolates.
+  EncryptedBackupCodec({BackupKeyDeriver? deriver})
+    : _deriveKeyBytes = deriver ?? _computeBackupKey,
       _cipher = AesGcm.with256bits();
 
-  final Argon2id _keyDerivation;
+  final BackupKeyDeriver _deriveKeyBytes;
   final AesGcm _cipher;
 
   /// Encrypts one application snapshot with a new random salt and nonce.
@@ -61,7 +94,7 @@ class EncryptedBackupCodec {
     if (password.length < minimumBackupPasswordLength) {
       throw ArgumentError.value(password, 'password');
     }
-    final salt = randomBytes(_saltLength);
+    final salt = Uint8List.fromList(randomBytes(_saltLength));
     final secretKey = await _deriveKey(password, salt);
     final secretBox = await _cipher.encrypt(
       utf8.encode(jsonEncode(state.toJson())),
@@ -130,7 +163,7 @@ class EncryptedBackupCodec {
   Future<AppState> _decryptState(
     SecretBox secretBox,
     String password,
-    List<int> salt,
+    Uint8List salt,
   ) async {
     final secretKey = await _deriveKey(password, salt);
     try {
@@ -145,12 +178,12 @@ class EncryptedBackupCodec {
     }
   }
 
-  /// Derives the AES-256 key using fixed, versioned resource parameters.
-  Future<SecretKey> _deriveKey(String password, List<int> salt) {
-    return _keyDerivation.deriveKeyFromPassword(
-      password: password,
-      nonce: salt,
+  /// Derives the AES-256 key without blocking the interface thread.
+  Future<SecretKey> _deriveKey(String password, Uint8List salt) async {
+    final keyBytes = await _deriveKeyBytes(
+      BackupKeyDerivation(password: password, salt: salt),
     );
+    return SecretKey(keyBytes);
   }
 
   /// Parses the public envelope and verifies its supported schema identity.
@@ -164,7 +197,7 @@ class EncryptedBackupCodec {
   }
 
   /// Accepts only this version's exact KDF parameters before doing costly work.
-  List<int> _validatedSalt(Map<String, Object?> envelope) {
+  Uint8List _validatedSalt(Map<String, Object?> envelope) {
     final kdfJson = _object(envelope['kdf']);
     if (kdfJson['name'] != _kdfName ||
         kdfJson['memory'] != _kdfMemory ||
@@ -203,4 +236,9 @@ class EncryptedBackupCodec {
     }
     return value;
   }
+}
+
+/// Moves the Argon2id work off the UI thread so backups never freeze it.
+Future<Uint8List> _computeBackupKey(BackupKeyDerivation derivation) {
+  return compute(deriveBackupKey, derivation);
 }

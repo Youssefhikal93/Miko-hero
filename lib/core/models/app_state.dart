@@ -3,6 +3,30 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
+/// Snapshot schema written by this version; 2 introduced profile birth dates.
+const appStateSchemaVersion = 2;
+
+/// Oldest snapshot schema this version still reads; 1 predates birth dates.
+const minimumAppStateSchemaVersion = 1;
+
+/// Reports a snapshot written by a newer, unknown application version.
+///
+/// Restoring it could silently drop fields this build cannot represent, so the
+/// backup is refused instead of partially applied.
+class UnsupportedSchemaVersionException implements Exception {
+  /// Creates the error carrying the version found in the snapshot.
+  const UnsupportedSchemaVersionException(this.version);
+
+  /// Schema version read from the snapshot.
+  final int version;
+
+  /// Keeps diagnostics concise without exposing stored family content.
+  @override
+  String toString() {
+    return 'Unsupported application state schema version: $version.';
+  }
+}
+
 /// Complete locally persisted state needed to render the application.
 class AppState {
   /// Creates an immutable application snapshot.
@@ -47,6 +71,7 @@ class AppState {
   /// Converts the complete family snapshot into a portable JSON object.
   Map<String, Object?> toJson() {
     return <String, Object?>{
+      'schemaVersion': appStateSchemaVersion,
       'locale': locale.languageCode,
       'profiles': profiles.map((profile) => profile.toJson()).toList(),
       'stories': stories.map((story) => story.toJson()).toList(),
@@ -55,7 +80,11 @@ class AppState {
   }
 
   /// Validates and restores a complete current-schema family snapshot.
+  ///
+  /// An absent `schemaVersion` is the original version 1. A newer version is
+  /// refused with [UnsupportedSchemaVersionException] rather than guessed at.
   factory AppState.fromJson(Map<String, Object?> json) {
+    _requireSupportedSchemaVersion(json['schemaVersion']);
     final localeCode = json['locale'];
     final encodedProfiles = json['profiles'];
     final encodedStories = json['stories'];
@@ -179,6 +208,17 @@ class AppState {
         );
       }
     }
+  }
+}
+
+/// Accepts every schema version this build understands and refuses the rest.
+void _requireSupportedSchemaVersion(Object? encodedVersion) {
+  if (encodedVersion == null) return;
+  if (encodedVersion is! int || encodedVersion < minimumAppStateSchemaVersion) {
+    throw const FormatException('Malformed application state schema version.');
+  }
+  if (encodedVersion > appStateSchemaVersion) {
+    throw UnsupportedSchemaVersionException(encodedVersion);
   }
 }
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/parent_access_gate.dart';
 
 /// Optional local parent-PIN status and management controls.
 class ParentSecuritySettingsCard extends ConsumerWidget {
@@ -57,6 +58,11 @@ class _LoadedSecurityCard extends ConsumerWidget {
                   ? text.parentPinConfigured
                   : text.parentPinNotConfigured,
             ),
+            const SizedBox(height: 10),
+            Text(
+              text.forgotParentPinBody,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 16),
             Wrap(
               spacing: 10,
@@ -85,7 +91,7 @@ class _LoadedSecurityCard extends ConsumerWidget {
   ) {
     return <Widget>[
       FilledButton.tonalIcon(
-        onPressed: () => _setPin(context, ref),
+        onPressed: () => _changePin(context, ref),
         icon: const Icon(Icons.password_rounded),
         label: Text(text.changeParentPin),
       ),
@@ -116,6 +122,20 @@ class _LoadedSecurityCard extends ConsumerWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(text.parentPinSaved)));
+  }
+
+  /// Re-authenticates with the current PIN before accepting a replacement.
+  Future<void> _changePin(BuildContext context, WidgetRef ref) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const _PinChangeDialog(),
+    );
+    if (saved != true || !context.mounted) return;
+    final text = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text.parentPinChanged)));
   }
 
   /// Requires confirmation before removing the device-local access barrier.
@@ -232,6 +252,160 @@ class _PinSetupDialogState extends ConsumerState<_PinSetupDialog> {
   }
 
   /// Validates and persists the new verifier before closing successfully.
+  Future<void> _save() async {
+    final text = AppLocalizations.of(context);
+    final pin = _pinController.text;
+    final service = ref.read(parentSecurityServiceProvider);
+    final error = !service.isValidPin(pin)
+        ? text.parentPinRequirements
+        : pin != _confirmationController.text
+        ? text.parentPinMismatch
+        : null;
+    if (error != null) {
+      setState(() => _errorText = error);
+      return;
+    }
+    setState(() {
+      _isBusy = true;
+      _errorText = null;
+    });
+    try {
+      await ref.read(parentAccessControllerProvider.notifier).setPin(pin);
+      if (mounted) context.pop(true);
+    } on Exception {
+      if (!mounted) return;
+      setState(() {
+        _isBusy = false;
+        _errorText = text.somethingWentWrong;
+      });
+    }
+  }
+}
+
+/// Two-step Change PIN dialog: prove the current PIN, then set a new one.
+class _PinChangeDialog extends ConsumerStatefulWidget {
+  /// Creates a non-dismissible PIN replacement transaction.
+  const _PinChangeDialog();
+
+  @override
+  /// Creates field controllers retained only while the dialog is visible.
+  ConsumerState<_PinChangeDialog> createState() => _PinChangeDialogState();
+}
+
+/// Holds the verification step result and the uncommitted replacement PIN.
+class _PinChangeDialogState extends ConsumerState<_PinChangeDialog> {
+  final _currentController = TextEditingController();
+  final _pinController = TextEditingController();
+  final _confirmationController = TextEditingController();
+  bool _isCurrentPinVerified = false;
+  bool _isBusy = false;
+  String? _errorText;
+
+  @override
+  /// Clears every PIN field when the dialog completes or is cancelled.
+  void dispose() {
+    _currentController.dispose();
+    _pinController.dispose();
+    _confirmationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  /// Shows only the step the parent has reached so both PINs stay separate.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(text.changeParentPinTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (_isCurrentPinVerified) ...<Widget>[
+            Text(text.parentPinRequirements),
+            const SizedBox(height: 16),
+            _pinField(_pinController, text.newParentPin, autofocus: true),
+            const SizedBox(height: 10),
+            _pinField(_confirmationController, text.confirmParentPin),
+          ] else ...<Widget>[
+            Text(text.enterParentPin),
+            const SizedBox(height: 16),
+            _pinField(
+              _currentController,
+              text.currentParentPin,
+              autofocus: true,
+            ),
+          ],
+          if (_errorText != null) ...<Widget>[
+            const SizedBox(height: 10),
+            Text(
+              _errorText!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: _isBusy ? null : () => context.pop(false),
+          child: Text(text.cancel),
+        ),
+        FilledButton(
+          onPressed: _isBusy
+              ? null
+              : _isCurrentPinVerified
+              ? _save
+              : _verifyCurrentPin,
+          child: Text(
+            _isCurrentPinVerified ? text.saveParentPin : text.continueAction,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Creates one constrained numeric secret field.
+  Widget _pinField(
+    TextEditingController controller,
+    String label, {
+    bool autofocus = false,
+  }) {
+    return TextField(
+      controller: controller,
+      autofocus: autofocus,
+      obscureText: true,
+      keyboardType: TextInputType.number,
+      maxLength: 8,
+      decoration: InputDecoration(labelText: label, counterText: ''),
+    );
+  }
+
+  /// Verifies the existing PIN, which counts toward attempt throttling.
+  Future<void> _verifyCurrentPin() async {
+    final text = AppLocalizations.of(context);
+    setState(() {
+      _isBusy = true;
+      _errorText = null;
+    });
+    try {
+      final result = await ref
+          .read(parentAccessControllerProvider.notifier)
+          .verifyPin(_currentController.text);
+      if (!mounted) return;
+      setState(() {
+        _isBusy = false;
+        _isCurrentPinVerified = result.isUnlocked;
+        _errorText = parentUnlockMessage(text, result);
+        if (result.isUnlocked) _currentController.clear();
+      });
+    } on Exception {
+      if (!mounted) return;
+      setState(() {
+        _isBusy = false;
+        _errorText = text.somethingWentWrong;
+      });
+    }
+  }
+
+  /// Applies the shared 4-8 digit rules before replacing the stored verifier.
   Future<void> _save() async {
     final text = AppLocalizations.of(context);
     final pin = _pinController.text;

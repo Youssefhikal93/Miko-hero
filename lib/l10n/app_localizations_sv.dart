@@ -130,6 +130,27 @@ class AppLocalizationsSv extends AppLocalizations {
   String get ageInvalid => 'Ange en ålder mellan 1 och 17.';
 
   @override
+  String get birthDate => 'Födelsedatum';
+
+  @override
+  String get chooseBirthDate => 'Välj födelsedatum';
+
+  @override
+  String get changeBirthDate => 'Ändra datum';
+
+  @override
+  String get birthDateHelper =>
+      'Åldern som används i berättelserna uppdateras vid varje födelsedag.';
+
+  @override
+  String birthDateLegacyAge(int age) {
+    return 'Sparad ålder: $age. Välj ett födelsedatum så att den håller sig rätt.';
+  }
+
+  @override
+  String get birthDateRequired => 'Välj barnets födelsedatum.';
+
+  @override
   String get photoTooLarge => 'Välj ett foto som är mindre än 2 MB.';
 
   @override
@@ -475,6 +496,29 @@ class AppLocalizationsSv extends AppLocalizations {
       'Föräldrakontrollerna förblir öppna på enheten tills en ny PIN ställs in.';
 
   @override
+  String parentPinLockedSeconds(int seconds) {
+    return 'För många försök. Försök igen om $seconds s.';
+  }
+
+  @override
+  String parentPinLockedMinutes(int minutes) {
+    return 'För många försök. Försök igen om $minutes min.';
+  }
+
+  @override
+  String get changeParentPinTitle => 'Byt föräldra-PIN';
+
+  @override
+  String get currentParentPin => 'Nuvarande PIN';
+
+  @override
+  String get parentPinChanged => 'Föräldra-PIN ändrad';
+
+  @override
+  String get forgotParentPinBody =>
+      'Det finns ingen återställning av PIN-koden. Om koden glöms bort är enda alternativet att radera all appdata; en krypterad säkerhetskopia återställer sedan familjens innehåll, eftersom en säkerhetskopia aldrig innehåller PIN-koden.';
+
+  @override
   String get encryptedBackupTitle => 'Krypterad säkerhetskopia';
 
   @override
@@ -562,6 +606,10 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get backupFailed => 'Säkerhetskopieringen kunde inte slutföras.';
+
+  @override
+  String get backupNewerVersion =>
+      'Den här säkerhetskopian skapades av en nyare version av appen.';
 
   @override
   String get storyPreferencesTitle => 'Berättelseval och trygghet';
@@ -821,6 +869,18 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get pdfExportFailed => 'Det gick inte att spara PDF-filen';
+
+  @override
+  String get exportPdfOptionsTitle => 'PDF-alternativ';
+
+  @override
+  String includePhotoOnCover(String name) {
+    return 'Ta med ${name}s foto på omslaget';
+  }
+
+  @override
+  String get exportPdfPhotoNotice =>
+      'En sparad PDF är inte krypterad och lämnar appen.';
 
   @override
   String get narrationSettings => 'Berättarinställningar';

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/export/pdf_file_service.dart';
 import 'package:miko_hero/core/export/story_pdf_service.dart';
 import 'package:miko_hero/core/models/story_models.dart';
@@ -26,11 +27,32 @@ class StoryExportController {
   final Ref _ref;
 
   /// Renders and saves one approved story, returning false after cancellation.
-  Future<bool> export(StoryBook story, String dialogTitle) async {
+  ///
+  /// [includePhoto] carries the parent's export-time choice: only then is the
+  /// hero's saved reference photo resolved and placed on the PDF cover. A
+  /// missing profile or photo silently produces the photo-free cover.
+  Future<bool> export(
+    StoryBook story,
+    String dialogTitle, {
+    bool includePhoto = false,
+  }) async {
     if (story.reviewStatus != StoryReviewStatus.approved) {
       throw StateError('Only approved stories can be exported.');
     }
-    final bytes = await _ref.read(storyPdfServiceProvider).build(story);
+    final bytes = await _ref
+        .read(storyPdfServiceProvider)
+        .build(
+          story,
+          coverPhotoBase64: includePhoto ? _coverPhoto(story) : null,
+        );
     return _ref.read(pdfFileServiceProvider).save(bytes, story, dialogTitle);
+  }
+
+  /// Reads the hero's private photo from loaded state, or null when absent.
+  String? _coverPhoto(StoryBook story) {
+    final state = _ref.read(appControllerProvider).value;
+    final profile = state?.profileById(story.content.request.profileId);
+    final photoBase64 = profile?.photoBase64;
+    return photoBase64 == null || photoBase64.isEmpty ? null : photoBase64;
   }
 }

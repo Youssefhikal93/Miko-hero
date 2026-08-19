@@ -310,6 +310,7 @@ String _backupErrorMessage(AppLocalizations text, Object error) {
     BackupFormatException() => text.backupInvalid,
     BackupTooLargeException() => text.backupTooLarge,
     BackupFileReadException() => text.backupFileReadFailed,
+    UnsupportedSchemaVersionException() => text.backupNewerVersion,
     _ => text.backupFailed,
   };
 }

@@ -330,6 +330,42 @@ abstract class AppLocalizations {
   /// **'Enter an age from 1 to 17.'**
   String get ageInvalid;
 
+  /// No description provided for @birthDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Birth date'**
+  String get birthDate;
+
+  /// No description provided for @chooseBirthDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose birth date'**
+  String get chooseBirthDate;
+
+  /// No description provided for @changeBirthDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Change date'**
+  String get changeBirthDate;
+
+  /// No description provided for @birthDateHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'The age used in stories updates itself every birthday.'**
+  String get birthDateHelper;
+
+  /// No description provided for @birthDateLegacyAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved age: {age}. Choose a birth date so it stays correct.'**
+  String birthDateLegacyAge(int age);
+
+  /// No description provided for @birthDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the child\'s birth date.'**
+  String get birthDateRequired;
+
   /// No description provided for @photoTooLarge.
   ///
   /// In en, this message translates to:
@@ -972,6 +1008,42 @@ abstract class AppLocalizations {
   /// **'Parent controls will remain open on this device until a new PIN is set.'**
   String get removeParentPinBody;
 
+  /// No description provided for @parentPinLockedSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Try again in {seconds} s.'**
+  String parentPinLockedSeconds(int seconds);
+
+  /// No description provided for @parentPinLockedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Try again in {minutes} min.'**
+  String parentPinLockedMinutes(int minutes);
+
+  /// No description provided for @changeParentPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change parent PIN'**
+  String get changeParentPinTitle;
+
+  /// No description provided for @currentParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Current PIN'**
+  String get currentParentPin;
+
+  /// No description provided for @parentPinChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent PIN changed'**
+  String get parentPinChanged;
+
+  /// No description provided for @forgotParentPinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no PIN recovery. If the PIN is forgotten, the only option is deleting all app data; an encrypted backup then restores the family content, because a backup never contains the PIN.'**
+  String get forgotParentPinBody;
+
   /// No description provided for @encryptedBackupTitle.
   ///
   /// In en, this message translates to:
@@ -1127,6 +1199,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The backup action could not be completed.'**
   String get backupFailed;
+
+  /// No description provided for @backupNewerVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup was created by a newer version of the app.'**
+  String get backupNewerVersion;
 
   /// No description provided for @storyPreferencesTitle.
   ///
@@ -1565,6 +1643,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not save the PDF'**
   String get pdfExportFailed;
+
+  /// No description provided for @exportPdfOptionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF options'**
+  String get exportPdfOptionsTitle;
+
+  /// No description provided for @includePhotoOnCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Include {name}\'s photo on the cover'**
+  String includePhotoOnCover(String name);
+
+  /// No description provided for @exportPdfPhotoNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'A saved PDF is not encrypted and leaves the app.'**
+  String get exportPdfPhotoNotice;
 
   /// No description provided for @narrationSettings.
   ///

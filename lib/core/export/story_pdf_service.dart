@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/story_models.dart';
@@ -7,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 const _brandName = 'Iam - hero';
 const _sansAsset = 'assets/fonts/NotoSans-Regular.ttf';
 const _arabicAsset = 'assets/fonts/NotoNaskhArabic-Regular.ttf';
+const _coverPhotoSize = 170.0;
 
 /// Builds printable storybooks locally without uploading family content.
 class StoryPdfService {
@@ -17,14 +20,30 @@ class StoryPdfService {
   final AssetBundle _assetBundle;
 
   /// Renders one approved story as a multilingual A4 PDF byte sequence.
-  Future<Uint8List> build(StoryBook story) async {
+  ///
+  /// [coverPhotoBase64] places the child's reference photo on the cover only,
+  /// and only when the parent asked for it at export time. Unreadable bytes
+  /// fall back to the photo-free cover instead of failing the export. Inner
+  /// pages never contain the photo.
+  Future<Uint8List> build(StoryBook story, {String? coverPhotoBase64}) async {
     final fonts = await _loadFonts();
     final document = _document(story, fonts);
-    _addCover(document, story, fonts);
+    _addCover(document, story, fonts, _coverPhoto(coverPhotoBase64));
     for (final page in story.content.pages) {
       _addStoryPage(document, story, page, fonts);
     }
     return document.save();
+  }
+
+  /// Decodes the optional cover photo, treating invalid bytes as absent.
+  pw.MemoryImage? _coverPhoto(String? coverPhotoBase64) {
+    final encodedPhoto = coverPhotoBase64;
+    if (encodedPhoto == null || encodedPhoto.isEmpty) return null;
+    try {
+      return pw.MemoryImage(base64Decode(encodedPhoto));
+    } on Exception {
+      return null;
+    }
   }
 
   /// Loads both embedded font files needed by all supported story languages.
@@ -60,24 +79,46 @@ class StoryPdfService {
   }
 
   /// Adds a clean cover that identifies the saved title and selected hero.
-  void _addCover(pw.Document document, StoryBook story, _StoryPdfFonts fonts) {
+  void _addCover(
+    pw.Document document,
+    StoryBook story,
+    _StoryPdfFonts fonts,
+    pw.MemoryImage? coverPhoto,
+  ) {
     document.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         textDirection: _direction(story),
-        build: (_) => _cover(story, fonts),
+        build: (_) => _cover(story, fonts, coverPhoto),
       ),
     );
   }
 
-  /// Creates the cover composition without including the private child photo.
-  pw.Widget _cover(StoryBook story, _StoryPdfFonts fonts) {
+  /// Creates the cover composition, including the photo only when supplied.
+  pw.Widget _cover(
+    StoryBook story,
+    _StoryPdfFonts fonts,
+    pw.MemoryImage? coverPhoto,
+  ) {
     return pw.Center(
       child: pw.Column(
         mainAxisSize: pw.MainAxisSize.min,
         children: <pw.Widget>[
           pw.Text(_brandName, style: pw.TextStyle(font: fonts.sans)),
           pw.SizedBox(height: 36),
+          if (coverPhoto != null) ...<pw.Widget>[
+            pw.ClipRRect(
+              horizontalRadius: 24,
+              verticalRadius: 24,
+              child: pw.Image(
+                coverPhoto,
+                width: _coverPhotoSize,
+                height: _coverPhotoSize,
+                fit: pw.BoxFit.cover,
+              ),
+            ),
+            pw.SizedBox(height: 28),
+          ],
           pw.Text(story.content.title, style: const pw.TextStyle(fontSize: 30)),
           pw.SizedBox(height: 18),
           pw.Text(story.content.request.heroName),

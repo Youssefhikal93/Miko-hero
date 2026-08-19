@@ -4,6 +4,7 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
+import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 
 /// Supplies profile commands without exposing persistence details to widgets.
 final profileControllerProvider = Provider<ProfileController>(
@@ -113,10 +114,12 @@ class ProfileController {
         ? null
         : current.profileById(profileId);
     final customTheme = existingProfile?.hasCustomThemeColor ?? false;
+    final age = _validatedAge(draft, existingProfile);
     return ChildProfile(
       id: profileId ?? _newProfileId(current.profiles),
       name: draft.name,
-      age: draft.age,
+      legacyAge: age.years,
+      birthDate: age.birthDate,
       photoBase64: draft.photoBase64,
       gender: draft.gender,
       themeColorValue: customTheme
@@ -129,6 +132,32 @@ class ProfileController {
             defaultLanguage: AppLanguage.fromCode(current.locale.languageCode),
           ),
     );
+  }
+
+  /// Resolves the saved birth date and its current age snapshot.
+  ///
+  /// A new profile must carry a birth date. Editing a profile stored before
+  /// birth dates existed may keep the legacy age until the parent picks one.
+  /// Rejects any resolved age outside the supported child range.
+  ({DateTime? birthDate, int years}) _validatedAge(
+    ChildProfileDraft draft,
+    ChildProfile? existingProfile,
+  ) {
+    final birthDate = draft.birthDate == null
+        ? existingProfile?.birthDate
+        : childCalendarDay(draft.birthDate!);
+    if (birthDate == null) {
+      final legacyAge = existingProfile?.legacyAge;
+      if (legacyAge == null || !isValidChildAge(legacyAge)) {
+        throw ArgumentError.value(draft.birthDate, 'birthDate');
+      }
+      return (birthDate: null, years: legacyAge);
+    }
+    final years = childAgeOn(birthDate, DateTime.now());
+    if (!isValidChildAge(years)) {
+      throw ArgumentError.value(draft.birthDate, 'birthDate');
+    }
+    return (birthDate: birthDate, years: years);
   }
 
   /// Persists profile content and active identity before publishing both.
@@ -168,9 +197,12 @@ class ProfileController {
   }
 
   /// Rejects commands that reference a profile outside the loaded family.
+  ///
+  /// Recoverable because a parent can reach it, for example by saving an
+  /// editor that was opened before the same profile was deleted.
   ChildProfile _requireProfile(AppState current, String profileId) {
     final profile = current.profileById(profileId);
-    if (profile == null) throw StateError('Unknown child profile.');
+    if (profile == null) throw const UnknownEntityException('child profile');
     return profile;
   }
 

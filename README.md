@@ -18,12 +18,14 @@ source tree lives in [Codebase map](docs/CODEBASE.md).
 - Story text in the same four languages
 - Right-to-left interface and story layouts for Arabic
 - Multiple private child profiles with reference photos capped at 2 MB each
+- Birth date per child, so the age used in the app is never a stale number
 - Required Girl/Boy choice stored with each profile
 - Rose theme for a new girl profile and cyan theme for a new boy profile
 - My Kingdom profile switching with a separately saved color for each child
 - Golden, rose, purple, cyan, and green palettes plus a local custom color picker
 - Persistent mobile drawer, bottom navigation, and desktop rail on detail screens
 - Optional local parent PIN for profiles, My Kingdom, settings, and deletion
+- PIN attempt throttling, automatic re-lock on backgrounding, and Change PIN
 - Password-protected `.iamhero` backup and restore across supported devices
 - Required hero-profile selection before every story is created
 - Personalized labels such as `Miko hero` and `Abbas hero`
@@ -43,7 +45,8 @@ source tree lives in [Codebase map](docs/CODEBASE.md).
 - Free narration through voices installed on the current device, with
   selectable speed and a current-page or rest-of-story scope
 - Offline PDF export of any approved story with embedded fonts, including
-  right-to-left Arabic script; the child's photo is never placed in the PDF
+  right-to-left Arabic script, with a per-export choice of whether the cover
+  carries the child's photo
 - Full removal of all profiles, reference photos, and story libraries
 
 ## Privacy and storage
@@ -56,7 +59,14 @@ client and sends no profile or story content to an external service.
 Local app storage is not an encrypted vault. It relies on the operating system
 and device account for access control. The optional parent PIN is an app-level
 barrier: only a salted Argon2id verifier is stored, but it does not replace a
-device passcode or full-device encryption.
+device passcode or full-device encryption. Wrong PINs are throttled after five
+consecutive attempts, and an unlocked parent session re-locks as soon as the app
+leaves the foreground.
+
+There is deliberately no PIN recovery, because the app has no accounts and no
+server. If the PIN is forgotten, the only option is deleting all app data; an
+encrypted backup then restores the family content, because a backup never
+contains the PIN.
 
 The parent can export a portable `.iamhero` file. Backup content is encrypted
 and authenticated with AES-256-GCM using a key derived from the parent-entered
@@ -67,8 +77,11 @@ on the destination device.
 
 An exported PDF storybook is a plain, unencrypted file saved wherever the
 parent chooses. It contains the story title, the hero's first name, and the
-story text — never the reference photo — and leaves the app's control once
-saved, so treat it like any other family document.
+story text. Each export asks whether the cover should also carry the child's
+reference photo; the checkbox starts selected and the photo never appears on
+inner pages. Either way the file leaves the app's control once saved, so treat
+it like any other family document — and leave the photo out when the PDF will be
+shared outside the family.
 
 Browser storage belongs to the specific browser profile and origin. Clearing
 site data clears local Iam - hero content, so download an encrypted backup first
@@ -168,10 +181,9 @@ release keystore before any store distribution.
 - Stories use sample templates until the local Ollama adapter is implemented.
 - Safety-topic exclusions are stored and displayed but are only enforced once
   local AI generation is connected; the demo generator is inherently safe.
-- The parent PIN has no attempt throttling yet and unlocks for the whole app
-  session until it is manually re-locked in settings.
-- PIN hashing and backup encryption currently run on the UI thread, so those
-  actions briefly pause the interface, most noticeably on web.
+- PIN hashing and backup encryption run on a background isolate on Android, iOS,
+  and desktop. Flutter web has no isolates, so `compute` runs inline there and
+  the interface still pauses briefly during those actions.
 - Somali narration depends on whether the device has a compatible voice.
 - Stories and profiles do not sync automatically; moving them requires a manual
   encrypted backup and its separate password.

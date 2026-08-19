@@ -130,6 +130,27 @@ class AppLocalizationsSo extends AppLocalizations {
   String get ageInvalid => 'Geli da\' u dhexeysa 1 iyo 17.';
 
   @override
+  String get birthDate => 'Taariikhda dhalashada';
+
+  @override
+  String get chooseBirthDate => 'Dooro taariikhda dhalashada';
+
+  @override
+  String get changeBirthDate => 'Beddel taariikhda';
+
+  @override
+  String get birthDateHelper =>
+      'Da\'da sheekooyinka lagu isticmaalo waxay is-cusboonaysiisaa maalin walba oo dhalasho.';
+
+  @override
+  String birthDateLegacyAge(int age) {
+    return 'Da\'da la kaydiyay: $age. Dooro taariikh dhalasho si ay sax u sii ahaato.';
+  }
+
+  @override
+  String get birthDateRequired => 'Dooro taariikhda dhalashada ilmaha.';
+
+  @override
   String get photoTooLarge => 'Dooro sawir ka yar 2 MB.';
 
   @override
@@ -475,6 +496,29 @@ class AppLocalizationsSo extends AppLocalizations {
       'Xakamaynta waalidku way furnaan doontaa ilaa PIN cusub la dejiyo.';
 
   @override
+  String parentPinLockedSeconds(int seconds) {
+    return 'Isku dayo aad u badan. Isku day mar kale $seconds ilbiriqsi ka dib.';
+  }
+
+  @override
+  String parentPinLockedMinutes(int minutes) {
+    return 'Isku dayo aad u badan. Isku day mar kale $minutes daqiiqo ka dib.';
+  }
+
+  @override
+  String get changeParentPinTitle => 'Beddel PIN-ka waalidka';
+
+  @override
+  String get currentParentPin => 'PIN-ka hadda';
+
+  @override
+  String get parentPinChanged => 'PIN-ka waalidka waa la beddelay';
+
+  @override
+  String get forgotParentPinBody =>
+      'Ma jirto hab lagu soo celiyo PIN-ka. Haddii PIN-ka la illoobo, xulashada kaliya waa in la tirtiro dhammaan xogta app-ka; kadibna kayd sirgaxan wuxuu soo celinayaa xogta qoyska, maxaa yeelay kaydku waligiis PIN-ka kuma jiro.';
+
+  @override
   String get encryptedBackupTitle => 'Kayd sirgaxan';
 
   @override
@@ -560,6 +604,10 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get backupFailed => 'Hawsha kaydka lama dhammaystiri karin.';
+
+  @override
+  String get backupNewerVersion =>
+      'Kaydkan waxaa sameeyay nooc app ah oo ka cusub kan.';
 
   @override
   String get storyPreferencesTitle => 'Doorbidka sheekada iyo badbaadada';
@@ -820,6 +868,18 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get pdfExportFailed => 'PDF lama keydin karin';
+
+  @override
+  String get exportPdfOptionsTitle => 'Doorashooyinka PDF';
+
+  @override
+  String includePhotoOnCover(String name) {
+    return 'Ku dar sawirka $name daboolka';
+  }
+
+  @override
+  String get exportPdfPhotoNotice =>
+      'PDF-ka la kaydiyay sir kuma jiro oo app-ka wuu ka baxayaa.';
 
   @override
   String get narrationSettings => 'Dejinta akhrinta codka';

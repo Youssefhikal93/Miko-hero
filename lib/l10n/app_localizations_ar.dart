@@ -128,6 +128,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String get ageInvalid => 'أدخل عمرًا من 1 إلى 17.';
 
   @override
+  String get birthDate => 'تاريخ الميلاد';
+
+  @override
+  String get chooseBirthDate => 'اختر تاريخ الميلاد';
+
+  @override
+  String get changeBirthDate => 'تغيير التاريخ';
+
+  @override
+  String get birthDateHelper =>
+      'يتحدّث العمر المستخدم في القصص تلقائيًا في كل عيد ميلاد.';
+
+  @override
+  String birthDateLegacyAge(int age) {
+    return 'العمر المحفوظ: $age. اختر تاريخ ميلاد ليبقى صحيحًا.';
+  }
+
+  @override
+  String get birthDateRequired => 'اختر تاريخ ميلاد الطفل.';
+
+  @override
   String get photoTooLarge => 'اختر صورة أصغر من 2 ميغابايت.';
 
   @override
@@ -467,6 +488,29 @@ class AppLocalizationsAr extends AppLocalizations {
       'ستبقى أدوات الوالدين مفتوحة على هذا الجهاز حتى تعيين رمز جديد.';
 
   @override
+  String parentPinLockedSeconds(int seconds) {
+    return 'محاولات كثيرة. أعد المحاولة بعد $seconds ثانية.';
+  }
+
+  @override
+  String parentPinLockedMinutes(int minutes) {
+    return 'محاولات كثيرة. أعد المحاولة بعد $minutes دقيقة.';
+  }
+
+  @override
+  String get changeParentPinTitle => 'تغيير رمز الوالدين';
+
+  @override
+  String get currentParentPin => 'الرمز الحالي';
+
+  @override
+  String get parentPinChanged => 'تم تغيير رمز الوالدين';
+
+  @override
+  String get forgotParentPinBody =>
+      'لا توجد طريقة لاستعادة الرمز. إذا نُسي الرمز فالخيار الوحيد هو حذف كل بيانات التطبيق، ثم تعيد نسخة احتياطية مشفّرة محتوى العائلة لأن النسخة الاحتياطية لا تحتوي الرمز أبدًا.';
+
+  @override
   String get encryptedBackupTitle => 'نسخة احتياطية مشفرة';
 
   @override
@@ -549,6 +593,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backupFailed => 'تعذر إكمال إجراء النسخة الاحتياطية.';
+
+  @override
+  String get backupNewerVersion =>
+      'أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من التطبيق.';
 
   @override
   String get storyPreferencesTitle => 'تفضيلات القصة والأمان';
@@ -804,6 +852,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pdfExportFailed => 'تعذر حفظ ملف PDF';
+
+  @override
+  String get exportPdfOptionsTitle => 'خيارات ملف PDF';
+
+  @override
+  String includePhotoOnCover(String name) {
+    return 'أضف صورة $name على الغلاف';
+  }
+
+  @override
+  String get exportPdfPhotoNotice =>
+      'ملف PDF المحفوظ غير مشفّر ويخرج من التطبيق.';
 
   @override
   String get narrationSettings => 'إعدادات القراءة الصوتية';

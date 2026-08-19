@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_language.dart';
@@ -23,7 +23,7 @@ void main() {
     const profile = ChildProfile(
       id: 'miko',
       name: 'Miko',
-      age: 7,
+      legacyAge: 7,
       photoBase64: 'cGhvdG8=',
       gender: ChildGender.girl,
       themeColorValue: roseProfileThemeColorValue,

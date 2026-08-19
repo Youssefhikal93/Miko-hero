@@ -182,6 +182,49 @@ void main() {
     );
   });
 
+  testWidgets('a legacy profile keeps its age until a birth date is chosen', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'active_profile_id': 'miko',
+      'child_profiles': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'miko',
+          'name': 'Miko',
+          'age': 7,
+          'photoBase64': _transparentPixel,
+          'gender': 'girl',
+        },
+      ]),
+    });
+    appRouter.go('/profiles/miko');
+    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Age'), findsNothing);
+    expect(
+      find.text('Saved age: 7. Choose a birth date so it stays correct.'),
+      findsOneWidget,
+    );
+
+    final pickBirthDateButton = find.text('Choose birth date').last;
+    await tester.ensureVisible(pickBirthDateButton);
+    await tester.pumpAndSettle();
+    await tester.tap(pickBirthDateButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('7 years old'), findsOneWidget);
+    final saveProfileButton = find.text('Save profile');
+    await tester.ensureVisible(saveProfileButton);
+    await tester.tap(saveProfileButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('7 years old'), findsOneWidget);
+    expect(find.text('Miko hero'), findsWidgets);
+  });
+
   testWidgets('selected child receives the story and a separate library tab', (
     tester,
   ) async {

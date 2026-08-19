@@ -115,7 +115,10 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
             ),
             narration: () => _toggleNarration(story),
             narrationSettings: _changeNarrationSettings,
-            export: () => _exportStory(story),
+            export: () => _exportStory(
+              story,
+              state.profileById(story.content.request.profileId),
+            ),
           ),
         ),
       ],
@@ -213,20 +216,34 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     return _NarrationSelection(speed: _narrationSpeed, scope: _narrationScope);
   }
 
-  /// Requests parent access before copying a named child story to a file.
-  Future<void> _exportStory(StoryBook story) async {
+  /// Requests parent access and the cover choice before writing a story file.
+  ///
+  /// The photo question is only asked when the hero still has a saved photo;
+  /// otherwise the photo-free cover is the only possible result.
+  Future<void> _exportStory(StoryBook story, ChildProfile? profile) async {
     if (_exporting || !await requestParentAccess(context, ref)) return;
-    await _savePdf(story);
+    if (!mounted) return;
+    final hasPhoto = profile != null && profile.photoBase64.isNotEmpty;
+    var includePhoto = false;
+    if (hasPhoto) {
+      final choice = await showDialog<bool>(
+        context: context,
+        builder: (_) => _ExportOptionsDialog(childName: profile.name),
+      );
+      if (choice == null || !mounted) return;
+      includePhoto = choice;
+    }
+    await _savePdf(story, includePhoto: includePhoto);
   }
 
   /// Renders and saves the PDF while keeping cancellation non-exceptional.
-  Future<void> _savePdf(StoryBook story) async {
+  Future<void> _savePdf(StoryBook story, {required bool includePhoto}) async {
     final text = AppLocalizations.of(context);
     setState(() => _exporting = true);
     try {
       final saved = await ref
           .read(storyExportControllerProvider)
-          .export(story, text.exportPdfDialogTitle);
+          .export(story, text.exportPdfDialogTitle, includePhoto: includePhoto);
       if (mounted) {
         _showMessage(saved ? text.pdfSaved : text.pdfSaveCancelled);
       }
@@ -251,6 +268,61 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(text.narrationUnavailable)));
+  }
+}
+
+/// Export choices asked once per PDF, before any rendering work starts.
+class _ExportOptionsDialog extends StatefulWidget {
+  /// Creates the dialog for a hero who currently has a saved photo.
+  const _ExportOptionsDialog({required this.childName});
+
+  final String childName;
+
+  @override
+  /// Creates the checkbox state discarded when the dialog is dismissed.
+  State<_ExportOptionsDialog> createState() => _ExportOptionsDialogState();
+}
+
+/// Holds the cover-photo choice, which starts included as parents expect.
+class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
+  bool _includePhoto = true;
+
+  @override
+  /// Explains that the saved file is unencrypted before the photo is added.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(text.exportPdfOptionsTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _includePhoto,
+            title: Text(text.includePhotoOnCover(widget.childName)),
+            onChanged: (value) {
+              setState(() => _includePhoto = value ?? false);
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text.exportPdfPhotoNotice,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(text.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_includePhoto),
+          child: Text(text.exportPdf),
+        ),
+      ],
+    );
   }
 }
 

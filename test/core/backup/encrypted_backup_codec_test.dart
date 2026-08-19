@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
@@ -24,6 +24,8 @@ void main() {
       final restored = await codec.decode(encrypted, password);
 
       expect(restored.toJson(), original.toJson());
+      expect(restored.profiles.single.birthDate, DateTime(2018, 6, 15));
+      expect(restored.profiles.single.ageOn(DateTime(2026, 6, 15)), 8);
       expect(utf8.decode(encrypted), isNot(contains('cHJpdmF0ZS1waG90bw==')));
       expect(utf8.decode(encrypted), isNot(contains('Moon Garden')));
     },
@@ -75,10 +77,11 @@ void main() {
 
 /// Builds real profile and story models to exercise the complete backup schema.
 AppState _familyState() {
-  const profile = ChildProfile(
+  final profile = ChildProfile(
     id: 'miko',
     name: 'Miko',
-    age: 7,
+    legacyAge: 7,
+    birthDate: DateTime(2018, 6, 15),
     photoBase64: 'cHJpdmF0ZS1waG90bw==',
     gender: ChildGender.girl,
     themeColorValue: roseProfileThemeColorValue,
@@ -117,7 +120,7 @@ AppState _familyState() {
   );
   return AppState.validated(
     locale: const Locale('sv'),
-    profiles: const <ChildProfile>[profile],
+    profiles: <ChildProfile>[profile],
     stories: <StoryBook>[story],
     activeProfileId: profile.id,
   );

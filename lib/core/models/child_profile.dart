@@ -17,6 +17,46 @@ const roseProfileThemeColorValue = 0xFFFF5CA8;
 /// Default cyan theme stored for boy profiles created before customization.
 const cyanProfileThemeColorValue = 0xFF31D7E8;
 
+/// Youngest reading age a child profile may describe.
+const minimumChildAge = 1;
+
+/// Oldest reading age a child profile may describe.
+const maximumChildAge = 17;
+
+/// Age used to position the birth-date picker for a brand new profile.
+const defaultChildProfileAgeYears = 6;
+
+/// Drops the time component so birth dates compare as plain calendar days.
+DateTime childCalendarDay(DateTime moment) {
+  return DateTime(moment.year, moment.month, moment.day);
+}
+
+/// Computes the age in whole years on [today], counting the birthday itself.
+///
+/// The day before a birthday still reports the previous age; the birthday
+/// itself reports the new one.
+int childAgeOn(DateTime birthDate, DateTime today) {
+  final birth = childCalendarDay(birthDate);
+  final day = childCalendarDay(today);
+  final hadBirthday =
+      day.month > birth.month ||
+      (day.month == birth.month && day.day >= birth.day);
+  return day.year - birth.year - (hadBirthday ? 0 : 1);
+}
+
+/// Whether a computed age stays inside the supported child reading range.
+bool isValidChildAge(int age) {
+  return age >= minimumChildAge && age <= maximumChildAge;
+}
+
+/// Encodes a birth date as the stored ISO `yyyy-MM-dd` calendar day.
+String formatChildBirthDate(DateTime birthDate) {
+  final day = childCalendarDay(birthDate);
+  final month = day.month.toString().padLeft(2, '0');
+  final dayOfMonth = day.day.toString().padLeft(2, '0');
+  return '${day.year.toString().padLeft(4, '0')}-$month-$dayOfMonth';
+}
+
 /// Story and color context chosen by the parent for a child profile.
 enum ChildGender {
   /// Migration state for profiles saved before this choice existed.
@@ -53,7 +93,7 @@ class ChildProfileDraft {
   /// Groups parent-entered values before a stable profile identity is assigned.
   const ChildProfileDraft({
     required this.name,
-    required this.age,
+    required this.birthDate,
     required this.photoBase64,
     required this.gender,
   });
@@ -61,8 +101,11 @@ class ChildProfileDraft {
   /// Child name inserted into stories.
   final String name;
 
-  /// Reading age constrained to 1 through 17 by the form.
-  final int age;
+  /// Chosen calendar birth date, required for a new profile.
+  ///
+  /// Null keeps the stored legacy age of an existing profile that was saved
+  /// before birth dates existed, so editing a name never forces re-entry.
+  final DateTime? birthDate;
 
   /// Private reference photo encoded for local persistence.
   final String photoBase64;
@@ -77,11 +120,12 @@ class ChildProfile {
   const ChildProfile({
     required this.id,
     required this.name,
-    required this.age,
+    required this.legacyAge,
     required this.photoBase64,
     required this.gender,
     required this.themeColorValue,
     required this.hasCustomThemeColor,
+    this.birthDate,
     this.storyPreferences = const ChildStoryPreferences(),
   });
 
@@ -91,8 +135,17 @@ class ChildProfile {
   /// Name inserted into generated story text.
   final String name;
 
-  /// Reading-age context constrained by the UI to 1 through 17.
-  final int age;
+  /// Age snapshot kept only as a fallback for profiles saved without a date.
+  ///
+  /// Never read it directly for display: it stops ageing once written. Use
+  /// [age] or [ageOn] so a stored [birthDate] always wins.
+  final int legacyAge;
+
+  /// Calendar birth date chosen by the parent, absent on legacy profiles.
+  ///
+  /// Always a plain calendar day; use [childCalendarDay] before constructing a
+  /// profile from a picker or another time-carrying value.
+  final DateTime? birthDate;
 
   /// Base64-encoded reference photo kept in local preferences.
   final String photoBase64;
@@ -112,12 +165,26 @@ class ChildProfile {
   /// User-facing personalized label requested for profile selection and tabs.
   String get heroName => '$name hero';
 
+  /// Age in whole years on [today], derived from [birthDate] when it exists.
+  int ageOn(DateTime today) {
+    final birth = birthDate;
+    return birth == null ? legacyAge : childAgeOn(birth, today);
+  }
+
+  /// Age shown to the parent today; the only age any surface should display.
+  int get age => ageOn(DateTime.now());
+
   /// Converts the profile into a JSON-compatible local storage object.
+  ///
+  /// Keeps writing the legacy `age` snapshot so a profile saved by this
+  /// version still decodes in an app build that predates birth dates.
   Map<String, Object> toJson() {
+    final birth = birthDate;
     return <String, Object>{
       'id': id,
       'name': name,
-      'age': age,
+      'age': legacyAge,
+      if (birth != null) 'birthDate': formatChildBirthDate(birth),
       'photoBase64': photoBase64,
       'gender': gender.name,
       'themeColorValue': themeColorValue,
@@ -149,7 +216,8 @@ class ChildProfile {
     return ChildProfile(
       id: id,
       name: name,
-      age: age,
+      legacyAge: legacyAge,
+      birthDate: birthDate,
       photoBase64: photoBase64,
       gender: selectedGender,
       themeColorValue: hasCustomThemeColor
@@ -168,7 +236,8 @@ class ChildProfile {
     return ChildProfile(
       id: id,
       name: name,
-      age: age,
+      legacyAge: legacyAge,
+      birthDate: birthDate,
       photoBase64: photoBase64,
       gender: gender,
       themeColorValue: selectedColorValue,
@@ -182,7 +251,8 @@ class ChildProfile {
     return ChildProfile(
       id: id,
       name: name,
-      age: age,
+      legacyAge: legacyAge,
+      birthDate: birthDate,
       photoBase64: photoBase64,
       gender: gender,
       themeColorValue: themeColorValue,
@@ -200,6 +270,7 @@ ChildProfile _validatedProfile({
 }) {
   final name = json['name'];
   final age = json['age'];
+  final birthDate = _decodedBirthDate(json['birthDate']);
   final photoBase64 = json['photoBase64'];
   final gender = _decodedGender(json['gender'], missingGender: missingGender);
   final theme = _decodedTheme(
@@ -214,7 +285,7 @@ ChildProfile _validatedProfile({
   if (name is! String || name.trim().isEmpty || age is! int) {
     throw const FormatException('Malformed child profile.');
   }
-  if (age < 1 || age > 17 || photoBase64 is! String) {
+  if (!isValidChildAge(age) || photoBase64 is! String) {
     throw const FormatException('Malformed child profile.');
   }
   final photoBytes = base64Decode(photoBase64);
@@ -224,13 +295,56 @@ ChildProfile _validatedProfile({
   return ChildProfile(
     id: profileId,
     name: name.trim(),
-    age: age,
+    legacyAge: age,
+    birthDate: birthDate,
     photoBase64: photoBase64,
     gender: gender,
     themeColorValue: theme.colorValue,
     hasCustomThemeColor: theme.isCustom,
     storyPreferences: storyPreferences,
   );
+}
+
+/// Accepts a missing legacy birth date but rejects unusable stored dates.
+///
+/// A stored date must be a real `yyyy-MM-dd` calendar day that is neither in
+/// the future nor younger than [minimumChildAge]. The upper age bound is
+/// deliberately enforced only where a profile is written, so a family's stored
+/// profile never becomes unreadable on the day a child outgrows the range.
+DateTime? _decodedBirthDate(Object? encodedBirthDate) {
+  if (encodedBirthDate == null) return null;
+  if (encodedBirthDate is! String) {
+    throw const FormatException('Malformed child birth date.');
+  }
+  final birthDate = _parsedBirthDate(encodedBirthDate);
+  final today = childCalendarDay(DateTime.now());
+  if (birthDate.isAfter(today)) {
+    throw const FormatException('Child birth date is in the future.');
+  }
+  if (childAgeOn(birthDate, today) < minimumChildAge) {
+    throw const FormatException('Child birth date is too recent.');
+  }
+  return birthDate;
+}
+
+/// Requires the exact stored date format and rejects impossible calendar days.
+DateTime _parsedBirthDate(String encodedBirthDate) {
+  final match = RegExp(
+    r'^(\d{4})-(\d{2})-(\d{2})$',
+  ).firstMatch(encodedBirthDate);
+  if (match == null) {
+    throw const FormatException('Malformed child birth date.');
+  }
+  final year = int.parse(match.group(1)!);
+  final month = int.parse(match.group(2)!);
+  final day = int.parse(match.group(3)!);
+  final birthDate = DateTime(year, month, day);
+  if (birthDate.year != year ||
+      birthDate.month != month ||
+      birthDate.day != day) {
+    throw const FormatException('Malformed child birth date.');
+  }
+  return birthDate;
 }
 
 /// Defaults older profiles and validates current preference objects.

@@ -3,6 +3,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 
 /// Supplies story generation and library commands to story feature widgets.
@@ -73,13 +74,18 @@ class StoryController {
   }
 
   /// Ensures queued requests still match their saved child profile context.
+  ///
+  /// A deleted profile is reported as [UnknownEntityException] because a saved
+  /// request can outlive the child it belongs to.
   void _validateRequest(StoryRequest request) {
     final profile = _currentState.profileById(request.profileId);
     if (profile == null) {
-      throw StateError('Cannot create a story for an unknown child profile.');
+      throw const UnknownEntityException('child profile');
     }
     if (!request.gender.isSpecified || request.gender != profile.gender) {
-      throw StateError('Story gender must match the selected child profile.');
+      // Reachable by retrying a queued request after the parent edited the
+      // child's Girl/Boy choice, so it must stay a recoverable exception.
+      throw const UnknownEntityException('matching child profile');
     }
   }
 
@@ -131,6 +137,9 @@ class StoryController {
   }
 
   /// Persists one metadata transformation without changing story ordering.
+  ///
+  /// Reports a story deleted on another screen as [UnknownEntityException] so
+  /// favorite, collection, and approval surfaces can show recoverable feedback.
   Future<void> _updateStory(
     String storyId,
     StoryBook Function(StoryBook story) update,
@@ -144,7 +153,7 @@ class StoryController {
           return update(story);
         })
         .toList(growable: false);
-    if (!found) throw StateError('Unknown story.');
+    if (!found) throw const UnknownEntityException('story');
     await _saveStories(current, savedStories);
   }
 

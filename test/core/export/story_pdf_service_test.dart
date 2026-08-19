@@ -28,7 +28,38 @@ void main() {
       expect(bytes.length, greaterThan(1000));
     });
   }
+
+  test('the chosen cover photo is embedded in a valid PDF', () async {
+    final story = _story(AppLanguage.english, 'Miko waved at the moon.');
+
+    final withPhoto = await StoryPdfService().build(
+      story,
+      coverPhotoBase64: _transparentPixel,
+    );
+    final withoutPhoto = await StoryPdfService().build(story);
+
+    expect(ascii.decode(withPhoto.take(4).toList()), '%PDF');
+    expect(ascii.decode(withoutPhoto.take(4).toList()), '%PDF');
+    expect(withPhoto.length, greaterThan(withoutPhoto.length));
+  });
+
+  test('an unreadable photo falls back to the photo-free cover', () async {
+    final story = _story(AppLanguage.english, 'Miko waved at the moon.');
+
+    final broken = await StoryPdfService().build(
+      story,
+      coverPhotoBase64: 'not-base64-at-all',
+    );
+    final withoutPhoto = await StoryPdfService().build(story);
+
+    expect(ascii.decode(broken.take(4).toList()), '%PDF');
+    expect(broken.length, withoutPhoto.length);
+  });
 }
+
+/// Obviously fake 1x1 transparent image standing in for a reference photo.
+const _transparentPixel =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 /// Creates one approved book with realistic multilingual generation metadata.
 StoryBook _story(AppLanguage language, String pageText) {

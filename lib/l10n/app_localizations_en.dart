@@ -130,6 +130,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ageInvalid => 'Enter an age from 1 to 17.';
 
   @override
+  String get birthDate => 'Birth date';
+
+  @override
+  String get chooseBirthDate => 'Choose birth date';
+
+  @override
+  String get changeBirthDate => 'Change date';
+
+  @override
+  String get birthDateHelper =>
+      'The age used in stories updates itself every birthday.';
+
+  @override
+  String birthDateLegacyAge(int age) {
+    return 'Saved age: $age. Choose a birth date so it stays correct.';
+  }
+
+  @override
+  String get birthDateRequired => 'Choose the child\'s birth date.';
+
+  @override
   String get photoTooLarge => 'Choose a photo smaller than 2 MB.';
 
   @override
@@ -474,6 +495,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'Parent controls will remain open on this device until a new PIN is set.';
 
   @override
+  String parentPinLockedSeconds(int seconds) {
+    return 'Too many attempts. Try again in $seconds s.';
+  }
+
+  @override
+  String parentPinLockedMinutes(int minutes) {
+    return 'Too many attempts. Try again in $minutes min.';
+  }
+
+  @override
+  String get changeParentPinTitle => 'Change parent PIN';
+
+  @override
+  String get currentParentPin => 'Current PIN';
+
+  @override
+  String get parentPinChanged => 'Parent PIN changed';
+
+  @override
+  String get forgotParentPinBody =>
+      'There is no PIN recovery. If the PIN is forgotten, the only option is deleting all app data; an encrypted backup then restores the family content, because a backup never contains the PIN.';
+
+  @override
   String get encryptedBackupTitle => 'Encrypted backup';
 
   @override
@@ -558,6 +602,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupFailed => 'The backup action could not be completed.';
+
+  @override
+  String get backupNewerVersion =>
+      'This backup was created by a newer version of the app.';
 
   @override
   String get storyPreferencesTitle => 'Story preferences and safety';
@@ -814,6 +862,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pdfExportFailed => 'Could not save the PDF';
+
+  @override
+  String get exportPdfOptionsTitle => 'PDF options';
+
+  @override
+  String includePhotoOnCover(String name) {
+    return 'Include $name\'s photo on the cover';
+  }
+
+  @override
+  String get exportPdfPhotoNotice =>
+      'A saved PDF is not encrypted and leaves the app.';
 
   @override
   String get narrationSettings => 'Narration settings';

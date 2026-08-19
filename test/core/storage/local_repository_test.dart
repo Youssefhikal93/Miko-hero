@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -10,6 +12,7 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 /// Verifies local persistence against the real preferences implementation seam.
 void main() {
@@ -27,7 +30,7 @@ void main() {
         ChildProfile(
           id: 'miko',
           name: 'Miko',
-          age: 7,
+          legacyAge: 7,
           photoBase64: 'cHJpdmF0ZS1waG90bw==',
           gender: ChildGender.girl,
           themeColorValue: roseProfileThemeColorValue,
@@ -36,7 +39,7 @@ void main() {
         ChildProfile(
           id: 'abbas',
           name: 'Abbas',
-          age: 9,
+          legacyAge: 9,
           photoBase64: 'c2Vjb25kLXBob3Rv',
           gender: ChildGender.boy,
           themeColorValue: _customPurpleThemeColorValue,
@@ -93,7 +96,7 @@ void main() {
         ChildProfile(
           id: 'miko',
           name: 'Miko',
-          age: 7,
+          legacyAge: 7,
           photoBase64: 'cGhvdG8=',
           gender: ChildGender.girl,
           themeColorValue: roseProfileThemeColorValue,
@@ -122,7 +125,7 @@ void main() {
       const oldProfile = ChildProfile(
         id: 'old-hero',
         name: 'Old hero',
-        age: 7,
+        legacyAge: 7,
         photoBase64: 'cGhvdG8=',
         gender: ChildGender.girl,
         themeColorValue: roseProfileThemeColorValue,
@@ -151,6 +154,76 @@ void main() {
       expect(preservedSecurity?.toJson(), security.toJson());
     },
   );
+
+  test('an encrypted backup restores byte for byte after a reload', () async {
+    final repository = await LocalRepository.open();
+    final codec = EncryptedBackupCodec(deriver: _fakeBackupKey);
+    final original = AppState.validated(
+      locale: const Locale('ar'),
+      profiles: <ChildProfile>[_profile(birthDate: DateTime(2018, 6, 15))],
+      stories: <StoryBook>[
+        _story(profileId: 'miko', heroName: 'Miko', gender: ChildGender.girl),
+      ],
+      activeProfileId: 'miko',
+    );
+
+    final encrypted = await codec.encode(original, 'family-safe-password');
+    final decoded = await codec.decode(encrypted, 'family-safe-password');
+    await repository.replaceState(decoded);
+    final reopened = await LocalRepository.open();
+    final restored = await reopened.readState();
+
+    expect(restored.toJson(), original.toJson());
+    expect(restored.profiles.single.birthDate, DateTime(2018, 6, 15));
+    expect(reopened.storedSchemaVersion, appStateSchemaVersion);
+  });
+
+  test(
+    'a backup from a newer app version is refused before restoring',
+    () async {
+      final codec = EncryptedBackupCodec(deriver: _fakeBackupKey);
+      final newerBackup = await codec.encode(
+        _NewerSchemaState(_familyState()),
+        'family-safe-password',
+      );
+
+      expect(
+        codec.decode(newerBackup, 'family-safe-password'),
+        throwsA(isA<UnsupportedSchemaVersionException>()),
+      );
+    },
+  );
+
+  test('a restore that fails midway rolls every key back', () async {
+    final store = _CountingPreferencesStore();
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    SharedPreferencesStorePlatform.instance = store;
+    addTearDown(() {
+      SharedPreferencesStorePlatform.instance =
+          InMemorySharedPreferencesStore.empty();
+    });
+    final repository = await LocalRepository.open();
+    final original = _familyState();
+    await repository.replaceState(original);
+    store.failOnWrite(3);
+
+    await expectLater(
+      repository.replaceState(
+        AppState.validated(
+          locale: const Locale('so'),
+          profiles: const <ChildProfile>[],
+          stories: const <StoryBook>[],
+          activeProfileId: null,
+        ),
+      ),
+      throwsA(isA<Exception>()),
+    );
+    final rolledBack = await repository.readState();
+
+    expect(rolledBack.toJson(), original.toJson());
+    expect(store.values['flutter.app_locale'], 'sv');
+    expect(store.values['flutter.active_profile_id'], 'miko');
+  });
 
   test('single-profile storage migrates with its existing stories', () async {
     final legacyStory = _story(
@@ -245,6 +318,119 @@ void main() {
 
 /// Custom value proves storage does not collapse colors back to gender defaults.
 const _customPurpleThemeColorValue = 0xFF9C6BFF;
+
+/// Builds one validated profile, optionally carrying a chosen birth date.
+ChildProfile _profile({DateTime? birthDate}) {
+  return ChildProfile(
+    id: 'miko',
+    name: 'Miko',
+    legacyAge: 8,
+    birthDate: birthDate,
+    photoBase64: 'cGhvdG8=',
+    gender: ChildGender.girl,
+    themeColorValue: roseProfileThemeColorValue,
+    hasCustomThemeColor: false,
+  );
+}
+
+/// Builds a complete family snapshot used by the restore transactions.
+AppState _familyState() {
+  return AppState.validated(
+    locale: const Locale('sv'),
+    profiles: <ChildProfile>[_profile(birthDate: DateTime(2018, 6, 15))],
+    stories: <StoryBook>[
+      _story(profileId: 'miko', heroName: 'Miko', gender: ChildGender.girl),
+    ],
+    activeProfileId: 'miko',
+  );
+}
+
+/// Pretends to be a snapshot written by a future application version.
+class _NewerSchemaState extends AppState {
+  /// Wraps a real snapshot so only its declared schema version changes.
+  _NewerSchemaState(AppState state)
+    : super(
+        locale: state.locale,
+        profiles: state.profiles,
+        stories: state.stories,
+        activeProfileId: state.activeProfileId,
+      );
+
+  @override
+  /// Claims a version this build cannot possibly understand.
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      ...super.toJson(),
+      'schemaVersion': appStateSchemaVersion + 1,
+    };
+  }
+}
+
+/// Preference store that fails one chosen write to prove restore rollback.
+///
+/// Extends the real platform store contract so the production
+/// `SharedPreferences` code path, including its cache, behaves normally.
+class _CountingPreferencesStore extends SharedPreferencesStorePlatform {
+  /// Values as the platform would hold them, including the plugin key prefix.
+  final Map<String, Object> values = <String, Object>{};
+
+  int? _failingWrite;
+  int _writes = 0;
+
+  /// Makes only the [write]-th following write fail, like a transient error.
+  void failOnWrite(int write) {
+    _failingWrite = write;
+    _writes = 0;
+  }
+
+  @override
+  /// Records values unless this exact write is the one selected to fail.
+  Future<bool> setValue(String valueType, String key, Object value) async {
+    _writes++;
+    if (_writes == _failingWrite) {
+      throw Exception('Simulated preference write failure.');
+    }
+    values[key] = value;
+    return true;
+  }
+
+  @override
+  /// Deletes one stored value.
+  Future<bool> remove(String key) async {
+    values.remove(key);
+    return true;
+  }
+
+  @override
+  /// Drops every stored value.
+  Future<bool> clear() async {
+    values.clear();
+    return true;
+  }
+
+  @override
+  /// Returns a copy so callers cannot mutate the fake store directly.
+  Future<Map<String, Object>> getAll() async {
+    return Map<String, Object>.from(values);
+  }
+}
+
+/// Stands in for Argon2id so restore tests stay fast.
+///
+/// The real derivation is covered by `encrypted_backup_codec_test.dart`; these
+/// tests are about the storage transaction, not key strength.
+Future<Uint8List> _fakeBackupKey(BackupKeyDerivation derivation) async {
+  final passwordBytes = utf8.encode(derivation.password);
+  return Uint8List.fromList(
+    List<int>.generate(
+      32,
+      (index) =>
+          (passwordBytes[index % passwordBytes.length] +
+              derivation.salt[index % derivation.salt.length]) &
+          0xFF,
+    ),
+  );
+}
 
 /// Builds a complete book so persistence tests exercise nested model decoding.
 StoryBook _story({

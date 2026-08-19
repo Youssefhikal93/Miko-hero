@@ -34,6 +34,18 @@ class LocalRepository {
   static const _activeProfileKey = 'active_profile_id';
   static const _parentSecurityKey = 'parent_security';
   static const _generationJobsKey = 'generation_jobs';
+  static const _schemaVersionKey = 'schema_version';
+
+  /// Keys that a backup restore replaces as one all-or-nothing group.
+  static const _restoredKeys = <String>[
+    _localeKey,
+    _profilesKey,
+    _storiesKey,
+    _activeProfileKey,
+    _legacyProfileKey,
+    _generationJobsKey,
+    _schemaVersionKey,
+  ];
 
   final SharedPreferences _preferences;
 
@@ -81,18 +93,29 @@ class LocalRepository {
     await _preferences.setString(_localeKey, locale.languageCode);
   }
 
+  /// Schema version of the values on this device; absent storage is version 1.
+  ///
+  /// Reserved for future on-device migrations: readers must tolerate any
+  /// version this build accepts rather than assume the newest one.
+  int get storedSchemaVersion {
+    return _preferences.getInt(_schemaVersionKey) ??
+        minimumAppStateSchemaVersion;
+  }
+
   /// Persists the complete ordered profile list as one preference value.
   Future<void> saveProfiles(List<ChildProfile> profiles) async {
     final encodedProfiles = profiles
         .map((profile) => profile.toJson())
         .toList();
     await _preferences.setString(_profilesKey, jsonEncode(encodedProfiles));
+    await _markSchemaVersion();
   }
 
   /// Persists the complete ordered library as one atomic preference value.
   Future<void> saveStories(List<StoryBook> stories) async {
     final encodedStories = stories.map((story) => story.toJson()).toList();
     await _preferences.setString(_storiesKey, jsonEncode(encodedStories));
+    await _markSchemaVersion();
   }
 
   /// Persists the profile currently controlling the application color palette.
@@ -130,18 +153,29 @@ class LocalRepository {
   }
 
   /// Replaces every family and locale value after a backup is fully validated.
+  ///
+  /// All-or-nothing: a write that fails part way through is rolled back to the
+  /// values captured before the restore started and then rethrown, so a
+  /// half-restored device never fails startup validation.
   Future<void> replaceState(AppState restoredState) async {
-    await saveLocale(restoredState.locale);
-    await saveProfiles(restoredState.profiles);
-    await saveStories(restoredState.stories);
-    final activeProfileId = restoredState.activeProfileId;
-    if (activeProfileId == null) {
-      await _preferences.remove(_activeProfileKey);
-    } else {
-      await saveActiveProfileId(activeProfileId);
+    final previousValues = _snapshotRestoredKeys();
+    try {
+      await saveLocale(restoredState.locale);
+      await saveProfiles(restoredState.profiles);
+      await saveStories(restoredState.stories);
+      final activeProfileId = restoredState.activeProfileId;
+      if (activeProfileId == null) {
+        await _preferences.remove(_activeProfileKey);
+      } else {
+        await saveActiveProfileId(activeProfileId);
+      }
+      await _preferences.remove(_legacyProfileKey);
+      await _preferences.remove(_generationJobsKey);
+      await _markSchemaVersion();
+    } catch (error, stackTrace) {
+      await _rollBack(previousValues);
+      Error.throwWithStackTrace(error, stackTrace);
     }
-    await _preferences.remove(_legacyProfileKey);
-    await _preferences.remove(_generationJobsKey);
   }
 
   /// Reads the optional local parent-PIN verifier without exposing the PIN.
@@ -177,6 +211,40 @@ class LocalRepository {
       _preferences.remove(_activeProfileKey),
       _preferences.remove(_generationJobsKey),
     ]);
+  }
+
+  /// Copies every restore-owned value, using null for keys that are absent.
+  Map<String, Object?> _snapshotRestoredKeys() {
+    return <String, Object?>{
+      for (final key in _restoredKeys) key: _preferences.get(key),
+    };
+  }
+
+  /// Best-effort return to the pre-restore values of the replaced keys.
+  ///
+  /// Swallows its own failures so the caller always sees the original write
+  /// error instead of a secondary rollback error.
+  Future<void> _rollBack(Map<String, Object?> previousValues) async {
+    for (final entry in previousValues.entries) {
+      try {
+        final value = entry.value;
+        if (value == null) {
+          await _preferences.remove(entry.key);
+        } else if (value is int) {
+          await _preferences.setInt(entry.key, value);
+        } else {
+          await _preferences.setString(entry.key, value as String);
+        }
+      } on Exception {
+        continue;
+      }
+    }
+  }
+
+  /// Records the schema that produced the values currently on this device.
+  Future<void> _markSchemaVersion() async {
+    if (storedSchemaVersion == appStateSchemaVersion) return;
+    await _preferences.setInt(_schemaVersionKey, appStateSchemaVersion);
   }
 
   /// Resolves the saved locale and safely defaults first launch to English.

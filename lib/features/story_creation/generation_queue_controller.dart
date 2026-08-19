@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 
 /// Supplies the UTC clock used for collision-free queue identities.
@@ -70,19 +71,25 @@ class GenerationQueueController extends AsyncNotifier<List<GenerationJob>> {
   }
 
   /// Permanently removes a cancelled or successfully completed request.
+  ///
+  /// A request already removed elsewhere raises [UnknownEntityException].
   Future<void> remove(String jobId) async {
     final jobs = state.requireValue;
     final savedJobs = jobs.where((job) => job.id != jobId).toList();
-    if (savedJobs.length == jobs.length) throw StateError('Unknown job.');
+    if (savedJobs.length == jobs.length) {
+      throw const UnknownEntityException('generation job');
+    }
     await _persist(savedJobs);
   }
 
   /// Resolves one current job for an explicit retry command.
+  ///
+  /// A request already removed elsewhere raises [UnknownEntityException].
   GenerationJob jobById(String jobId) {
     for (final job in state.requireValue) {
       if (job.id == jobId) return job;
     }
-    throw StateError('Unknown job.');
+    throw const UnknownEntityException('generation job');
   }
 
   /// Replaces one job status while retaining request identity and order.
@@ -99,7 +106,7 @@ class GenerationQueueController extends AsyncNotifier<List<GenerationJob>> {
           return savedJob!;
         })
         .toList(growable: false);
-    if (savedJob == null) throw StateError('Unknown job.');
+    if (savedJob == null) throw const UnknownEntityException('generation job');
     await _persist(savedJobs);
     return savedJob!;
   }

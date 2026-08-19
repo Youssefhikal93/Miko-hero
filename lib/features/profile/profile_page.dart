@@ -195,9 +195,10 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   final _formKey = GlobalKey<FormState>();
   final _picker = ImagePicker();
   late final TextEditingController _nameController;
-  late final TextEditingController _ageController;
   String? _photoBase64;
+  DateTime? _birthDate;
   ChildGender? _gender;
+  bool _birthDateMissing = false;
   bool _saving = false;
 
   @override
@@ -205,10 +206,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialProfile?.name);
-    _ageController = TextEditingController(
-      text: widget.initialProfile?.age.toString(),
-    );
     _photoBase64 = widget.initialProfile?.photoBase64;
+    _birthDate = widget.initialProfile?.birthDate;
     final storedGender = widget.initialProfile?.gender;
     _gender = storedGender?.isSpecified == true ? storedGender : null;
   }
@@ -217,7 +216,6 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   /// Releases controllers when the profile route leaves the navigation stack.
   void dispose() {
     _nameController.dispose();
-    _ageController.dispose();
     super.dispose();
   }
 
@@ -254,11 +252,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               validator: _validateName,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _ageController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: text.age),
-              validator: _validateAge,
+            _BirthDateField(
+              birthDate: _birthDate,
+              legacyAge: _legacyAge,
+              enabled: !_saving,
+              showRequiredError: _birthDateMissing,
+              onPick: _pickBirthDate,
             ),
             const SizedBox(height: 20),
             GenderSelector(
@@ -301,13 +300,57 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     return null;
   }
 
-  /// Restricts age to the supported child reading range of 1 through 17.
-  String? _validateAge(String? ageText) {
-    final age = int.tryParse(ageText ?? '');
-    if (age == null || age < 1 || age > 17) {
-      return AppLocalizations.of(context).ageInvalid;
+  /// Age stored before birth dates existed, kept valid until a date is picked.
+  int? get _legacyAge {
+    final profile = widget.initialProfile;
+    return profile == null || profile.birthDate != null
+        ? null
+        : profile.legacyAge;
+  }
+
+  /// Opens a localized calendar bounded to the supported child reading range.
+  ///
+  /// A legacy profile opens at roughly today minus its stored age so the
+  /// parent only has to correct the day and month.
+  Future<void> _pickBirthDate() async {
+    final today = childCalendarDay(DateTime.now());
+    final earliest = DateTime(
+      today.year - maximumChildAge - 1,
+      today.month,
+      today.day,
+    ).add(const Duration(days: 1));
+    final latest = DateTime(
+      today.year - minimumChildAge,
+      today.month,
+      today.day,
+    );
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _initialPickerDate(today, earliest, latest),
+      firstDate: earliest,
+      lastDate: latest,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _birthDate = childCalendarDay(picked);
+      _birthDateMissing = false;
+    });
+  }
+
+  /// Positions the calendar on the saved date, the legacy age, or a default.
+  DateTime _initialPickerDate(
+    DateTime today,
+    DateTime earliest,
+    DateTime latest,
+  ) {
+    final selected = _birthDate;
+    if (selected != null && !selected.isBefore(earliest)) {
+      return selected.isAfter(latest) ? latest : selected;
     }
-    return null;
+    final years = _legacyAge ?? defaultChildProfileAgeYears;
+    final approximate = DateTime(today.year - years, today.month, today.day);
+    if (approximate.isBefore(earliest)) return earliest;
+    return approximate.isAfter(latest) ? latest : approximate;
   }
 
   /// Reads a gallery image, enforces the local limit, and keeps it unsaved.
@@ -341,10 +384,21 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     final text = AppLocalizations.of(context);
     final photoBase64 = _photoBase64;
     final gender = _gender;
+    final birthDate = _birthDate;
+    final age = birthDate == null
+        ? _legacyAge
+        : childAgeOn(birthDate, DateTime.now());
     if (!_formKey.currentState!.validate() ||
         photoBase64 == null ||
-        gender == null) {
+        gender == null ||
+        age == null) {
+      setState(() => _birthDateMissing = age == null);
       if (photoBase64 == null) _showMessage(text.photoRequired);
+      if (age == null) _showMessage(text.birthDateRequired);
+      return;
+    }
+    if (!isValidChildAge(age)) {
+      _showMessage(text.ageInvalid);
       return;
     }
     setState(() => _saving = true);
@@ -355,7 +409,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             profileId: widget.initialProfile?.id,
             draft: ChildProfileDraft(
               name: _nameController.text.trim(),
-              age: int.parse(_ageController.text),
+              birthDate: birthDate,
               photoBase64: photoBase64,
               gender: gender,
             ),
@@ -376,6 +430,72 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Birth-date control that replaces the previously stored, stale age field.
+class _BirthDateField extends StatelessWidget {
+  /// Creates a picker row from the current unsaved edit buffer.
+  const _BirthDateField({
+    required this.birthDate,
+    required this.legacyAge,
+    required this.enabled,
+    required this.showRequiredError,
+    required this.onPick,
+  });
+
+  final DateTime? birthDate;
+  final int? legacyAge;
+  final bool enabled;
+  final bool showRequiredError;
+  final VoidCallback onPick;
+
+  @override
+  /// Shows the chosen day, or the legacy age that stays valid until it changes.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    final selected = birthDate;
+    final age = legacyAge;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        InputDecorator(
+          decoration: InputDecoration(
+            labelText: text.birthDate,
+            helperText: selected == null && age != null
+                ? text.birthDateLegacyAge(age)
+                : text.birthDateHelper,
+            errorText: showRequiredError ? text.birthDateRequired : null,
+          ),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  selected == null
+                      ? text.chooseBirthDate
+                      : MaterialLocalizations.of(
+                          context,
+                        ).formatFullDate(selected),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: enabled ? onPick : null,
+                icon: const Icon(Icons.event_rounded),
+                label: Text(
+                  selected == null
+                      ? text.chooseBirthDate
+                      : text.changeBirthDate,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (selected != null) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(text.yearsOld(childAgeOn(selected, DateTime.now()))),
+        ],
+      ],
+    );
   }
 }
 

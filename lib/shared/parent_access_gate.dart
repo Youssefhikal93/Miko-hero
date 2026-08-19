@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
@@ -118,12 +121,22 @@ class _ParentUnlockForm extends ConsumerStatefulWidget {
 /// Owns one PIN field without retaining it after this widget is disposed.
 class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
   final _pinController = TextEditingController();
+  Timer? _cooldownTimer;
+  Duration _remainingCooldown = Duration.zero;
   bool _isBusy = false;
   String? _errorText;
 
   @override
+  /// Refuses input immediately when a cooldown is still stored from before.
+  void initState() {
+    super.initState();
+    _syncCooldown();
+  }
+
+  @override
   /// Clears the entered PIN when the unlock prompt leaves the widget tree.
   void dispose() {
+    _cooldownTimer?.cancel();
     _pinController.dispose();
     super.dispose();
   }
@@ -132,6 +145,7 @@ class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
   /// Renders numeric PIN input, validation feedback, and an unlock action.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
+    final isLocked = _remainingCooldown > Duration.zero;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -139,11 +153,14 @@ class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
           controller: _pinController,
           autofocus: true,
           obscureText: true,
+          enabled: !isLocked,
           keyboardType: TextInputType.number,
           maxLength: 8,
           decoration: InputDecoration(
             labelText: text.parentPin,
-            errorText: _errorText,
+            errorText: isLocked
+                ? parentPinCooldownMessage(text, _remainingCooldown)
+                : _errorText,
           ),
           onSubmitted: (_) => _unlock(),
         ),
@@ -151,7 +168,7 @@ class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: _isBusy ? null : _unlock,
+            onPressed: _isBusy || isLocked ? null : _unlock,
             icon: _isBusy
                 ? const SizedBox.square(
                     dimension: 18,
@@ -165,6 +182,27 @@ class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
     );
   }
 
+  /// Reads the persisted cooldown and reopens input the moment it expires.
+  void _syncCooldown() {
+    final access = ref.read(parentAccessControllerProvider).value;
+    final now = ref.read(parentSecurityClockProvider)();
+    final remaining = access?.remainingCooldown(now) ?? Duration.zero;
+    _cooldownTimer?.cancel();
+    _cooldownTimer = remaining > Duration.zero
+        ? Timer(remaining, _reopenInput)
+        : null;
+    _remainingCooldown = remaining;
+  }
+
+  /// Clears the refusal notice once the stored cooldown has fully elapsed.
+  void _reopenInput() {
+    if (!mounted) return;
+    setState(() {
+      _remainingCooldown = Duration.zero;
+      _errorText = null;
+    });
+  }
+
   /// Verifies the entered PIN and updates the panel or modal result.
   Future<void> _unlock() async {
     if (_isBusy) return;
@@ -173,19 +211,18 @@ class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
       _errorText = null;
     });
     try {
-      final success = await ref
+      final result = await ref
           .read(parentAccessControllerProvider.notifier)
           .unlock(_pinController.text);
       if (!mounted) return;
-      if (success && widget.closeDialogOnSuccess) {
+      if (result.isUnlocked && widget.closeDialogOnSuccess) {
         Navigator.of(context).pop(true);
         return;
       }
       setState(() {
         _isBusy = false;
-        _errorText = success
-            ? null
-            : AppLocalizations.of(context).incorrectParentPin;
+        _errorText = parentUnlockMessage(AppLocalizations.of(context), result);
+        _syncCooldown();
       });
     } on Exception {
       if (!mounted) return;
@@ -195,6 +232,32 @@ class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
       });
     }
   }
+}
+
+/// Localizes one PIN attempt outcome, including the remaining cooldown.
+///
+/// Returns null after a successful attempt so callers can clear their field
+/// error. Rounds a cooldown up so a message never says zero.
+String? parentUnlockMessage(AppLocalizations text, ParentUnlockResult result) {
+  return switch (result.outcome) {
+    ParentUnlockOutcome.unlocked => null,
+    ParentUnlockOutcome.incorrectPin => text.incorrectParentPin,
+    ParentUnlockOutcome.cooldown => parentPinCooldownMessage(
+      text,
+      result.remainingCooldown,
+    ),
+  };
+}
+
+/// Formats a remaining cooldown as whole seconds below a minute, else minutes.
+String parentPinCooldownMessage(AppLocalizations text, Duration remaining) {
+  final seconds = (remaining.inMilliseconds / 1000).ceil();
+  if (seconds < Duration.secondsPerMinute) {
+    return text.parentPinLockedSeconds(seconds);
+  }
+  return text.parentPinLockedMinutes(
+    (seconds / Duration.secondsPerMinute).ceil(),
+  );
 }
 
 /// Safe error state for a corrupt local parent-verifier record.
