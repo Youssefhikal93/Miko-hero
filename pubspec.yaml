@@ -70,6 +70,13 @@ flutter:
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoNaskhArabic-Regular.ttf
 
+  # Bundled for the optional per-child easy-reading font in the story reader.
+  # Latin script only; Arabic prose keeps the interface font.
+  fonts:
+    - family: AtkinsonHyperlegible
+      fonts:
+        - asset: assets/fonts/AtkinsonHyperlegible-Regular.ttf
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

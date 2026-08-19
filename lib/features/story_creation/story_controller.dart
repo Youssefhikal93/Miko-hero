@@ -4,6 +4,7 @@ import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
+import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 
 /// Supplies story generation and library commands to story feature widgets.
@@ -39,12 +40,16 @@ class StoryController {
   }
 
   /// Permanently removes one story while preserving every other local book.
+  ///
+  /// Also drops the story from every child's reading-reward history, because a
+  /// badge must never depend on a book that no longer exists on this device.
   Future<void> deleteStory(String storyId) async {
     final current = _currentState;
     final savedStories = current.stories
         .where((story) => story.id != storyId)
         .toList(growable: false);
     await _saveStories(current, savedStories);
+    await _ref.read(profileControllerProvider).forgetFinishedStory(storyId);
   }
 
   /// Makes one reviewed draft visible on child-facing shelves.

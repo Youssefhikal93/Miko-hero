@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
 
@@ -129,6 +130,8 @@ class ChildProfile {
     this.birthDate,
     this.storyPreferences = const ChildStoryPreferences(),
     this.kingdomTheme = const KingdomTheme(),
+    this.readingSettings = const ChildReadingSettings(),
+    this.finishedStoryIds = const <String>[],
   });
 
   /// Stable local identity used to associate stories with this child.
@@ -167,8 +170,20 @@ class ChildProfile {
   /// Castle, photo frame, backdrop, and symbol chosen for this child's kingdom.
   final KingdomTheme kingdomTheme;
 
+  /// Prose size and easy-reading font chosen for this child's reading.
+  final ChildReadingSettings readingSettings;
+
+  /// Identities of the distinct stories this child has read to the last page.
+  ///
+  /// Local reading rewards are derived from this set, so re-reading a story
+  /// never counts twice and a deleted story stops counting on this device.
+  final List<String> finishedStoryIds;
+
   /// User-facing personalized label requested for profile selection and tabs.
   String get heroName => '$name hero';
+
+  /// Number of distinct finished stories used by the local reading badges.
+  int get finishedStoryCount => finishedStoryIds.length;
 
   /// Age in whole years on [today], derived from [birthDate] when it exists.
   int ageOn(DateTime today) {
@@ -196,6 +211,8 @@ class ChildProfile {
       'hasCustomThemeColor': hasCustomThemeColor,
       'storyPreferences': storyPreferences.toJson(),
       'kingdomTheme': kingdomTheme.toJson(),
+      'readingSettings': readingSettings.toJson(),
+      'finishedStoryIds': finishedStoryIds,
     };
   }
 
@@ -219,19 +236,11 @@ class ChildProfile {
 
   /// Returns the same profile after the parent confirms Girl or Boy.
   ChildProfile withGender(ChildGender selectedGender) {
-    return ChildProfile(
-      id: id,
-      name: name,
-      legacyAge: legacyAge,
-      birthDate: birthDate,
-      photoBase64: photoBase64,
+    return _copy(
       gender: selectedGender,
       themeColorValue: hasCustomThemeColor
           ? themeColorValue
           : defaultProfileThemeColorValue(selectedGender),
-      hasCustomThemeColor: hasCustomThemeColor,
-      storyPreferences: storyPreferences,
-      kingdomTheme: kingdomTheme,
     );
   }
 
@@ -240,49 +249,77 @@ class ChildProfile {
     if (!isValidProfileThemeColorValue(selectedColorValue)) {
       throw ArgumentError.value(selectedColorValue, 'selectedColorValue');
     }
-    return ChildProfile(
-      id: id,
-      name: name,
-      legacyAge: legacyAge,
-      birthDate: birthDate,
-      photoBase64: photoBase64,
-      gender: gender,
+    return _copy(
       themeColorValue: selectedColorValue,
       hasCustomThemeColor: true,
-      storyPreferences: storyPreferences,
-      kingdomTheme: kingdomTheme,
     );
   }
 
   /// Returns the same identity with newly confirmed story preferences.
   ChildProfile withStoryPreferences(ChildStoryPreferences preferences) {
-    return ChildProfile(
-      id: id,
-      name: name,
-      legacyAge: legacyAge,
-      birthDate: birthDate,
-      photoBase64: photoBase64,
-      gender: gender,
-      themeColorValue: themeColorValue,
-      hasCustomThemeColor: hasCustomThemeColor,
-      storyPreferences: preferences,
-      kingdomTheme: kingdomTheme,
-    );
+    return _copy(storyPreferences: preferences);
   }
 
   /// Returns the same identity with newly confirmed kingdom decoration.
   ChildProfile withKingdomTheme(KingdomTheme theme) {
+    return _copy(kingdomTheme: theme);
+  }
+
+  /// Returns the same identity with newly confirmed reading comfort.
+  ChildProfile withReadingSettings(ChildReadingSettings settings) {
+    return _copy(readingSettings: settings);
+  }
+
+  /// Returns the same identity after [storyId] is counted as finished.
+  ///
+  /// Reading a story again changes nothing, so badges count distinct books.
+  ChildProfile withFinishedStory(String storyId) {
+    if (storyId.trim().isEmpty) throw ArgumentError.value(storyId, 'storyId');
+    if (finishedStoryIds.contains(storyId)) return this;
+    return _copy(
+      finishedStoryIds: List<String>.unmodifiable(<String>[
+        ...finishedStoryIds,
+        storyId,
+      ]),
+    );
+  }
+
+  /// Returns the same identity after a story no longer exists on this device.
+  ChildProfile withoutFinishedStory(String storyId) {
+    if (!finishedStoryIds.contains(storyId)) return this;
+    return _copy(
+      finishedStoryIds: List<String>.unmodifiable(
+        finishedStoryIds.where((identity) => identity != storyId),
+      ),
+    );
+  }
+
+  /// Copies one profile while keeping every field this build persists.
+  ///
+  /// Centralized so a newly stored field can never be dropped by a
+  /// single-purpose transformation such as [withThemeColor].
+  ChildProfile _copy({
+    ChildGender? gender,
+    int? themeColorValue,
+    bool? hasCustomThemeColor,
+    ChildStoryPreferences? storyPreferences,
+    KingdomTheme? kingdomTheme,
+    ChildReadingSettings? readingSettings,
+    List<String>? finishedStoryIds,
+  }) {
     return ChildProfile(
       id: id,
       name: name,
       legacyAge: legacyAge,
       birthDate: birthDate,
       photoBase64: photoBase64,
-      gender: gender,
-      themeColorValue: themeColorValue,
-      hasCustomThemeColor: hasCustomThemeColor,
-      storyPreferences: storyPreferences,
-      kingdomTheme: theme,
+      gender: gender ?? this.gender,
+      themeColorValue: themeColorValue ?? this.themeColorValue,
+      hasCustomThemeColor: hasCustomThemeColor ?? this.hasCustomThemeColor,
+      storyPreferences: storyPreferences ?? this.storyPreferences,
+      kingdomTheme: kingdomTheme ?? this.kingdomTheme,
+      readingSettings: readingSettings ?? this.readingSettings,
+      finishedStoryIds: finishedStoryIds ?? this.finishedStoryIds,
     );
   }
 }
@@ -305,6 +342,8 @@ ChildProfile _validatedProfile({
   );
   final storyPreferences = _decodedStoryPreferences(json['storyPreferences']);
   final kingdomTheme = _decodedKingdomTheme(json['kingdomTheme']);
+  final readingSettings = _decodedReadingSettings(json['readingSettings']);
+  final finishedStoryIds = _decodedFinishedStoryIds(json['finishedStoryIds']);
   if (profileId is! String || profileId.trim().isEmpty) {
     throw const FormatException('Malformed child profile identity.');
   }
@@ -329,7 +368,34 @@ ChildProfile _validatedProfile({
     hasCustomThemeColor: theme.isCustom,
     storyPreferences: storyPreferences,
     kingdomTheme: kingdomTheme,
+    readingSettings: readingSettings,
+    finishedStoryIds: finishedStoryIds,
   );
+}
+
+/// Defaults profiles saved before reading comfort existed and validates the rest.
+ChildReadingSettings _decodedReadingSettings(Object? encodedSettings) {
+  if (encodedSettings == null) return const ChildReadingSettings();
+  if (encodedSettings is! Map<String, Object?>) {
+    throw const FormatException('Malformed child reading settings.');
+  }
+  return ChildReadingSettings.fromJson(encodedSettings);
+}
+
+/// Accepts an absent reward history and rejects unusable stored identities.
+List<String> _decodedFinishedStoryIds(Object? encodedIdentities) {
+  if (encodedIdentities == null) return const <String>[];
+  if (encodedIdentities is! List) {
+    throw const FormatException('Malformed finished story identities.');
+  }
+  final identities = <String>[];
+  for (final value in encodedIdentities) {
+    if (value is! String || value.trim().isEmpty) {
+      throw const FormatException('Malformed finished story identity.');
+    }
+    if (!identities.contains(value)) identities.add(value);
+  }
+  return List<String>.unmodifiable(identities);
 }
 
 /// Defaults profiles saved before personalization and validates current ones.

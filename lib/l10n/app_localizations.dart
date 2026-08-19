@@ -1937,6 +1937,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sparkles'**
   String get symbolSparkles;
+
+  /// No description provided for @readingComfortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading comfort'**
+  String get readingComfortTitle;
+
+  /// No description provided for @readingComfortBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how story pages look while {name} reads.'**
+  String readingComfortBody(String name);
+
+  /// No description provided for @readerTextSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get readerTextSize;
+
+  /// No description provided for @textSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get textSizeSmall;
+
+  /// No description provided for @textSizeMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get textSizeMedium;
+
+  /// No description provided for @textSizeLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get textSizeLarge;
+
+  /// No description provided for @textSizeExtraLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra large'**
+  String get textSizeExtraLarge;
+
+  /// No description provided for @easyReadingFont.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy-reading font'**
+  String get easyReadingFont;
+
+  /// No description provided for @easyReadingFontHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses letter shapes made for reading practice in English, Swedish, and Somali stories. Arabic stories keep their usual letters.'**
+  String get easyReadingFontHint;
+
+  /// No description provided for @readingComfortSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading comfort saved for {name}'**
+  String readingComfortSaved(String name);
+
+  /// No description provided for @bedtimeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime mode'**
+  String get bedtimeMode;
+
+  /// No description provided for @turnOffBedtimeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off bedtime mode'**
+  String get turnOffBedtimeMode;
+
+  /// No description provided for @bedtimeSleepTimerApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime mode set a {minutes} min sleep timer.'**
+  String bedtimeSleepTimerApplied(int minutes);
+
+  /// No description provided for @readingBadgesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading badges'**
+  String get readingBadgesTitle;
+
+  /// No description provided for @readingBadgesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Badges {name} earns by finishing stories. No streaks and no daily goals.'**
+  String readingBadgesBody(String name);
+
+  /// No description provided for @storiesFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories finished: {count}'**
+  String storiesFinished(int count);
+
+  /// No description provided for @badgeFirstStory.
+  ///
+  /// In en, this message translates to:
+  /// **'First story'**
+  String get badgeFirstStory;
+
+  /// No description provided for @badgeFiveStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Five stories'**
+  String get badgeFiveStories;
+
+  /// No description provided for @badgeTenStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Ten stories'**
+  String get badgeTenStories;
+
+  /// No description provided for @badgeTwentyFiveStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Twenty-five stories'**
+  String get badgeTwentyFiveStories;
+
+  /// No description provided for @badgeEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'New badge earned: {badge}'**
+  String badgeEarned(String badge);
+
+  /// No description provided for @nextBadgeProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more to go until {badge}.'**
+  String nextBadgeProgress(int count, String badge);
+
+  /// No description provided for @allBadgesEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'Every badge earned. Wonderful reading!'**
+  String get allBadgesEarned;
+
+  /// No description provided for @shareStoryFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Save story file'**
+  String get shareStoryFile;
+
+  /// No description provided for @storyFileNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'The story file is encrypted with this password. The child\'s photo is never included.'**
+  String get storyFileNotice;
+
+  /// No description provided for @createStoryPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a story file password'**
+  String get createStoryPasswordTitle;
+
+  /// No description provided for @enterStoryPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the story file password'**
+  String get enterStoryPasswordTitle;
+
+  /// No description provided for @storyFilePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Story file password'**
+  String get storyFilePassword;
+
+  /// No description provided for @confirmStoryFilePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm story file password'**
+  String get confirmStoryFilePassword;
+
+  /// No description provided for @storyFilePasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The story file passwords do not match.'**
+  String get storyFilePasswordMismatch;
+
+  /// No description provided for @saveStoryFileDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save encrypted Iam - hero story'**
+  String get saveStoryFileDialogTitle;
+
+  /// No description provided for @storyFileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted story file saved'**
+  String get storyFileSaved;
+
+  /// No description provided for @storyFileSaveCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Story file save cancelled'**
+  String get storyFileSaveCancelled;
+
+  /// No description provided for @importStoryFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Import story file'**
+  String get importStoryFile;
+
+  /// No description provided for @importStoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import this story?'**
+  String get importStoryTitle;
+
+  /// No description provided for @importStoryPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages: {count}'**
+  String importStoryPages(int count);
+
+  /// No description provided for @importStoryHero.
+  ///
+  /// In en, this message translates to:
+  /// **'Hero in the file: {name}'**
+  String importStoryHero(String name);
+
+  /// No description provided for @importStoryChooseProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the story to'**
+  String get importStoryChooseProfile;
+
+  /// No description provided for @importStoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Import story'**
+  String get importStoryAction;
+
+  /// No description provided for @storyImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Story imported: {title}'**
+  String storyImported(String title);
+
+  /// No description provided for @storyAlreadyOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This story is already on this device.'**
+  String get storyAlreadyOnDevice;
+
+  /// No description provided for @importStoryNeedsProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a hero profile before importing a story.'**
+  String get importStoryNeedsProfile;
+
+  /// No description provided for @storyFileWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The password is wrong or the story file was changed.'**
+  String get storyFileWrongPassword;
+
+  /// No description provided for @storyFileInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a supported Iam - hero story file.'**
+  String get storyFileInvalid;
+
+  /// No description provided for @storyFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This story file is too large to open safely.'**
+  String get storyFileTooLarge;
+
+  /// No description provided for @storyFileReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected story file could not be read.'**
+  String get storyFileReadFailed;
+
+  /// No description provided for @storyFileFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The story file action could not be completed.'**
+  String get storyFileFailed;
+
+  /// No description provided for @storyFileNewerVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This story file was created by a newer version of the app.'**
+  String get storyFileNewerVersion;
 }
 
 class _AppLocalizationsDelegate

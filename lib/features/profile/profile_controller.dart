@@ -3,8 +3,10 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
+import 'package:miko_hero/core/models/reading_badge.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 
 /// Supplies profile commands without exposing persistence details to widgets.
@@ -51,18 +53,7 @@ class ProfileController {
     }
     final current = _currentState;
     final profile = _requireProfile(current, profileId);
-    final savedProfiles = _upsertProfile(
-      current.profiles,
-      profile.withThemeColor(themeColorValue),
-    );
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveProfiles(savedProfiles);
-    _commit(
-      current.withProfiles(
-        savedProfiles,
-        savedActiveProfileId: current.activeProfileId,
-      ),
-    );
+    await _saveProfile(current, profile.withThemeColor(themeColorValue));
   }
 
   /// Saves story defaults and safety boundaries only for one child profile.
@@ -75,17 +66,60 @@ class ProfileController {
     final validatedPreferences = ChildStoryPreferences.fromJson(
       preferences.toJson(),
     );
-    final savedProfiles = _upsertProfile(
-      current.profiles,
+    await _saveProfile(
+      current,
       profile.withStoryPreferences(validatedPreferences),
     );
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveProfiles(savedProfiles);
-    _commit(
-      current.withProfiles(
-        savedProfiles,
-        savedActiveProfileId: current.activeProfileId,
-      ),
+  }
+
+  /// Saves the prose size and easy-reading font of one child's reader.
+  Future<void> setReadingSettings(
+    String profileId,
+    ChildReadingSettings settings,
+  ) async {
+    final current = _currentState;
+    final profile = _requireProfile(current, profileId);
+    final validatedSettings = ChildReadingSettings.fromJson(settings.toJson());
+    await _saveProfile(current, profile.withReadingSettings(validatedSettings));
+  }
+
+  /// Counts one story as finished and reports a badge earned by doing so.
+  ///
+  /// Returns the badge the child just reached, or null when the story was
+  /// already counted or no threshold was crossed, so the reader can celebrate
+  /// exactly once. Distinct stories only: re-reading changes nothing.
+  Future<ReadingBadge?> recordFinishedStory(
+    String profileId,
+    String storyId,
+  ) async {
+    final current = _currentState;
+    final profile = _requireProfile(current, profileId);
+    final savedProfile = profile.withFinishedStory(storyId);
+    if (savedProfile.finishedStoryCount == profile.finishedStoryCount) {
+      return null;
+    }
+    await _saveProfile(current, savedProfile);
+    return ReadingBadge.reachedAt(savedProfile.finishedStoryCount);
+  }
+
+  /// Drops one story from every child's reward history after it is deleted.
+  ///
+  /// Keeps badges honest: a story that no longer exists on this device stops
+  /// counting for every profile that had finished it.
+  Future<void> forgetFinishedStory(String storyId) async {
+    final current = _currentState;
+    var changed = false;
+    final savedProfiles = current.profiles
+        .map((profile) {
+          final savedProfile = profile.withoutFinishedStory(storyId);
+          if (!identical(savedProfile, profile)) changed = true;
+          return savedProfile;
+        })
+        .toList(growable: false);
+    if (!changed) return;
+    await _persistProfileList(
+      current,
+      List<ChildProfile>.unmodifiable(savedProfiles),
     );
   }
 
@@ -94,18 +128,7 @@ class ProfileController {
     final current = _currentState;
     final profile = _requireProfile(current, profileId);
     final validatedTheme = KingdomTheme.fromJson(theme.toJson());
-    final savedProfiles = _upsertProfile(
-      current.profiles,
-      profile.withKingdomTheme(validatedTheme),
-    );
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveProfiles(savedProfiles);
-    _commit(
-      current.withProfiles(
-        savedProfiles,
-        savedActiveProfileId: current.activeProfileId,
-      ),
-    );
+    await _saveProfile(current, profile.withKingdomTheme(validatedTheme));
   }
 
   /// Persists a Girl/Boy choice and activates the selected story hero.
@@ -179,6 +202,29 @@ class ProfileController {
       throw ArgumentError.value(draft.birthDate, 'birthDate');
     }
     return (birthDate: birthDate, years: years);
+  }
+
+  /// Persists one changed profile while keeping the active child unchanged.
+  Future<void> _saveProfile(AppState current, ChildProfile savedProfile) {
+    return _persistProfileList(
+      current,
+      _upsertProfile(current.profiles, savedProfile),
+    );
+  }
+
+  /// Persists a complete profile list and publishes it only once stored.
+  Future<void> _persistProfileList(
+    AppState current,
+    List<ChildProfile> savedProfiles,
+  ) async {
+    final repository = await _ref.read(localRepositoryProvider.future);
+    await repository.saveProfiles(savedProfiles);
+    _commit(
+      current.withProfiles(
+        savedProfiles,
+        savedActiveProfileId: current.activeProfileId,
+      ),
+    );
   }
 
   /// Persists profile content and active identity before publishing both.

@@ -8,6 +8,7 @@ import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/features/settings/backup_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/encryption_password_dialog.dart';
 
 /// Encrypted portable backup and restore controls for parent settings.
 class BackupSettingsCard extends ConsumerStatefulWidget {
@@ -73,9 +74,10 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
   /// Encrypts current state, then requires a fresh click to save the file.
   Future<void> _exportBackup() async {
     final text = AppLocalizations.of(context);
-    final password = await showDialog<String>(
-      context: context,
-      builder: (context) => const _BackupPasswordDialog(confirmPassword: true),
+    final password = await showEncryptionPasswordDialog(
+      context,
+      copy: _passwordCopy(text, text.createBackupPasswordTitle),
+      confirmPassword: true,
     );
     if (password == null || !mounted) return;
     _setBusy(true);
@@ -103,14 +105,11 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
       final picked = await controller.pickBackup();
       if (picked == null || !mounted) return;
       _setBusy(false);
-      final password = await showDialog<String>(
-        context: context,
-        builder: (context) {
-          return _BackupPasswordDialog(
-            confirmPassword: false,
-            fileName: picked.name,
-          );
-        },
+      final password = await showEncryptionPasswordDialog(
+        context,
+        copy: _passwordCopy(text, text.enterBackupPasswordTitle),
+        confirmPassword: false,
+        fileContext: text.restoreFileName(picked.name),
       );
       if (password == null || !mounted) return;
       _setBusy(true);
@@ -204,103 +203,17 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
   }
 }
 
-/// Disposable password prompt used by export and restore flows.
-class _BackupPasswordDialog extends StatefulWidget {
-  /// Creates a password prompt with optional confirmation and file context.
-  const _BackupPasswordDialog({required this.confirmPassword, this.fileName});
-
-  /// Whether a second matching field is required for a new backup.
-  final bool confirmPassword;
-
-  /// Selected encrypted file name shown during restore.
-  final String? fileName;
-
-  @override
-  /// Creates controllers retained only while the modal is visible.
-  State<_BackupPasswordDialog> createState() => _BackupPasswordDialogState();
-}
-
-/// Validates password length and optional confirmation before returning it.
-class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
-  final _passwordController = TextEditingController();
-  final _confirmationController = TextEditingController();
-  String? _errorText;
-
-  @override
-  /// Clears password fields as soon as the modal leaves the widget tree.
-  void dispose() {
-    _passwordController.dispose();
-    _confirmationController.dispose();
-    super.dispose();
-  }
-
-  @override
-  /// Renders export guidance or the selected restore file name.
-  Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    final fileName = widget.fileName;
-    return AlertDialog(
-      title: Text(
-        widget.confirmPassword
-            ? text.createBackupPasswordTitle
-            : text.enterBackupPasswordTitle,
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            fileName == null
-                ? text.backupPasswordRequirements
-                : text.restoreFileName(fileName),
-          ),
-          const SizedBox(height: 16),
-          _passwordField(_passwordController, text.backupPassword),
-          if (widget.confirmPassword) ...<Widget>[
-            const SizedBox(height: 10),
-            _passwordField(_confirmationController, text.confirmBackupPassword),
-          ],
-          if (_errorText != null) ...<Widget>[
-            const SizedBox(height: 10),
-            Text(
-              _errorText!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-        ],
-      ),
-      actions: <Widget>[
-        TextButton(onPressed: () => context.pop(), child: Text(text.cancel)),
-        FilledButton(onPressed: _submit, child: Text(text.continueAction)),
-      ],
-    );
-  }
-
-  /// Creates one obscured password field without retaining autofill state.
-  Widget _passwordField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      obscureText: true,
-      enableSuggestions: false,
-      autocorrect: false,
-      decoration: InputDecoration(labelText: label),
-    );
-  }
-
-  /// Returns only a sufficiently long, matching password to the caller.
-  void _submit() {
-    final text = AppLocalizations.of(context);
-    final password = _passwordController.text;
-    final error = password.length < minimumBackupPasswordLength
-        ? text.backupPasswordRequirements
-        : widget.confirmPassword && password != _confirmationController.text
-        ? text.backupPasswordMismatch
-        : null;
-    if (error != null) {
-      setState(() => _errorText = error);
-      return;
-    }
-    context.pop(password);
-  }
+/// Builds the backup wording for the shared encryption password prompt.
+EncryptionPasswordCopy _passwordCopy(AppLocalizations text, String title) {
+  return EncryptionPasswordCopy(
+    title: title,
+    passwordLabel: text.backupPassword,
+    confirmLabel: text.confirmBackupPassword,
+    requirements: text.backupPasswordRequirements,
+    mismatch: text.backupPasswordMismatch,
+    cancel: text.cancel,
+    confirmAction: text.continueAction,
+  );
 }
 
 /// Maps typed backup failures to safe localized messages.

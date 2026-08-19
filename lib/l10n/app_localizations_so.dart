@@ -1026,4 +1026,183 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get symbolSparkles => 'Dhalaal';
+
+  @override
+  String get readingComfortTitle => 'Raaxada akhriska';
+
+  @override
+  String readingComfortBody(String name) {
+    return 'Dooro sida bogagga sheekada u muuqdaan marka $name akhrinayo.';
+  }
+
+  @override
+  String get readerTextSize => 'Cabbirka qoraalka';
+
+  @override
+  String get textSizeSmall => 'Yar';
+
+  @override
+  String get textSizeMedium => 'Dhexdhexaad';
+
+  @override
+  String get textSizeLarge => 'Weyn';
+
+  @override
+  String get textSizeExtraLarge => 'Aad u weyn';
+
+  @override
+  String get easyReadingFont => 'Far akhris fudud';
+
+  @override
+  String get easyReadingFontHint =>
+      'Waxay isticmaashaa xarfo loo sameeyay tababarka akhriska ee sheekooyinka Ingiriisiga, Iswidhishka iyo Soomaaliga. Sheekooyinka Carabiga waxay sii haystaan xarfahooda caadiga ah.';
+
+  @override
+  String readingComfortSaved(String name) {
+    return 'Raaxada akhriska ee $name waa la kaydiyay';
+  }
+
+  @override
+  String get bedtimeMode => 'Habka waqtiga hurdada';
+
+  @override
+  String get turnOffBedtimeMode => 'Dami habka waqtiga hurdada';
+
+  @override
+  String bedtimeSleepTimerApplied(int minutes) {
+    return 'Habka waqtiga hurdada wuxuu dejiyay saacad hurdo $minutes daqiiqo ah.';
+  }
+
+  @override
+  String get readingBadgesTitle => 'Calaamadaha akhriska';
+
+  @override
+  String readingBadgesBody(String name) {
+    return 'Calaamadaha $name ku helo dhammaystirka sheekooyinka. Ma leh tiro-maalmeed ama himilo maalinle.';
+  }
+
+  @override
+  String storiesFinished(int count) {
+    return 'Sheekooyinka la dhammeeyay: $count';
+  }
+
+  @override
+  String get badgeFirstStory => 'Sheekada koowaad';
+
+  @override
+  String get badgeFiveStories => 'Shan sheeko';
+
+  @override
+  String get badgeTenStories => 'Toban sheeko';
+
+  @override
+  String get badgeTwentyFiveStories => 'Shan iyo labaatan sheeko';
+
+  @override
+  String badgeEarned(String badge) {
+    return 'Calaamad cusub: $badge';
+  }
+
+  @override
+  String nextBadgeProgress(int count, String badge) {
+    return 'Waxaa hadhay $count inta lagu gaarayo $badge.';
+  }
+
+  @override
+  String get allBadgesEarned =>
+      'Dhammaan calaamadaha waa la helay. Akhris cajiib ah!';
+
+  @override
+  String get shareStoryFile => 'Kaydi faylka sheekada';
+
+  @override
+  String get storyFileNotice =>
+      'Faylka sheekada waxaa lagu sirgaliyay erayga sirtan, sawirka ilmaha marnaba lama darin.';
+
+  @override
+  String get createStoryPasswordTitle => 'Samee eray sir oo faylka sheekada';
+
+  @override
+  String get enterStoryPasswordTitle => 'Geli erayga sirta ee faylka sheekada';
+
+  @override
+  String get storyFilePassword => 'Erayga sirta ee faylka sheekada';
+
+  @override
+  String get confirmStoryFilePassword =>
+      'Xaqiiji erayga sirta ee faylka sheekada';
+
+  @override
+  String get storyFilePasswordMismatch =>
+      'Erayada sirta ee faylka sheekada isku mid ma aha.';
+
+  @override
+  String get saveStoryFileDialogTitle =>
+      'Kaydi sheekada sirgaxan ee Iam - hero';
+
+  @override
+  String get storyFileSaved => 'Faylka sheekada sirgaxan waa la kaydiyay';
+
+  @override
+  String get storyFileSaveCancelled =>
+      'Kaydinta faylka sheekada waa la joojiyay';
+
+  @override
+  String get importStoryFile => 'Soo deji faylka sheekada';
+
+  @override
+  String get importStoryTitle => 'Ma soo dejinaysaa sheekadan?';
+
+  @override
+  String importStoryPages(int count) {
+    return 'Bogag: $count';
+  }
+
+  @override
+  String importStoryHero(String name) {
+    return 'Halyeyga faylka: $name';
+  }
+
+  @override
+  String get importStoryChooseProfile => 'Sheekada ku dar';
+
+  @override
+  String get importStoryAction => 'Soo deji sheekada';
+
+  @override
+  String storyImported(String title) {
+    return 'Sheekada waa la soo dejiyay: $title';
+  }
+
+  @override
+  String get storyAlreadyOnDevice =>
+      'Sheekadan mar hore waa ku jirtaa qalabkan.';
+
+  @override
+  String get importStoryNeedsProfile =>
+      'Ku dar bog halyey ka hor inta aad sheeko soo dejin.';
+
+  @override
+  String get storyFileWrongPassword =>
+      'Erayga sirta waa khalad ama faylka sheekada waa la beddelay.';
+
+  @override
+  String get storyFileInvalid =>
+      'Kani ma aha fayl sheeko Iam - hero oo la taageero.';
+
+  @override
+  String get storyFileTooLarge =>
+      'Faylkan sheekada aad buu u weyn yahay in si ammaan ah loo furo.';
+
+  @override
+  String get storyFileReadFailed =>
+      'Faylka sheekada la doortay lama akhrin karin.';
+
+  @override
+  String get storyFileFailed =>
+      'Hawsha faylka sheekada lama dhammaystiri karin.';
+
+  @override
+  String get storyFileNewerVersion =>
+      'Faylkan sheekada waxaa sameeyay nooc app ah oo ka cusub kan.';
 }

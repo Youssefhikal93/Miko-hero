@@ -1010,4 +1010,172 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get symbolSparkles => 'بريق';
+
+  @override
+  String get readingComfortTitle => 'راحة القراءة';
+
+  @override
+  String readingComfortBody(String name) {
+    return 'اختر كيف تظهر صفحات القصة أثناء قراءة $name.';
+  }
+
+  @override
+  String get readerTextSize => 'حجم النص';
+
+  @override
+  String get textSizeSmall => 'صغير';
+
+  @override
+  String get textSizeMedium => 'متوسط';
+
+  @override
+  String get textSizeLarge => 'كبير';
+
+  @override
+  String get textSizeExtraLarge => 'كبير جداً';
+
+  @override
+  String get easyReadingFont => 'خط سهل القراءة';
+
+  @override
+  String get easyReadingFontHint =>
+      'يستخدم أشكال حروف مصممة لتمرين القراءة في القصص الإنجليزية والسويدية والصومالية. تحتفظ القصص العربية بحروفها المعتادة.';
+
+  @override
+  String readingComfortSaved(String name) {
+    return 'تم حفظ راحة القراءة لـ $name';
+  }
+
+  @override
+  String get bedtimeMode => 'وضع وقت النوم';
+
+  @override
+  String get turnOffBedtimeMode => 'إيقاف وضع وقت النوم';
+
+  @override
+  String bedtimeSleepTimerApplied(int minutes) {
+    return 'ضبط وضع وقت النوم مؤقت نوم مدته $minutes دقيقة.';
+  }
+
+  @override
+  String get readingBadgesTitle => 'أوسمة القراءة';
+
+  @override
+  String readingBadgesBody(String name) {
+    return 'أوسمة يحصل عليها $name بإكمال القصص. بلا سلاسل ولا أهداف يومية.';
+  }
+
+  @override
+  String storiesFinished(int count) {
+    return 'القصص المكتملة: $count';
+  }
+
+  @override
+  String get badgeFirstStory => 'أول قصة';
+
+  @override
+  String get badgeFiveStories => 'خمس قصص';
+
+  @override
+  String get badgeTenStories => 'عشر قصص';
+
+  @override
+  String get badgeTwentyFiveStories => 'خمس وعشرون قصة';
+
+  @override
+  String badgeEarned(String badge) {
+    return 'وسام جديد: $badge';
+  }
+
+  @override
+  String nextBadgeProgress(int count, String badge) {
+    return 'بقي $count للوصول إلى $badge.';
+  }
+
+  @override
+  String get allBadgesEarned => 'تم الحصول على كل الأوسمة. قراءة رائعة!';
+
+  @override
+  String get shareStoryFile => 'حفظ ملف القصة';
+
+  @override
+  String get storyFileNotice =>
+      'ملف القصة مشفر بكلمة المرور هذه، وصورة الطفل لا تُضمَّن أبداً.';
+
+  @override
+  String get createStoryPasswordTitle => 'إنشاء كلمة مرور لملف القصة';
+
+  @override
+  String get enterStoryPasswordTitle => 'أدخل كلمة مرور ملف القصة';
+
+  @override
+  String get storyFilePassword => 'كلمة مرور ملف القصة';
+
+  @override
+  String get confirmStoryFilePassword => 'تأكيد كلمة مرور ملف القصة';
+
+  @override
+  String get storyFilePasswordMismatch => 'كلمتا مرور ملف القصة غير متطابقتين.';
+
+  @override
+  String get saveStoryFileDialogTitle => 'حفظ قصة Iam - hero المشفرة';
+
+  @override
+  String get storyFileSaved => 'تم حفظ ملف القصة المشفر';
+
+  @override
+  String get storyFileSaveCancelled => 'تم إلغاء حفظ ملف القصة';
+
+  @override
+  String get importStoryFile => 'استيراد ملف قصة';
+
+  @override
+  String get importStoryTitle => 'استيراد هذه القصة؟';
+
+  @override
+  String importStoryPages(int count) {
+    return 'الصفحات: $count';
+  }
+
+  @override
+  String importStoryHero(String name) {
+    return 'البطل في الملف: $name';
+  }
+
+  @override
+  String get importStoryChooseProfile => 'أضف القصة إلى';
+
+  @override
+  String get importStoryAction => 'استيراد القصة';
+
+  @override
+  String storyImported(String title) {
+    return 'تم استيراد القصة: $title';
+  }
+
+  @override
+  String get storyAlreadyOnDevice => 'هذه القصة موجودة على هذا الجهاز بالفعل.';
+
+  @override
+  String get importStoryNeedsProfile => 'أضف ملف بطل قبل استيراد قصة.';
+
+  @override
+  String get storyFileWrongPassword =>
+      'كلمة المرور خاطئة أو تم تعديل ملف القصة.';
+
+  @override
+  String get storyFileInvalid => 'هذا الملف ليس ملف قصة Iam - hero مدعوماً.';
+
+  @override
+  String get storyFileTooLarge => 'ملف القصة كبير جداً ولا يمكن فتحه بأمان.';
+
+  @override
+  String get storyFileReadFailed => 'تعذرت قراءة ملف القصة المحدد.';
+
+  @override
+  String get storyFileFailed => 'تعذر إكمال إجراء ملف القصة.';
+
+  @override
+  String get storyFileNewerVersion =>
+      'أُنشئ ملف القصة هذا بإصدار أحدث من التطبيق.';
 }

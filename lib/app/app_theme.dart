@@ -33,6 +33,20 @@ abstract final class AppTheme {
   /// Raised surface color that remains distinct from the background.
   static const panel = Color(0xFF151823);
 
+  /// Warm, dimmed prose color used by the reader's bedtime mode.
+  ///
+  /// Deliberately softer than white while staying well above the contrast a
+  /// child needs to keep reading in a dark room.
+  static const bedtimeProse = Color(0xFFE9CFA4);
+
+  /// Warm page surface behind bedtime prose.
+  static const bedtimeSurface = Color(0xFF1B1409);
+
+  /// Dimming and warming wash drawn over bedtime illustrations.
+  static const bedtimeWash = LinearGradient(
+    colors: <Color>[Color(0xB3140A02), Color(0x8CFF9A3C)],
+  );
+
   /// Creates a dark Material theme from the active child's saved opaque color.
   static ThemeData dark(ChildProfile? profile) {
     final primary = profile == null ? amber : Color(profile.themeColorValue);

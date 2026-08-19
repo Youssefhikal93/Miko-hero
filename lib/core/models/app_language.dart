@@ -26,6 +26,12 @@ enum AppLanguage {
   /// Locale used by Flutter's localization system.
   Locale get locale => Locale(code);
 
+  /// Whether story text in this language is written with Latin letterforms.
+  ///
+  /// Only Arabic uses a different script, so typography made for Latin
+  /// reading proficiency must never be forced onto Arabic prose.
+  bool get usesLatinScript => this != AppLanguage.arabic;
+
   /// Resolves persisted input and falls back to English for unknown values.
   static AppLanguage fromCode(String? code) {
     return AppLanguage.values.firstWhere(

@@ -55,45 +55,59 @@ class StoryCard extends StatelessWidget {
   }
 
   /// Keeps destructive and primary actions visually distinct.
+  ///
+  /// The reading action owns its own full-width row and the secondary icons wrap
+  /// below it, so a one-column shelf on a 360 px phone keeps every 48 px touch
+  /// target no matter how many actions the surrounding feature allows.
   Widget _actions(AppLocalizations text) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: actions.open,
-            icon: const Icon(Icons.chrome_reader_mode_rounded),
-            label: Text(text.openStory),
-          ),
+        FilledButton.tonalIcon(
+          onPressed: actions.open,
+          icon: const Icon(Icons.chrome_reader_mode_rounded),
+          label: Text(text.openStory),
         ),
-        if (actions.favorite != null) ...<Widget>[
-          const SizedBox(width: 4),
-          IconButton(
-            onPressed: actions.favorite,
-            tooltip: story.isFavorite ? text.removeFavorite : text.addFavorite,
-            icon: Icon(
-              story.isFavorite
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-            ),
-          ),
-        ],
-        if (actions.collections != null) ...<Widget>[
-          IconButton(
-            onPressed: actions.collections,
-            tooltip: text.manageCollections,
-            icon: const Icon(Icons.folder_copy_outlined),
-          ),
-        ],
-        if (actions.delete != null) ...<Widget>[
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: actions.delete,
-            tooltip: text.delete,
-            icon: const Icon(Icons.delete_outline_rounded),
-          ),
+        if (_iconActions(text).isNotEmpty) ...<Widget>[
+          const SizedBox(height: 6),
+          Wrap(alignment: WrapAlignment.end, children: _iconActions(text)),
         ],
       ],
     );
+  }
+
+  /// Secondary story commands allowed by the current feature surface.
+  List<Widget> _iconActions(AppLocalizations text) {
+    return <Widget>[
+      if (actions.favorite != null)
+        IconButton(
+          onPressed: actions.favorite,
+          tooltip: story.isFavorite ? text.removeFavorite : text.addFavorite,
+          icon: Icon(
+            story.isFavorite
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+          ),
+        ),
+      if (actions.collections != null)
+        IconButton(
+          onPressed: actions.collections,
+          tooltip: text.manageCollections,
+          icon: const Icon(Icons.folder_copy_outlined),
+        ),
+      if (actions.share != null)
+        IconButton(
+          onPressed: actions.share,
+          tooltip: text.shareStoryFile,
+          icon: const Icon(Icons.ios_share_rounded),
+        ),
+      if (actions.delete != null)
+        IconButton(
+          onPressed: actions.delete,
+          tooltip: text.delete,
+          icon: const Icon(Icons.delete_outline_rounded),
+        ),
+    ];
   }
 }
 
@@ -105,6 +119,7 @@ class StoryCardActions {
     this.delete,
     this.favorite,
     this.collections,
+    this.share,
   });
 
   /// Opens the approved reader or parent draft review.
@@ -118,6 +133,9 @@ class StoryCardActions {
 
   /// Opens parent-managed collection labels when available.
   final VoidCallback? collections;
+
+  /// Saves the story as an encrypted single-story file when available.
+  final VoidCallback? share;
 }
 
 /// Generated cover treatment used until ComfyUI supplies real illustrations.

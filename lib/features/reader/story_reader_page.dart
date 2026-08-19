@@ -9,14 +9,18 @@ import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/narration_options.dart';
 import 'package:miko_hero/core/narration/sentence_splitter.dart';
+import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/reader/narration_controller.dart';
 import 'package:miko_hero/features/reader/story_export_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
+import 'package:miko_hero/shared/reading_badge_view.dart';
+import 'package:miko_hero/shared/reading_text_style.dart';
 
 /// Full-screen illustrated reader with free device narration.
 class StoryReaderPage extends ConsumerStatefulWidget {
@@ -37,6 +41,9 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   late final NarrationController _narration;
   int _pageIndex = 0;
   bool _exporting = false;
+  bool _bedtime = false;
+  bool _sleepTimerChosen = false;
+  bool _finishRecorded = false;
 
   @override
   /// Builds the sentence queue around the provider-owned speech service.
@@ -93,18 +100,24 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   /// Composes page content and controls from one stable story snapshot.
   Widget _reader(AppState state, StoryBook story) {
     final pages = story.content.pages;
+    final profile = state.profileById(story.content.request.profileId);
+    final readingSettings =
+        profile?.readingSettings ?? const ChildReadingSettings();
+    _scheduleFinishCheck(story);
     return Column(
       children: <Widget>[
         Expanded(
           child: PageView.builder(
             controller: _pageController,
             itemCount: pages.length,
-            onPageChanged: _changePage,
+            onPageChanged: (index) => _changePage(index, story),
             itemBuilder: (context, index) {
               return _ReaderPage(
                 story: story,
                 page: pages[index],
-                profile: state.profileById(story.content.request.profileId),
+                profile: profile,
+                readingSettings: readingSettings,
+                bedtime: _bedtime,
                 highlightedSentence: _narration.highlightedSentence(index),
               );
             },
@@ -116,6 +129,7 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
             pageCount: pages.length,
             playback: _narration.playback,
             exporting: _exporting,
+            bedtime: _bedtime,
           ),
           actions: _ReaderActions(
             navigation: _ReaderNavigation(
@@ -125,10 +139,8 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
             narration: () => _toggleNarration(story),
             stopNarration: () => unawaited(_narration.stop()),
             narrationSettings: _changeNarrationSettings,
-            export: () => _exportStory(
-              story,
-              state.profileById(story.content.request.profileId),
-            ),
+            bedtime: _toggleBedtime,
+            export: () => _exportStory(story, profile),
           ),
         ),
       ],
@@ -139,9 +151,59 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   ///
   /// A page turn the sentence queue itself requested keeps narrating; a swipe
   /// or arrow tap by the reader stops it and clears the highlight.
-  void _changePage(int pageIndex) {
+  void _changePage(int pageIndex, StoryBook story) {
     unawaited(_narration.handlePageChange(pageIndex));
     setState(() => _pageIndex = pageIndex);
+    _noteFinishedStory(story, pageIndex);
+  }
+
+  /// Counts a story a child opened directly on its last page, once per session.
+  void _scheduleFinishCheck(StoryBook story) {
+    if (_finishRecorded || _pageIndex != story.content.pages.length - 1) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _noteFinishedStory(story, _pageIndex);
+    });
+  }
+
+  /// Records one finished reading when the last page of a story is reached.
+  ///
+  /// Guarded per reader session so paging back and forth never celebrates
+  /// twice; the profile itself keeps distinct identities, so a story read again
+  /// tomorrow still counts only once.
+  void _noteFinishedStory(StoryBook story, int pageIndex) {
+    if (_finishRecorded || pageIndex != story.content.pages.length - 1) return;
+    _finishRecorded = true;
+    unawaited(_recordFinishedStory(story));
+  }
+
+  /// Persists the finished story and celebrates a badge the moment it is earned.
+  Future<void> _recordFinishedStory(StoryBook story) async {
+    try {
+      final badge = await ref
+          .read(profileControllerProvider)
+          .recordFinishedStory(story.content.request.profileId, story.id);
+      if (badge == null || !mounted) return;
+      final text = AppLocalizations.of(context);
+      _showMessage(text.badgeEarned(readingBadgeName(text, badge)));
+    } on Exception {
+      // A profile deleted while its story is open must not break reading.
+    }
+  }
+
+  /// Dims and warms the reader for one bedtime session without persisting it.
+  void _toggleBedtime() {
+    setState(() => _bedtime = !_bedtime);
+    if (_bedtime && _narration.isActive) _applyBedtimeSleepTimer();
+  }
+
+  /// Selects the ten-minute limit unless a timer was already chosen this session.
+  void _applyBedtimeSleepTimer() {
+    if (_sleepTimerChosen || _narration.sleepTimer.isActive) return;
+    _narration.setSleepTimer(NarrationSleepTimer.tenMinutes);
+    final duration = NarrationSleepTimer.tenMinutes.duration!;
+    _showMessage(
+      AppLocalizations.of(context).bedtimeSleepTimerApplied(duration.inMinutes),
+    );
   }
 
   /// Follows the sentence queue into the next page of a rest-of-story reading.
@@ -180,6 +242,7 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
       case NarrationPlayback.paused:
         await _narration.resume();
       case NarrationPlayback.idle:
+        if (_bedtime) _applyBedtimeSleepTimer();
         await _narration.start(
           pageTexts: story.content.pages
               .map((page) => page.text)
@@ -201,6 +264,7 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     );
     if (selected == null || !mounted) return;
     final requeue = selected.scope != _narration.scope;
+    _sleepTimerChosen = _sleepTimerChosen || selected.sleepTimerChosen;
     _narration
       ..setSpeed(selected.speed)
       ..setScope(selected.scope)
@@ -335,12 +399,16 @@ class _ReaderPage extends StatelessWidget {
     required this.story,
     required this.page,
     required this.profile,
+    required this.readingSettings,
+    required this.bedtime,
     required this.highlightedSentence,
   });
 
   final StoryBook story;
   final StoryPage page;
   final ChildProfile? profile;
+  final ChildReadingSettings readingSettings;
+  final bool bedtime;
   final int? highlightedSentence;
 
   @override
@@ -352,10 +420,13 @@ class _ReaderPage extends StatelessWidget {
           story: story,
           page: page,
           profile: profile,
+          bedtime: bedtime,
         );
         final prose = _StoryProse(
           story: story,
           page: page,
+          readingSettings: readingSettings,
+          bedtime: bedtime,
           highlightedSentence: highlightedSentence,
         );
         if (constraints.maxWidth < 760) {
@@ -392,11 +463,13 @@ class _PageIllustration extends StatelessWidget {
     required this.story,
     required this.page,
     required this.profile,
+    required this.bedtime,
   });
 
   final StoryBook story;
   final StoryPage page;
   final ChildProfile? profile;
+  final bool bedtime;
 
   @override
   /// Uses local photo bytes only and marks the surface as demo output.
@@ -442,6 +515,18 @@ class _PageIllustration extends StatelessWidget {
               style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
             ),
           ),
+          if (bedtime)
+            Positioned.fill(
+              key: const ValueKey<String>('bedtime-page-wash'),
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.bedtimeWash,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -471,15 +556,23 @@ class _StoryProse extends StatelessWidget {
   const _StoryProse({
     required this.story,
     required this.page,
+    required this.readingSettings,
+    required this.bedtime,
     required this.highlightedSentence,
   });
 
   final StoryBook story;
   final StoryPage page;
+  final ChildReadingSettings readingSettings;
+  final bool bedtime;
   final int? highlightedSentence;
 
   @override
   /// Applies right-to-left direction only when the story language is Arabic.
+  ///
+  /// The child's saved size and font, and the optional bedtime palette, both
+  /// travel through the single prose style so highlighting composes with them
+  /// in either text direction.
   Widget build(BuildContext context) {
     final language = story.content.request.presentation.language;
     final direction = language == AppLanguage.arabic
@@ -488,6 +581,7 @@ class _StoryProse extends StatelessWidget {
     return Directionality(
       textDirection: direction,
       child: Card(
+        color: bedtime ? AppTheme.bedtimeSurface : null,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(28),
           child: Column(
@@ -495,19 +589,31 @@ class _StoryProse extends StatelessWidget {
             children: <Widget>[
               Text(
                 story.content.title,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: bedtime ? AppTheme.bedtimeProse : null,
+                ),
               ),
               const SizedBox(height: 22),
               Text.rich(
                 _prose(context),
                 key: const ValueKey<String>('story-prose'),
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: _proseStyle(context, language),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// Resolves the child's reading comfort plus the bedtime prose color.
+  TextStyle _proseStyle(BuildContext context, AppLanguage language) {
+    final style = readingProseStyle(
+      context,
+      settings: readingSettings,
+      language: language,
+    );
+    return bedtime ? style.copyWith(color: AppTheme.bedtimeProse) : style;
   }
 
   /// Tints the sentence being spoken without rewriting the child's story text.
@@ -528,16 +634,21 @@ class _StoryProse extends StatelessWidget {
         TextSpan(
           text: page.text.substring(spoken.start, spoken.end),
           style: TextStyle(
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.3),
-            color: Theme.of(context).colorScheme.onSurface,
+            backgroundColor: _highlightColor(context).withValues(alpha: 0.3),
+            color: bedtime
+                ? AppTheme.bedtimeProse
+                : Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
         TextSpan(text: page.text.substring(spoken.end)),
       ],
     );
+  }
+
+  /// Keeps the spoken-sentence tint warm while bedtime mode is on.
+  Color _highlightColor(BuildContext context) {
+    return bedtime ? AppTheme.amber : Theme.of(context).colorScheme.primary;
   }
 }
 
@@ -574,7 +685,10 @@ class _ReaderControls extends StatelessWidget {
   }
 
   /// Width below which progress moves above the buttons on a small phone.
-  static const _stackedControlsWidth = 430.0;
+  ///
+  /// Raised when bedtime mode joined the row so a mid-size phone keeps the
+  /// page progress readable instead of squeezing it between buttons.
+  static const _stackedControlsWidth = 560.0;
 
   /// Single row used whenever every control still keeps a full touch target.
   Widget _inline(AppLocalizations text) {
@@ -590,13 +704,17 @@ class _ReaderControls extends StatelessWidget {
   }
 
   /// Two-row fallback that keeps 48 px controls usable on a 360 px phone.
+  ///
+  /// The action row wraps rather than overflowing, so the narrowest supported
+  /// phone can show every control at full size even while narration runs.
   Widget _stacked(AppLocalizations text) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         _progress(text),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
             _previousButton(text),
             ..._middleButtons(text),
@@ -607,7 +725,7 @@ class _ReaderControls extends StatelessWidget {
     );
   }
 
-  /// Export, narration settings, and the play/pause pair with its stop action.
+  /// Export, bedtime, narration settings, and the play/pause pair with stop.
   List<Widget> _middleButtons(AppLocalizations text) {
     return <Widget>[
       IconButton(
@@ -619,6 +737,15 @@ class _ReaderControls extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.picture_as_pdf_rounded),
+      ),
+      IconButton(
+        onPressed: actions.bedtime,
+        tooltip: status.bedtime ? text.turnOffBedtimeMode : text.bedtimeMode,
+        isSelected: status.bedtime,
+        icon: Icon(
+          status.bedtime ? Icons.bedtime_rounded : Icons.bedtime_outlined,
+          color: status.bedtime ? AppTheme.amber : null,
+        ),
       ),
       IconButton(
         onPressed: actions.narrationSettings,
@@ -692,12 +819,14 @@ class _ReaderStatus {
     required this.pageCount,
     required this.playback,
     required this.exporting,
+    required this.bedtime,
   });
 
   final int pageIndex;
   final int pageCount;
   final NarrationPlayback playback;
   final bool exporting;
+  final bool bedtime;
 }
 
 /// User commands exposed by the reader control bar.
@@ -708,6 +837,7 @@ class _ReaderActions {
     required this.narration,
     required this.stopNarration,
     required this.narrationSettings,
+    required this.bedtime,
     required this.export,
   });
 
@@ -715,6 +845,7 @@ class _ReaderActions {
   final VoidCallback narration;
   final VoidCallback stopNarration;
   final VoidCallback narrationSettings;
+  final VoidCallback bedtime;
   final VoidCallback export;
 }
 
@@ -734,12 +865,19 @@ class _NarrationSelection {
     required this.speed,
     required this.scope,
     required this.sleepTimer,
+    this.sleepTimerChosen = false,
     this.remainingSleep,
   });
 
   final NarrationSpeed speed;
   final NarrationScope scope;
   final NarrationSleepTimer sleepTimer;
+
+  /// Whether the parent touched the sleep timer in this dialog.
+  ///
+  /// Bedtime mode only suggests a limit; an explicit choice always wins.
+  final bool sleepTimerChosen;
+
   final Duration? remainingSleep;
 }
 
@@ -762,6 +900,7 @@ class _NarrationSettingsDialogState extends State<_NarrationSettingsDialog> {
   late NarrationSpeed _speed;
   late NarrationScope _scope;
   late NarrationSleepTimer _sleepTimer;
+  bool _sleepTimerChosen = false;
 
   @override
   /// Copies reader values so dismissing the dialog changes nothing.
@@ -815,7 +954,10 @@ class _NarrationSettingsDialogState extends State<_NarrationSettingsDialog> {
             return ChoiceChip(
               key: ValueKey<String>('sleep-timer-${timer.name}'),
               selected: _sleepTimer == timer,
-              onSelected: (_) => setState(() => _sleepTimer = timer),
+              onSelected: (_) => setState(() {
+                _sleepTimer = timer;
+                _sleepTimerChosen = true;
+              }),
               label: Text(_sleepTimerLabel(text, timer)),
             );
           })
@@ -886,6 +1028,7 @@ class _NarrationSettingsDialogState extends State<_NarrationSettingsDialog> {
             speed: _speed,
             scope: _scope,
             sleepTimer: _sleepTimer,
+            sleepTimerChosen: _sleepTimerChosen,
           ),
         ),
         child: Text(text.applyNarrationSettings),

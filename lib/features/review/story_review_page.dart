@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/reading_text_style.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
@@ -97,7 +101,10 @@ class StoryReviewPage extends ConsumerWidget {
         final story = _draftFrom(snapshot);
         return story == null
             ? const _MissingDraft()
-            : _ReviewContent(story: story);
+            : _ReviewContent(
+                story: story,
+                profile: snapshot.profileById(story.content.request.profileId),
+              );
       },
     );
   }
@@ -113,10 +120,13 @@ class StoryReviewPage extends ConsumerWidget {
 
 /// Review details and commands for one current draft snapshot.
 class _ReviewContent extends ConsumerWidget {
-  /// Creates review content for one generated draft.
-  const _ReviewContent({required this.story});
+  /// Creates review content for one generated draft and its hero's profile.
+  const _ReviewContent({required this.story, required this.profile});
 
   final StoryBook story;
+
+  /// Child the draft belongs to, whose reading comfort the preview mirrors.
+  final ChildProfile? profile;
 
   @override
   /// Shows request context, every page, and explicit approval or deletion.
@@ -136,7 +146,14 @@ class _ReviewContent extends ConsumerWidget {
           const SizedBox(height: 20),
           _RequestSummary(story: story),
           const SizedBox(height: 20),
-          ...story.content.pages.map((page) => _ReviewPage(page: page)),
+          ...story.content.pages.map(
+            (page) => _ReviewPage(
+              page: page,
+              readingSettings:
+                  profile?.readingSettings ?? const ChildReadingSettings(),
+              language: story.content.request.presentation.language,
+            ),
+          ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 10,
@@ -246,12 +263,21 @@ class _RequestSummary extends StatelessWidget {
 /// One complete generated page shown as readable text before approval.
 class _ReviewPage extends StatelessWidget {
   /// Creates a review card from one ordered story page.
-  const _ReviewPage({required this.page});
+  const _ReviewPage({
+    required this.page,
+    required this.readingSettings,
+    required this.language,
+  });
 
   final StoryPage page;
+  final ChildReadingSettings readingSettings;
+  final AppLanguage language;
 
   @override
   /// Keeps long prose selectable and vertically scrollable with the screen.
+  ///
+  /// Shows the page in the child's saved size and font, so the parent reviews
+  /// the text exactly as it will be read.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
     return Card(
@@ -266,7 +292,15 @@ class _ReviewPage extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            SelectableText(page.text),
+            SelectableText(
+              page.text,
+              key: const ValueKey<String>('review-page-text'),
+              style: readingProseStyle(
+                context,
+                settings: readingSettings,
+                language: language,
+              ),
+            ),
           ],
         ),
       ),

@@ -11,7 +11,12 @@ const maximumBackupBytes = 64 * 1024 * 1024;
 /// Minimum password length required when creating a backup.
 const minimumBackupPasswordLength = 8;
 
-const _backupFormat = 'iam-hero-backup';
+/// Envelope format name identifying a complete family backup file.
+const backupEnvelopeFormat = 'iam-hero-backup';
+
+/// Authenticated associated data bound to a complete family backup file.
+const backupAssociatedData = 'iam-hero-backup:v1';
+
 const _backupVersion = 1;
 const _kdfName = 'argon2id';
 const _cipherName = 'aes-256-gcm';
@@ -21,7 +26,6 @@ const _kdfParallelism = 1;
 const _keyLength = 32;
 const _saltLength = 16;
 const _macLength = 16;
-const _associatedData = 'iam-hero-backup:v1';
 
 /// Reports a malformed or unsupported encrypted backup container.
 class BackupFormatException implements Exception {
@@ -75,32 +79,49 @@ Future<Uint8List> deriveBackupKey(BackupKeyDerivation derivation) async {
   return Uint8List.fromList(await key.extractBytes());
 }
 
-/// Encrypts and validates portable, password-protected family snapshots.
-class EncryptedBackupCodec {
-  /// Creates the version-one Argon2id and AES-GCM codec.
+/// Encrypts and authenticates one JSON payload inside a portable envelope.
+///
+/// The [format] name and [associatedData] string together decide which files a
+/// codec accepts: the authenticated associated data means a container whose
+/// bytes were produced for another purpose can never decrypt here, even with
+/// the correct password. Every payload type therefore gets its own pair.
+class EncryptedEnvelopeCodec {
+  /// Creates a version-one Argon2id and AES-GCM envelope for one payload type.
   ///
   /// [deriver] exists so tests can substitute the isolate boundary; production
   /// code keeps the default `compute` hop, which runs inline on Flutter web
   /// because that platform has no isolates.
-  EncryptedBackupCodec({BackupKeyDeriver? deriver})
-    : _deriveKeyBytes = deriver ?? _computeBackupKey,
-      _cipher = AesGcm.with256bits();
+  EncryptedEnvelopeCodec({
+    required this.format,
+    required this.associatedData,
+    BackupKeyDeriver? deriver,
+  }) : _deriveKeyBytes = deriver ?? _computeBackupKey,
+       _cipher = AesGcm.with256bits();
+
+  /// Public format name written into and required by the envelope.
+  final String format;
+
+  /// Authenticated associated data bound to this payload type.
+  final String associatedData;
 
   final BackupKeyDeriver _deriveKeyBytes;
   final AesGcm _cipher;
 
-  /// Encrypts one application snapshot with a new random salt and nonce.
-  Future<Uint8List> encode(AppState state, String password) async {
+  /// Encrypts one JSON payload with a new random salt and nonce.
+  Future<Uint8List> encode(
+    Map<String, Object?> payload,
+    String password,
+  ) async {
     if (password.length < minimumBackupPasswordLength) {
       throw ArgumentError.value(password, 'password');
     }
     final salt = Uint8List.fromList(randomBytes(_saltLength));
     final secretKey = await _deriveKey(password, salt);
     final secretBox = await _cipher.encrypt(
-      utf8.encode(jsonEncode(state.toJson())),
+      utf8.encode(jsonEncode(payload)),
       secretKey: secretKey,
       nonce: _cipher.newNonce(),
-      aad: utf8.encode(_associatedData),
+      aad: utf8.encode(associatedData),
     );
     final bytes = _encodeEnvelope(secretBox, salt);
     if (bytes.length > maximumBackupBytes) {
@@ -109,8 +130,11 @@ class EncryptedBackupCodec {
     return bytes;
   }
 
-  /// Authenticates, decrypts, and validates one complete backup before use.
-  Future<AppState> decode(Uint8List bytes, String password) async {
+  /// Authenticates and decrypts one container back into its JSON payload.
+  ///
+  /// Reports a wrong password, a changed file, and a container of another
+  /// format through the same typed errors every password-protected file uses.
+  Future<Map<String, Object?>> decode(Uint8List bytes, String password) async {
     if (bytes.length > maximumBackupBytes) {
       throw const BackupTooLargeException();
     }
@@ -118,7 +142,7 @@ class EncryptedBackupCodec {
       final envelope = _decodeEnvelope(bytes);
       final salt = _validatedSalt(envelope);
       final secretBox = _secretBoxFromEnvelope(envelope);
-      return await _decryptState(secretBox, password, salt);
+      return await _decryptPayload(secretBox, password, salt);
     } on BackupAuthenticationException {
       rethrow;
     } on FormatException {
@@ -131,7 +155,7 @@ class EncryptedBackupCodec {
   /// Serializes public algorithms, random salt, and authenticated ciphertext.
   Uint8List _encodeEnvelope(SecretBox secretBox, List<int> salt) {
     final envelope = <String, Object>{
-      'format': _backupFormat,
+      'format': format,
       'version': _backupVersion,
       'kdf': _kdfJson(salt),
       'cipher': <String, Object>{
@@ -159,8 +183,8 @@ class EncryptedBackupCodec {
     );
   }
 
-  /// Decrypts authenticated bytes and passes JSON through AppState validation.
-  Future<AppState> _decryptState(
+  /// Decrypts authenticated bytes back into the stored JSON object.
+  Future<Map<String, Object?>> _decryptPayload(
     SecretBox secretBox,
     String password,
     Uint8List salt,
@@ -170,9 +194,9 @@ class EncryptedBackupCodec {
       final clearText = await _cipher.decrypt(
         secretBox,
         secretKey: secretKey,
-        aad: utf8.encode(_associatedData),
+        aad: utf8.encode(associatedData),
       );
-      return AppState.fromJson(_object(jsonDecode(utf8.decode(clearText))));
+      return _object(jsonDecode(utf8.decode(clearText)));
     } on SecretBoxAuthenticationError {
       throw const BackupAuthenticationException();
     }
@@ -189,8 +213,7 @@ class EncryptedBackupCodec {
   /// Parses the public envelope and verifies its supported schema identity.
   Map<String, Object?> _decodeEnvelope(Uint8List bytes) {
     final envelope = _object(jsonDecode(utf8.decode(bytes)));
-    if (envelope['format'] != _backupFormat ||
-        envelope['version'] != _backupVersion) {
+    if (envelope['format'] != format || envelope['version'] != _backupVersion) {
       throw const FormatException('Unsupported backup format.');
     }
     return envelope;
@@ -235,6 +258,40 @@ class EncryptedBackupCodec {
       throw const FormatException('Expected a JSON object.');
     }
     return value;
+  }
+}
+
+/// Encrypts and validates portable, password-protected family snapshots.
+class EncryptedBackupCodec {
+  /// Creates the family-backup codec on the shared encrypted envelope.
+  ///
+  /// [deriver] exists so tests can substitute the isolate boundary; production
+  /// code keeps the default `compute` hop.
+  EncryptedBackupCodec({BackupKeyDeriver? deriver})
+    : _envelope = EncryptedEnvelopeCodec(
+        format: backupEnvelopeFormat,
+        associatedData: backupAssociatedData,
+        deriver: deriver,
+      );
+
+  final EncryptedEnvelopeCodec _envelope;
+
+  /// Encrypts one application snapshot with a new random salt and nonce.
+  Future<Uint8List> encode(AppState state, String password) {
+    return _envelope.encode(state.toJson(), password);
+  }
+
+  /// Authenticates, decrypts, and validates one complete backup before use.
+  ///
+  /// A single-story share file is refused as [BackupFormatException] because it
+  /// carries a different envelope format and associated data.
+  Future<AppState> decode(Uint8List bytes, String password) async {
+    final payload = await _envelope.decode(bytes, password);
+    try {
+      return AppState.fromJson(payload);
+    } on FormatException {
+      throw const BackupFormatException();
+    }
   }
 }
 

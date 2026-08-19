@@ -1020,4 +1020,177 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get symbolSparkles => 'Sparkles';
+
+  @override
+  String get readingComfortTitle => 'Reading comfort';
+
+  @override
+  String readingComfortBody(String name) {
+    return 'Choose how story pages look while $name reads.';
+  }
+
+  @override
+  String get readerTextSize => 'Text size';
+
+  @override
+  String get textSizeSmall => 'Small';
+
+  @override
+  String get textSizeMedium => 'Medium';
+
+  @override
+  String get textSizeLarge => 'Large';
+
+  @override
+  String get textSizeExtraLarge => 'Extra large';
+
+  @override
+  String get easyReadingFont => 'Easy-reading font';
+
+  @override
+  String get easyReadingFontHint =>
+      'Uses letter shapes made for reading practice in English, Swedish, and Somali stories. Arabic stories keep their usual letters.';
+
+  @override
+  String readingComfortSaved(String name) {
+    return 'Reading comfort saved for $name';
+  }
+
+  @override
+  String get bedtimeMode => 'Bedtime mode';
+
+  @override
+  String get turnOffBedtimeMode => 'Turn off bedtime mode';
+
+  @override
+  String bedtimeSleepTimerApplied(int minutes) {
+    return 'Bedtime mode set a $minutes min sleep timer.';
+  }
+
+  @override
+  String get readingBadgesTitle => 'Reading badges';
+
+  @override
+  String readingBadgesBody(String name) {
+    return 'Badges $name earns by finishing stories. No streaks and no daily goals.';
+  }
+
+  @override
+  String storiesFinished(int count) {
+    return 'Stories finished: $count';
+  }
+
+  @override
+  String get badgeFirstStory => 'First story';
+
+  @override
+  String get badgeFiveStories => 'Five stories';
+
+  @override
+  String get badgeTenStories => 'Ten stories';
+
+  @override
+  String get badgeTwentyFiveStories => 'Twenty-five stories';
+
+  @override
+  String badgeEarned(String badge) {
+    return 'New badge earned: $badge';
+  }
+
+  @override
+  String nextBadgeProgress(int count, String badge) {
+    return '$count more to go until $badge.';
+  }
+
+  @override
+  String get allBadgesEarned => 'Every badge earned. Wonderful reading!';
+
+  @override
+  String get shareStoryFile => 'Save story file';
+
+  @override
+  String get storyFileNotice =>
+      'The story file is encrypted with this password. The child\'s photo is never included.';
+
+  @override
+  String get createStoryPasswordTitle => 'Create a story file password';
+
+  @override
+  String get enterStoryPasswordTitle => 'Enter the story file password';
+
+  @override
+  String get storyFilePassword => 'Story file password';
+
+  @override
+  String get confirmStoryFilePassword => 'Confirm story file password';
+
+  @override
+  String get storyFilePasswordMismatch =>
+      'The story file passwords do not match.';
+
+  @override
+  String get saveStoryFileDialogTitle => 'Save encrypted Iam - hero story';
+
+  @override
+  String get storyFileSaved => 'Encrypted story file saved';
+
+  @override
+  String get storyFileSaveCancelled => 'Story file save cancelled';
+
+  @override
+  String get importStoryFile => 'Import story file';
+
+  @override
+  String get importStoryTitle => 'Import this story?';
+
+  @override
+  String importStoryPages(int count) {
+    return 'Pages: $count';
+  }
+
+  @override
+  String importStoryHero(String name) {
+    return 'Hero in the file: $name';
+  }
+
+  @override
+  String get importStoryChooseProfile => 'Add the story to';
+
+  @override
+  String get importStoryAction => 'Import story';
+
+  @override
+  String storyImported(String title) {
+    return 'Story imported: $title';
+  }
+
+  @override
+  String get storyAlreadyOnDevice => 'This story is already on this device.';
+
+  @override
+  String get importStoryNeedsProfile =>
+      'Add a hero profile before importing a story.';
+
+  @override
+  String get storyFileWrongPassword =>
+      'The password is wrong or the story file was changed.';
+
+  @override
+  String get storyFileInvalid =>
+      'This is not a supported Iam - hero story file.';
+
+  @override
+  String get storyFileTooLarge =>
+      'This story file is too large to open safely.';
+
+  @override
+  String get storyFileReadFailed =>
+      'The selected story file could not be read.';
+
+  @override
+  String get storyFileFailed => 'The story file action could not be completed.';
+
+  @override
+  String get storyFileNewerVersion =>
+      'This story file was created by a newer version of the app.';
 }

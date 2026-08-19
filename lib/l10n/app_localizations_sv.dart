@@ -1027,4 +1027,182 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get symbolSparkles => 'Gnistror';
+
+  @override
+  String get readingComfortTitle => 'Läskomfort';
+
+  @override
+  String readingComfortBody(String name) {
+    return 'Välj hur berättelsesidorna ser ut när $name läser.';
+  }
+
+  @override
+  String get readerTextSize => 'Textstorlek';
+
+  @override
+  String get textSizeSmall => 'Liten';
+
+  @override
+  String get textSizeMedium => 'Mellan';
+
+  @override
+  String get textSizeLarge => 'Stor';
+
+  @override
+  String get textSizeExtraLarge => 'Extra stor';
+
+  @override
+  String get easyReadingFont => 'Lättläst typsnitt';
+
+  @override
+  String get easyReadingFontHint =>
+      'Använder bokstavsformer gjorda för lästräning i berättelser på engelska, svenska och somaliska. Arabiska berättelser behåller sina vanliga bokstäver.';
+
+  @override
+  String readingComfortSaved(String name) {
+    return 'Läskomforten sparades för $name';
+  }
+
+  @override
+  String get bedtimeMode => 'Godnattläge';
+
+  @override
+  String get turnOffBedtimeMode => 'Stäng av godnattläget';
+
+  @override
+  String bedtimeSleepTimerApplied(int minutes) {
+    return 'Godnattläget satte en sovtimer på $minutes min.';
+  }
+
+  @override
+  String get readingBadgesTitle => 'Läsmärken';
+
+  @override
+  String readingBadgesBody(String name) {
+    return 'Märken som $name får genom att läsa ut berättelser. Inga serier och inga dagliga mål.';
+  }
+
+  @override
+  String storiesFinished(int count) {
+    return 'Utlästa berättelser: $count';
+  }
+
+  @override
+  String get badgeFirstStory => 'Första berättelsen';
+
+  @override
+  String get badgeFiveStories => 'Fem berättelser';
+
+  @override
+  String get badgeTenStories => 'Tio berättelser';
+
+  @override
+  String get badgeTwentyFiveStories => 'Tjugofem berättelser';
+
+  @override
+  String badgeEarned(String badge) {
+    return 'Nytt märke: $badge';
+  }
+
+  @override
+  String nextBadgeProgress(int count, String badge) {
+    return '$count kvar till $badge.';
+  }
+
+  @override
+  String get allBadgesEarned => 'Alla märken tagna. Fantastisk läsning!';
+
+  @override
+  String get shareStoryFile => 'Spara berättelsefil';
+
+  @override
+  String get storyFileNotice =>
+      'Berättelsefilen krypteras med det här lösenordet. Barnets foto följer aldrig med.';
+
+  @override
+  String get createStoryPasswordTitle =>
+      'Skapa ett lösenord för berättelsefilen';
+
+  @override
+  String get enterStoryPasswordTitle => 'Ange lösenordet för berättelsefilen';
+
+  @override
+  String get storyFilePassword => 'Lösenord för berättelsefil';
+
+  @override
+  String get confirmStoryFilePassword =>
+      'Bekräfta lösenordet för berättelsefilen';
+
+  @override
+  String get storyFilePasswordMismatch =>
+      'Lösenorden för berättelsefilen matchar inte.';
+
+  @override
+  String get saveStoryFileDialogTitle =>
+      'Spara krypterad Iam - hero-berättelse';
+
+  @override
+  String get storyFileSaved => 'Den krypterade berättelsefilen sparades';
+
+  @override
+  String get storyFileSaveCancelled => 'Sparandet av berättelsefilen avbröts';
+
+  @override
+  String get importStoryFile => 'Importera berättelsefil';
+
+  @override
+  String get importStoryTitle => 'Importera den här berättelsen?';
+
+  @override
+  String importStoryPages(int count) {
+    return 'Sidor: $count';
+  }
+
+  @override
+  String importStoryHero(String name) {
+    return 'Hjälte i filen: $name';
+  }
+
+  @override
+  String get importStoryChooseProfile => 'Lägg berättelsen hos';
+
+  @override
+  String get importStoryAction => 'Importera berättelse';
+
+  @override
+  String storyImported(String title) {
+    return 'Berättelsen importerades: $title';
+  }
+
+  @override
+  String get storyAlreadyOnDevice =>
+      'Den här berättelsen finns redan på enheten.';
+
+  @override
+  String get importStoryNeedsProfile =>
+      'Lägg till en hjälteprofil innan du importerar en berättelse.';
+
+  @override
+  String get storyFileWrongPassword =>
+      'Lösenordet är fel eller berättelsefilen har ändrats.';
+
+  @override
+  String get storyFileInvalid =>
+      'Det här är inte en berättelsefil som stöds av Iam - hero.';
+
+  @override
+  String get storyFileTooLarge =>
+      'Berättelsefilen är för stor för att öppnas säkert.';
+
+  @override
+  String get storyFileReadFailed =>
+      'Den valda berättelsefilen kunde inte läsas.';
+
+  @override
+  String get storyFileFailed =>
+      'Åtgärden med berättelsefilen kunde inte slutföras.';
+
+  @override
+  String get storyFileNewerVersion =>
+      'Den här berättelsefilen skapades av en nyare version av appen.';
 }

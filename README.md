@@ -44,6 +44,15 @@ source tree lives in [Codebase map](docs/CODEBASE.md).
   library filtering
 - Device-local story library and permanent deletion behind the parent gate
 - Responsive phone, tablet, and desktop reader
+- Per-child reading comfort: four reader text sizes and an optional bundled
+  easy-reading font for English, Swedish, and Somali prose, both applied in the
+  reader and the parent review preview
+- Bedtime mode in the reader: a moon toggle that dims and warms the page for one
+  reading session and starts narration with the 10 minute sleep timer
+- Local reading badges at 1, 5, 10, and 25 finished stories per child, with
+  progress toward the next badge on My Kingdom and no streaks or daily goals
+- Single-story sharing: export one story as an encrypted `.iamhero-story` file
+  and import it into a chosen profile on another device
 - Free narration through voices installed on the current device, spoken one
   sentence at a time with the sentence being read highlighted on the page
 - Narration play, pause, resume, and stop, with selectable speed, a
@@ -57,8 +66,9 @@ source tree lives in [Codebase map](docs/CODEBASE.md).
 ## Privacy and storage
 
 `LocalRepository` stores the interface locale, profiles, each profile's
-Girl/Boy choice, theme color and kingdom decoration, the active profile,
-base64-encoded reference photos, and story JSON through `shared_preferences`. The app contains no network
+Girl/Boy choice, theme color, kingdom decoration, reading comfort and finished-story
+badges, the active profile, base64-encoded reference photos, and story JSON through
+`shared_preferences`. The app contains no network
 client and sends no profile or story content to an external service.
 
 Local app storage is not an encrypted vault. It relies on the operating system
@@ -79,6 +89,15 @@ backup password with Argon2id. The password is never stored and cannot be
 recovered. A backup includes profiles, photos, stories, the active hero, and the
 interface language; it deliberately does not replace the parent PIN configured
 on the destination device.
+
+A single story can also be exported on its own as a `.iamhero-story` file. It
+uses the same Argon2id and AES-256-GCM protection as a backup, with its own
+password, but a distinct container format and authenticated header, so a story
+file and a full backup can never be opened as each other. The file contains only
+the story itself and the hero's display name for the import preview: never the
+child's reference photo, birth date, or the parent PIN. Importing asks which
+existing profile receives the story, keeps the story's review status, and refuses
+a story the device already has instead of creating a duplicate.
 
 An exported PDF storybook is a plain, unencrypted file saved wherever the
 parent chooses. It contains the story title, the hero's first name, and the
@@ -130,7 +149,8 @@ lib/
   l10n/                ARB translations and generated localization classes
   shared/              parent access gate, layout, and reusable story widgets
 assets/
-  fonts/               Noto fonts bundled only for offline PDF export (OFL)
+  fonts/               Noto fonts for offline PDF export and the optional
+                       easy-reading story font, all under the OFL
 test/                  mirrors lib/ with behavior-focused suites
 ```
 
@@ -196,6 +216,11 @@ release keystore before any store distribution.
   pause repeats the paused sentence from its beginning rather than relying on
   platform pause support.
 - Stories and profiles do not sync automatically; moving them requires a manual
-  encrypted backup and its separate password.
+  encrypted backup, or a single encrypted story file, and its separate password.
+- The easy-reading font covers Latin script only. Arabic story prose keeps the
+  interface font, and PDF export always uses the bundled Noto fonts regardless of
+  the setting.
+- Bedtime mode is a reader-session state on purpose: it is not saved per child
+  and is off again the next time a story is opened.
 - The Flutter TTS web plugin currently prevents a WebAssembly build; the
   standard JavaScript web release compiles successfully.

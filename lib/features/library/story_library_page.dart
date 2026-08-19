@@ -7,6 +7,7 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/kingdom/kingdom_decorations.dart';
 import 'package:miko_hero/features/library/story_collections_dialog.dart';
+import 'package:miko_hero/features/library/story_share_actions.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -63,7 +64,7 @@ class _LibraryContent extends StatelessWidget {
 }
 
 /// Library heading with a parent-only route when drafts need decisions.
-class _LibraryHeader extends StatelessWidget {
+class _LibraryHeader extends ConsumerWidget {
   /// Creates a header from loaded state and current localized copy.
   const _LibraryHeader({required this.state, required this.text});
 
@@ -71,8 +72,8 @@ class _LibraryHeader extends StatelessWidget {
   final AppLocalizations text;
 
   @override
-  /// Keeps the review action responsive beside or below the heading.
-  Widget build(BuildContext context) {
+  /// Keeps the review and import actions responsive beside or below the heading.
+  Widget build(BuildContext context, WidgetRef ref) {
     final draftCount = state.draftStories.length;
     return Wrap(
       spacing: 18,
@@ -92,6 +93,11 @@ class _LibraryHeader extends StatelessWidget {
             icon: const Icon(Icons.fact_check_rounded),
             label: Text(text.reviewDraftCount(draftCount)),
           ),
+        OutlinedButton.icon(
+          onPressed: () => importStoryFile(context, ref, state: state),
+          icon: const Icon(Icons.file_open_rounded),
+          label: Text(text.importStoryFile),
+        ),
       ],
     );
   }
@@ -265,6 +271,7 @@ class _ProfileShelfState extends ConsumerState<_ProfileShelf> {
                   delete: () => _confirmDelete(context, story),
                   favorite: () => _toggleFavorite(story),
                   collections: () => _manageCollections(context, story),
+                  share: () => exportStoryFile(context, ref, story),
                 ),
               ),
             );

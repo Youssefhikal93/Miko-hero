@@ -145,6 +145,17 @@ class StoryHero {
       gender: _storyGender(json['gender'], fallbackGender: fallbackGender),
     );
   }
+
+  /// Returns the same hero attached to another local child profile.
+  ///
+  /// The hero's name and Girl/Boy context stay untouched, because they are
+  /// already written into the story's prose.
+  StoryHero withProfileId(String savedProfileId) {
+    if (savedProfileId.trim().isEmpty) {
+      throw ArgumentError.value(savedProfileId, 'savedProfileId');
+    }
+    return StoryHero(profileId: savedProfileId, name: name, gender: gender);
+  }
 }
 
 /// Parent idea plus the selected child's saved prompt and safety context.
@@ -276,6 +287,15 @@ class StoryRequest {
       presentation: StoryPresentation.fromJson(presentation),
     );
   }
+
+  /// Returns the same request pointing at another local child profile.
+  StoryRequest withProfileId(String savedProfileId) {
+    return StoryRequest(
+      hero: hero.withProfileId(savedProfileId),
+      prompt: prompt,
+      presentation: presentation,
+    );
+  }
 }
 
 /// Requires a current story prompt field to be a JSON object.
@@ -384,6 +404,15 @@ class StoryContent {
       pages: decodedPages,
     );
   }
+
+  /// Returns the same content whose request points at another child profile.
+  StoryContent withProfileId(String savedProfileId) {
+    return StoryContent(
+      title: title,
+      request: request.withProfileId(savedProfileId),
+      pages: pages,
+    );
+  }
 }
 
 /// A locally stored book with stable identity and creation time.
@@ -484,6 +513,21 @@ class StoryBook {
       id: savedId,
       createdAt: createdAt,
       content: content,
+      reviewStatus: reviewStatus,
+      isFavorite: isFavorite,
+      collections: collections,
+    );
+  }
+
+  /// Returns the same book owned by another child profile on this device.
+  ///
+  /// Used when an imported story file is attached to the profile the parent
+  /// picked; review status, favorite marker, and collections are preserved.
+  StoryBook withProfileId(String savedProfileId) {
+    return StoryBook(
+      id: id,
+      createdAt: createdAt,
+      content: content.withProfileId(savedProfileId),
       reviewStatus: reviewStatus,
       isFavorite: isFavorite,
       collections: collections,

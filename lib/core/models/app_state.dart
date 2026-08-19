@@ -3,11 +3,12 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
-/// Snapshot schema written by this version; 3 introduced kingdom themes.
+/// Snapshot schema written by this version; 4 introduced reading comfort.
 ///
 /// Version 2 introduced profile birth dates; version 3 added the per-child
-/// castle, photo frame, backdrop, and favourite symbol.
-const appStateSchemaVersion = 3;
+/// castle, photo frame, backdrop, and favourite symbol; version 4 added each
+/// child's reader text size, easy-reading font, and finished-story rewards.
+const appStateSchemaVersion = 4;
 
 /// Oldest snapshot schema this version still reads; 1 predates birth dates.
 const minimumAppStateSchemaVersion = 1;
@@ -88,7 +89,7 @@ class AppState {
   /// through [appStateSchemaVersion] are all accepted. A newer version is
   /// refused with [UnsupportedSchemaVersionException] rather than guessed at.
   factory AppState.fromJson(Map<String, Object?> json) {
-    _requireSupportedSchemaVersion(json['schemaVersion']);
+    requireSupportedAppStateSchemaVersion(json['schemaVersion']);
     final localeCode = json['locale'];
     final encodedProfiles = json['profiles'];
     final encodedStories = json['stories'];
@@ -216,7 +217,10 @@ class AppState {
 }
 
 /// Accepts every schema version this build understands and refuses the rest.
-void _requireSupportedSchemaVersion(Object? encodedVersion) {
+///
+/// Shared by every portable payload that carries a snapshot version, including
+/// the single-story share file, so all of them agree on what is readable.
+void requireSupportedAppStateSchemaVersion(Object? encodedVersion) {
   if (encodedVersion == null) return;
   if (encodedVersion is! int || encodedVersion < minimumAppStateSchemaVersion) {
     throw const FormatException('Malformed application state schema version.');
