@@ -282,7 +282,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get privacyBody =>
-      'Profiluppgifter, foton och berättelser stannar i enhetens lokala lagring. Ingen analys eller betald molntjänst används.';
+      'Profiluppgifter, foton och berättelser stannar i enhetens lokala lagring om du inte exporterar en krypterad säkerhetskopia manuellt. Ingen analys eller betald molntjänst används.';
 
   @override
   String get deleteAllData => 'Ta bort all lokal data';
@@ -402,4 +402,450 @@ class AppLocalizationsSv extends AppLocalizations {
   String profileThemeSaved(String name) {
     return 'Färgen sparades för $name';
   }
+
+  @override
+  String get parentSecurityTitle => 'Föräldraskydd';
+
+  @override
+  String get parentSecurityBody =>
+      'En valfri lokal PIN-kod skyddar profiler, Mitt kungarike, inställningar och radering. Den ersätter inte enhetens säkerhet.';
+
+  @override
+  String get parentPin => 'Föräldra-PIN';
+
+  @override
+  String get parentPinConfigured =>
+      'En föräldra-PIN är aktiverad på den här enheten.';
+
+  @override
+  String get parentPinNotConfigured =>
+      'Ingen föräldra-PIN är inställd. Föräldrakontrollerna är öppna.';
+
+  @override
+  String get setParentPin => 'Ställ in PIN';
+
+  @override
+  String get changeParentPin => 'Byt PIN';
+
+  @override
+  String get removeParentPin => 'Ta bort PIN';
+
+  @override
+  String get lockParentArea => 'Lås nu';
+
+  @override
+  String get parentAreaLocked => 'Föräldraområdet är låst';
+
+  @override
+  String get enterParentPin =>
+      'Ange den lokala föräldra-PIN-koden för att fortsätta.';
+
+  @override
+  String get incorrectParentPin => 'PIN-koden är fel.';
+
+  @override
+  String get unlock => 'Lås upp';
+
+  @override
+  String get newParentPin => 'Ny PIN';
+
+  @override
+  String get confirmParentPin => 'Bekräfta PIN';
+
+  @override
+  String get parentPinRequirements => 'Använd 4 till 8 siffror.';
+
+  @override
+  String get parentPinMismatch => 'PIN-koderna stämmer inte överens.';
+
+  @override
+  String get saveParentPin => 'Spara PIN';
+
+  @override
+  String get parentPinSaved => 'Föräldra-PIN sparades';
+
+  @override
+  String get parentPinRemoved => 'Föräldra-PIN togs bort';
+
+  @override
+  String get removeParentPinTitle => 'Ta bort föräldra-PIN?';
+
+  @override
+  String get removeParentPinBody =>
+      'Föräldrakontrollerna förblir öppna på enheten tills en ny PIN ställs in.';
+
+  @override
+  String get encryptedBackupTitle => 'Krypterad säkerhetskopia';
+
+  @override
+  String get encryptedBackupBody =>
+      'Spara en lösenordsskyddad fil och återställ den på en annan enhet. Lösenordet sparas aldrig, så förvara det säkert.';
+
+  @override
+  String get exportEncryptedBackup => 'Exportera kopia';
+
+  @override
+  String get restoreEncryptedBackup => 'Återställ kopia';
+
+  @override
+  String get createBackupPasswordTitle => 'Skapa ett lösenord';
+
+  @override
+  String get enterBackupPasswordTitle => 'Ange säkerhetskopians lösenord';
+
+  @override
+  String get backupPassword => 'Lösenord för säkerhetskopian';
+
+  @override
+  String get confirmBackupPassword => 'Bekräfta lösenordet';
+
+  @override
+  String get backupPasswordRequirements =>
+      'Använd minst 8 tecken. Lösenordet kan inte återställas.';
+
+  @override
+  String get backupPasswordMismatch => 'Lösenorden stämmer inte överens.';
+
+  @override
+  String get continueAction => 'Fortsätt';
+
+  @override
+  String get backupReadyTitle => 'Den krypterade kopian är klar';
+
+  @override
+  String get backupReadyBody =>
+      'Välj Hämta säkerhetskopia för att spara den krypterade filen.';
+
+  @override
+  String get downloadBackup => 'Hämta säkerhetskopia';
+
+  @override
+  String get saveBackupDialogTitle => 'Spara krypterad Iam - hero-kopia';
+
+  @override
+  String get backupSaved => 'Den krypterade säkerhetskopian sparades';
+
+  @override
+  String restoreFileName(String name) {
+    return 'Vald fil: $name';
+  }
+
+  @override
+  String get confirmRestoreTitle => 'Ersätta lokala familjedata?';
+
+  @override
+  String confirmRestoreBody(int profiles, int stories) {
+    return 'Kopian innehåller $profiles profiler och $stories berättelser. Återställning ersätter profiler, berättelser, aktiv hjälte och appspråk på den här enheten.';
+  }
+
+  @override
+  String get restoreNow => 'Återställ nu';
+
+  @override
+  String get backupRestored => 'Den krypterade säkerhetskopian återställdes';
+
+  @override
+  String get backupWrongPassword =>
+      'Lösenordet är fel eller säkerhetskopian har ändrats.';
+
+  @override
+  String get backupInvalid =>
+      'Det här är inte en säkerhetskopia som stöds av Iam - hero.';
+
+  @override
+  String get backupTooLarge =>
+      'Säkerhetskopian är för stor för att öppnas säkert.';
+
+  @override
+  String get backupFileReadFailed =>
+      'Den valda säkerhetskopian kunde inte läsas.';
+
+  @override
+  String get backupFailed => 'Säkerhetskopieringen kunde inte slutföras.';
+
+  @override
+  String get storyPreferencesTitle => 'Berättelseval och trygghet';
+
+  @override
+  String storyPreferencesBody(String name) {
+    return 'Välj vad som inspirerar ${name}s berättelser och vad lokal AI ska undvika.';
+  }
+
+  @override
+  String get editStoryPreferences => 'Redigera berättelseval';
+
+  @override
+  String get defaultStoryLanguage => 'Förvalt berättelsespråk';
+
+  @override
+  String defaultStoryLanguageValue(String language) {
+    return 'Förvalt språk: $language';
+  }
+
+  @override
+  String get favoriteThings => 'Favoritsaker';
+
+  @override
+  String get favoriteThingsHint => 'Till exempel: tåg, katter, stjärnor';
+
+  @override
+  String favoriteThingsValue(String value) {
+    return 'Favoritsaker: $value';
+  }
+
+  @override
+  String get recurringWorld => 'Återkommande värld';
+
+  @override
+  String get recurringWorldHint => 'Till exempel: Det gyllene molnriket';
+
+  @override
+  String recurringWorldValue(String value) {
+    return 'Återkommande värld: $value';
+  }
+
+  @override
+  String get safetyControls => 'Ämnen att undvika';
+
+  @override
+  String get safetyControlsHint =>
+      'Undantagen skickas till framtida lokal berättelse- och bildgenerering.';
+
+  @override
+  String safetyRulesValue(int count) {
+    return 'Trygghetsundantag: $count';
+  }
+
+  @override
+  String get avoidFrighteningContent => 'Skrämmande innehåll';
+
+  @override
+  String get avoidViolence => 'Våld eller skada';
+
+  @override
+  String get avoidBullying => 'Mobbning eller uteslutning';
+
+  @override
+  String get avoidGriefAndLoss => 'Sorg eller förlust';
+
+  @override
+  String get savePreferences => 'Spara inställningar';
+
+  @override
+  String storyPreferencesSaved(String name) {
+    return 'Berättelseval sparades för $name';
+  }
+
+  @override
+  String savedPreferencesInUse(String name, int count) {
+    return 'Använder ${name}s sparade val och $count trygghetsundantag.';
+  }
+
+  @override
+  String get reviewStoriesTitle => 'Förälders berättelsegranskning';
+
+  @override
+  String get reviewStoriesBody =>
+      'Skapade utkast hålls utanför barnets bibliotek tills du har läst och godkänt dem.';
+
+  @override
+  String get reviewStoryTitle => 'Granska berättelsen';
+
+  @override
+  String get reviewStoryBody =>
+      'Kontrollera önskemålet och varje sida innan berättelsen blir synlig i biblioteket.';
+
+  @override
+  String reviewDraftCount(int count) {
+    return 'Granska utkast ($count)';
+  }
+
+  @override
+  String get approveStory => 'Godkänn berättelse';
+
+  @override
+  String get storyApproved =>
+      'Berättelsen godkändes och lades till i biblioteket';
+
+  @override
+  String get deleteDraft => 'Ta bort utkast';
+
+  @override
+  String get deleteDraftTitle => 'Ta bort utkastet?';
+
+  @override
+  String get deleteDraftBody =>
+      'Det skapade utkastet tas bort permanent från enheten.';
+
+  @override
+  String reviewHero(String value) {
+    return 'Hjälte: $value';
+  }
+
+  @override
+  String reviewTheme(String value) {
+    return 'Tema: $value';
+  }
+
+  @override
+  String reviewMoral(String value) {
+    return 'Lärdom: $value';
+  }
+
+  @override
+  String reviewPageNumber(int number) {
+    return 'Sida $number';
+  }
+
+  @override
+  String get noDrafts => 'Inga berättelser väntar på granskning.';
+
+  @override
+  String get addFavorite => 'Lägg till som favorit';
+
+  @override
+  String get removeFavorite => 'Ta bort från favoriter';
+
+  @override
+  String get manageCollections => 'Hantera samlingar';
+
+  @override
+  String collectionsHint(int max) {
+    return 'Ange upp till $max samlingsnamn, åtskilda med kommatecken eller nya rader.';
+  }
+
+  @override
+  String get collectionNames => 'Samlingsnamn';
+
+  @override
+  String get collectionNamesHint => 'God natt, Rymdäventyr';
+
+  @override
+  String get saveCollections => 'Spara samlingar';
+
+  @override
+  String tooManyCollections(int max) {
+    return 'Använd högst $max samlingar.';
+  }
+
+  @override
+  String collectionNameTooLong(int max) {
+    return 'Varje samlingsnamn får vara högst $max tecken.';
+  }
+
+  @override
+  String get filterStories => 'Filtrera bokhyllan';
+
+  @override
+  String get allStories => 'Alla berättelser';
+
+  @override
+  String get favoriteStories => 'Favoriter';
+
+  @override
+  String get noStoriesInFilter => 'Inga berättelser matchar filtret ännu.';
+
+  @override
+  String get generationCenterTitle => 'Lokalt skapandecenter';
+
+  @override
+  String get generationCenterBody =>
+      'Se vad som fungerar offline nu och försök säkert igen med önskemål som sparats före skapandet.';
+
+  @override
+  String get openGenerationCenter => 'Öppna skapandecentret';
+
+  @override
+  String get generationQueueTitle => 'Sparad skapandekö';
+
+  @override
+  String get generationQueueEmpty =>
+      'Inga berättelseönskemål väntar eller har misslyckats.';
+
+  @override
+  String get demoGeneratorStatus => 'Offline-demogenerator';
+
+  @override
+  String get readyOffline => 'Redo offline';
+
+  @override
+  String get ollamaStatus => 'Ollama-berättelsemodell';
+
+  @override
+  String get comfyUiStatus => 'ComfyUI-illustrationer';
+
+  @override
+  String get notConnectedYet => 'Inte ansluten ännu';
+
+  @override
+  String get pcRequirementStatus =>
+      'Demon fungerar när datorn är avstängd. När lokal AI ansluts senare måste datorn och modellerna vara igång för nya AI-berättelser; sparade böcker öppnas fortfarande offline.';
+
+  @override
+  String get generationQueued => 'I kö och sparad';
+
+  @override
+  String get generationRunning => 'Skapas nu';
+
+  @override
+  String get generationFailed =>
+      'Försöket misslyckades — säkert att försöka igen';
+
+  @override
+  String get retryGeneration => 'Försök skapa igen';
+
+  @override
+  String get cancelGenerationTitle => 'Ta bort önskemålet?';
+
+  @override
+  String get cancelGenerationBody =>
+      'Det väntande önskemålet tas bort. Redan sparade berättelser påverkas inte.';
+
+  @override
+  String get removeFromQueue => 'Ta bort från kön';
+
+  @override
+  String get exportPdf => 'Spara PDF';
+
+  @override
+  String get exportPdfDialogTitle => 'Spara berättelsen som PDF';
+
+  @override
+  String get exportingPdf => 'Skapar PDF…';
+
+  @override
+  String get pdfSaved => 'PDF-filen sparades';
+
+  @override
+  String get pdfSaveCancelled => 'Sparandet av PDF avbröts';
+
+  @override
+  String get pdfExportFailed => 'Det gick inte att spara PDF-filen';
+
+  @override
+  String get narrationSettings => 'Berättarinställningar';
+
+  @override
+  String get narrationSpeed => 'Läshastighet';
+
+  @override
+  String get slowSpeed => 'Långsam';
+
+  @override
+  String get normalSpeed => 'Normal';
+
+  @override
+  String get fastSpeed => 'Snabb';
+
+  @override
+  String get narrationScope => 'Läs upp';
+
+  @override
+  String get currentPage => 'Aktuell sida';
+
+  @override
+  String get remainingStory => 'Från den här sidan till slutet';
+
+  @override
+  String get applyNarrationSettings => 'Tillämpa';
 }

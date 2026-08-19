@@ -245,6 +245,12 @@ void main() {
     await tester.tap(generateButton);
     await tester.pumpAndSettle();
 
+    expect(find.text('Review this story'), findsOneWidget);
+    expect(find.text('Approve story'), findsOneWidget);
+    final approveButton = find.text('Approve story');
+    await tester.ensureVisible(approveButton);
+    await tester.tap(approveButton);
+    await tester.pumpAndSettle();
     expect(find.text('Page 1 of 6'), findsOneWidget);
     expect(find.text('DEMO'), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));

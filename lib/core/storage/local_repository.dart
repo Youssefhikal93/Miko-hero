@@ -4,7 +4,9 @@ import 'dart:ui';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Reports corrupt device state without silently overwriting family content.
@@ -30,6 +32,8 @@ class LocalRepository {
   static const _profilesKey = 'child_profiles';
   static const _storiesKey = 'story_library';
   static const _activeProfileKey = 'active_profile_id';
+  static const _parentSecurityKey = 'parent_security';
+  static const _generationJobsKey = 'generation_jobs';
 
   final SharedPreferences _preferences;
 
@@ -48,10 +52,9 @@ class LocalRepository {
           ? null
           : profiles.single.gender;
       final activeProfileId = _readActiveProfileId(
-        profiles,
         legacyProfileId: fallbackProfileId,
       );
-      final state = AppState(
+      final state = AppState.validated(
         locale: _readLocale(),
         profiles: profiles,
         stories: _readStories(
@@ -60,7 +63,6 @@ class LocalRepository {
         ),
         activeProfileId: activeProfileId,
       );
-      _validateStoryProfiles(state);
       if (fallbackProfileId != null) {
         await _finishLegacyProfileMigration(
           profiles,
@@ -98,6 +100,74 @@ class LocalRepository {
     await _preferences.setString(_activeProfileKey, profileId);
   }
 
+  /// Reads and validates pending generation requests in oldest-first order.
+  Future<List<GenerationJob>> readGenerationJobs() async {
+    final encodedJobs = _preferences.getString(_generationJobsKey);
+    if (encodedJobs == null) return const <GenerationJob>[];
+    try {
+      final decodedJobs = jsonDecode(encodedJobs);
+      if (decodedJobs is! List) {
+        throw const FormatException('Generation jobs must be a list.');
+      }
+      final jobs = decodedJobs.map(_decodeGenerationJob).toList();
+      final identities = jobs.map((job) => job.id).toSet();
+      if (identities.length != jobs.length) {
+        throw const FormatException(
+          'Generation job identities must be unique.',
+        );
+      }
+      jobs.sort((left, right) => left.createdAt.compareTo(right.createdAt));
+      return List<GenerationJob>.unmodifiable(jobs);
+    } on FormatException catch (error) {
+      throw LocalDataFormatException(error);
+    }
+  }
+
+  /// Persists the complete pending generation queue as one local value.
+  Future<void> saveGenerationJobs(List<GenerationJob> jobs) async {
+    final encodedJobs = jobs.map((job) => job.toJson()).toList();
+    await _preferences.setString(_generationJobsKey, jsonEncode(encodedJobs));
+  }
+
+  /// Replaces every family and locale value after a backup is fully validated.
+  Future<void> replaceState(AppState restoredState) async {
+    await saveLocale(restoredState.locale);
+    await saveProfiles(restoredState.profiles);
+    await saveStories(restoredState.stories);
+    final activeProfileId = restoredState.activeProfileId;
+    if (activeProfileId == null) {
+      await _preferences.remove(_activeProfileKey);
+    } else {
+      await saveActiveProfileId(activeProfileId);
+    }
+    await _preferences.remove(_legacyProfileKey);
+    await _preferences.remove(_generationJobsKey);
+  }
+
+  /// Reads the optional local parent-PIN verifier without exposing the PIN.
+  Future<ParentSecurityRecord?> readParentSecurity() async {
+    final encodedRecord = _preferences.getString(_parentSecurityKey);
+    if (encodedRecord == null) return null;
+    try {
+      return ParentSecurityRecord.fromJson(_jsonObject(encodedRecord));
+    } on FormatException catch (error) {
+      throw LocalDataFormatException(error);
+    }
+  }
+
+  /// Persists a salted parent-PIN verifier on the current device only.
+  Future<void> saveParentSecurity(ParentSecurityRecord record) async {
+    await _preferences.setString(
+      _parentSecurityKey,
+      jsonEncode(record.toJson()),
+    );
+  }
+
+  /// Disables the optional local parent PIN without changing family data.
+  Future<void> removeParentSecurity() async {
+    await _preferences.remove(_parentSecurityKey);
+  }
+
   /// Permanently removes every Iam - hero family value from this device.
   Future<void> clearAll() async {
     await Future.wait(<Future<bool>>[
@@ -105,6 +175,7 @@ class LocalRepository {
       _preferences.remove(_profilesKey),
       _preferences.remove(_storiesKey),
       _preferences.remove(_activeProfileKey),
+      _preferences.remove(_generationJobsKey),
     ]);
   }
 
@@ -123,10 +194,6 @@ class LocalRepository {
         throw const FormatException('Child profiles must be a list.');
       }
       final profiles = decodedProfiles.map(_decodeChildProfile).toList();
-      final uniqueIds = profiles.map((profile) => profile.id).toSet();
-      if (uniqueIds.length != profiles.length) {
-        throw const FormatException('Child profile identities must be unique.');
-      }
       return List<ChildProfile>.unmodifiable(profiles);
     }
     final encodedLegacyProfile = _preferences.getString(_legacyProfileKey);
@@ -195,6 +262,14 @@ class LocalRepository {
     return ChildProfile.fromJson(encodedProfile);
   }
 
+  /// Validates one entry from the durable generation queue schema.
+  GenerationJob _decodeGenerationJob(Object? encodedJob) {
+    if (encodedJob is! Map<String, Object?>) {
+      throw const FormatException('Malformed generation job entry.');
+    }
+    return GenerationJob.fromJson(encodedJob);
+  }
+
   /// Supplies the sole migrated identity only while old stories lack one.
   String? _legacyStoryProfileId(List<ChildProfile> profiles) {
     if (_preferences.containsKey(_profilesKey) || profiles.length != 1) {
@@ -222,26 +297,8 @@ class LocalRepository {
   }
 
   /// Resolves a valid active identity or adopts the migrated singleton profile.
-  String? _readActiveProfileId(
-    List<ChildProfile> profiles, {
-    String? legacyProfileId,
-  }) {
+  String? _readActiveProfileId({String? legacyProfileId}) {
     final activeProfileId = _preferences.getString(_activeProfileKey);
-    if (activeProfileId == null) return legacyProfileId;
-    if (!profiles.any((profile) => profile.id == activeProfileId)) {
-      throw const FormatException('Active child profile does not exist.');
-    }
-    return activeProfileId;
-  }
-
-  /// Rejects stories whose child identity cannot resolve to a saved profile.
-  void _validateStoryProfiles(AppState state) {
-    for (final story in state.stories) {
-      if (state.profileById(story.content.request.profileId) == null) {
-        throw const FormatException(
-          'Story references an unknown child profile.',
-        );
-      }
-    }
+    return activeProfileId ?? legacyProfileId;
   }
 }

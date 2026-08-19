@@ -48,6 +48,11 @@ class DemoStoryGenerator implements StoryGenerator {
 
   /// Adds stable page numbers and future illustration directions.
   List<StoryPage> _numberPages(Iterable<String> texts, StoryRequest request) {
+    final setting = _storySetting(request);
+    final favoriteThings = request.prompt.preferences.favoriteThings;
+    final inspiration = favoriteThings.isEmpty
+        ? ''
+        : ' — favorite things: $favoriteThings';
     return texts.indexed
         .map((entry) {
           final pageNumber = entry.$1 + 1;
@@ -55,7 +60,7 @@ class DemoStoryGenerator implements StoryGenerator {
             number: pageNumber,
             text: entry.$2,
             sceneDescription:
-                '${request.theme} — ${request.gender.name} hero — illustrated scene $pageNumber',
+                '$setting$inspiration — ${request.gender.name} hero — illustrated scene $pageNumber',
           );
         })
         .toList(growable: false);
@@ -64,6 +69,8 @@ class DemoStoryGenerator implements StoryGenerator {
   /// Creates the English demo script from parent-authored details.
   _DemoScript _englishScript(StoryRequest request) {
     final name = request.heroName;
+    final setting = _storySetting(request);
+    final favoriteThings = request.prompt.preferences.favoriteThings;
     final voice = request.gender == ChildGender.girl
         ? (
             subject: 'She',
@@ -77,10 +84,12 @@ class DemoStoryGenerator implements StoryGenerator {
             possessive: 'his',
             possessiveUpper: 'His',
           );
-    return _DemoScript('${request.theme}: $name\'s Adventure', <String>[
-      '$name discovered a secret path leading toward ${request.theme}.',
+    return _DemoScript('$setting: $name\'s Adventure', <String>[
+      '$name discovered a secret path leading toward $setting.',
       '${voice.subject} stepped forward with a curious heart and a very brave smile.',
-      'A small new friend needed help finding the way through the unfamiliar world.',
+      favoriteThings.isEmpty
+          ? 'A small new friend needed help finding the way through the unfamiliar world.'
+          : '$name found a helpful clue among $favoriteThings and shared it with a new friend.',
       '$name listened carefully and remembered the importance of ${request.moral}.',
       'Together they solved a puzzle that neither of them could solve alone.',
       'The path glowed brighter each time $name made a kind choice.',
@@ -94,6 +103,8 @@ class DemoStoryGenerator implements StoryGenerator {
   /// Creates the Arabic demo script from parent-authored details.
   _DemoScript _arabicScript(StoryRequest request) {
     final name = request.heroName;
+    final setting = _storySetting(request);
+    final favoriteThings = request.prompt.preferences.favoriteThings;
     final voice = request.gender == ChildGender.girl
         ? (
             discovered: 'اكتشفت',
@@ -129,10 +140,12 @@ class DemoStoryGenerator implements StoryGenerator {
             returned: 'عاد',
             knows: 'وهو يعرف',
           );
-    return _DemoScript('${request.theme}: مغامرة $name', <String>[
-      '${voice.discovered} $name طريقًا سريًا يقود إلى ${request.theme}.',
+    return _DemoScript('$setting: مغامرة $name', <String>[
+      '${voice.discovered} $name طريقًا سريًا يقود إلى $setting.',
       '${voice.advanced} بقلب فضولي وابتسامة مليئة بالشجاعة.',
-      '${voice.found} صديقًا صغيرًا يحتاج إلى ${voice.help} في هذا العالم الجديد.',
+      favoriteThings.isEmpty
+          ? '${voice.found} صديقًا صغيرًا يحتاج إلى ${voice.help} في هذا العالم الجديد.'
+          : '${voice.found} $name دليلاً مفيدًا بين $favoriteThings وساعد ذلك في العثور على الطريق.',
       '${voice.listened} $name بعناية ${voice.remembered} أهمية ${request.moral}.',
       'تعاونا معًا وحلا لغزًا لم يستطع أي منهما حله وحده.',
       'كان الطريق يزداد نورًا كلما ${voice.chose} $name فعلًا لطيفًا.',
@@ -146,6 +159,8 @@ class DemoStoryGenerator implements StoryGenerator {
   /// Creates the Swedish demo script from parent-authored details.
   _DemoScript _swedishScript(StoryRequest request) {
     final name = request.heroName;
+    final setting = _storySetting(request);
+    final favoriteThings = request.prompt.preferences.favoriteThings;
     final voice = request.gender == ChildGender.girl
         ? (
             subject: 'Hon',
@@ -159,10 +174,12 @@ class DemoStoryGenerator implements StoryGenerator {
             possessive: 'hans',
             object: 'honom',
           );
-    return _DemoScript('${request.theme}: ${name}s äventyr', <String>[
-      '$name upptäckte en hemlig stig som ledde till ${request.theme}.',
+    return _DemoScript('$setting: ${name}s äventyr', <String>[
+      '$name upptäckte en hemlig stig som ledde till $setting.',
       '${voice.subject} gick vidare med nyfiket hjärta och ett mycket modigt leende.',
-      'En liten ny vän behövde hjälp att hitta genom den främmande världen.',
+      favoriteThings.isEmpty
+          ? 'En liten ny vän behövde hjälp att hitta genom den främmande världen.'
+          : '$name hittade en ledtråd bland $favoriteThings och delade den med en ny vän.',
       '$name lyssnade noga och mindes vikten av ${request.moral}.',
       'Tillsammans löste de en gåta som ingen av dem klarade ensam.',
       'Stigen lyste starkare varje gång $name gjorde ett vänligt val.',
@@ -176,6 +193,8 @@ class DemoStoryGenerator implements StoryGenerator {
   /// Creates the Somali demo script from parent-authored details.
   _DemoScript _somaliScript(StoryRequest request) {
     final name = request.heroName;
+    final setting = _storySetting(request);
+    final favoriteThings = request.prompt.preferences.favoriteThings;
     final voice = request.gender == ChildGender.girl
         ? (
             found: 'waxay heshay',
@@ -201,10 +220,12 @@ class DemoStoryGenerator implements StoryGenerator {
             returning: 'isagoo',
             returned: 'guriga ayuu ku soo noqday',
           );
-    return _DemoScript('${request.theme}: Tacaburkii $name', <String>[
-      '$name ${voice.found} waddo qarsoon oo u socota ${request.theme}.',
+    return _DemoScript('$setting: Tacaburkii $name', <String>[
+      '$name ${voice.found} waddo qarsoon oo u socota $setting.',
       '${voice.advanced} qalbi xiisaynaya iyo dhoolla-caddayn geesinimo leh.',
-      'Saaxiib yar oo cusub ayaa u baahday caawimo si uu jidka u helo.',
+      favoriteThings.isEmpty
+          ? 'Saaxiib yar oo cusub ayaa u baahday caawimo si uu jidka u helo.'
+          : '$name wuxuu tilmaam waxtar leh ka dhex helay $favoriteThings oo la wadaagay saaxiib cusub.',
       '$name ${voice.listened}, ${voice.remembered} ${request.moral}.',
       'Iyagoo wadajira ayay xalliyeen halxiraale uusan midkood keligiis xallin karin.',
       'Waddadu way sii iftiimaysay mar kasta oo $name ${voice.chose} fal wanaagsan.',
@@ -213,6 +234,12 @@ class DemoStoryGenerator implements StoryGenerator {
       '${voice.friend} cusub ayaa uga mahadceliyay tacaburka quruxda badan.',
       '$name ${voice.returned} ${voice.returning} og in ${request.moral} ay sheeko beddeli karto.',
     ]);
+  }
+
+  /// Combines the current idea with a child's optional recurring world.
+  String _storySetting(StoryRequest request) {
+    final world = request.prompt.preferences.recurringWorld;
+    return world.isEmpty ? request.theme : '${request.theme} · $world';
   }
 }
 

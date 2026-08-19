@@ -10,9 +10,12 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/narration/narration_options.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
+import 'package:miko_hero/features/reader/story_export_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/parent_access_gate.dart';
 
 /// Full-screen illustrated reader with free device narration.
 class StoryReaderPage extends ConsumerStatefulWidget {
@@ -33,6 +36,9 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   late final NarrationService _narration;
   int _pageIndex = 0;
   bool _speaking = false;
+  bool _exporting = false;
+  NarrationSpeed _narrationSpeed = NarrationSpeed.normal;
+  NarrationScope _narrationScope = NarrationScope.currentPage;
 
   @override
   /// Retains the provider-owned speech service before disposal becomes unsafe.
@@ -68,7 +74,10 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   /// Finds the requested book while treating a deleted identity as absent.
   StoryBook? _storyFrom(AppState state) {
     for (final story in state.stories) {
-      if (story.id == widget.storyId) return story;
+      if (story.id == widget.storyId &&
+          story.reviewStatus == StoryReviewStatus.approved) {
+        return story;
+      }
     }
     return null;
   }
@@ -93,15 +102,20 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
           ),
         ),
         _ReaderControls(
-          position: _ReaderPosition(
+          status: _ReaderStatus(
             pageIndex: _pageIndex,
             pageCount: pages.length,
             speaking: _speaking,
+            exporting: _exporting,
           ),
           actions: _ReaderActions(
-            previous: _pageIndex == 0 ? null : _previousPage,
-            next: _pageIndex == pages.length - 1 ? null : _nextPage,
+            navigation: _ReaderNavigation(
+              previous: _pageIndex == 0 ? null : _previousPage,
+              next: _pageIndex == pages.length - 1 ? null : _nextPage,
+            ),
             narration: () => _toggleNarration(story),
+            narrationSettings: _changeNarrationSettings,
+            export: () => _exportStory(story),
           ),
         ),
       ],
@@ -140,6 +154,11 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
       if (mounted) setState(() => _speaking = false);
       return;
     }
+    await _startNarration(story);
+  }
+
+  /// Speaks the selected scope after checking for an installed device voice.
+  Future<void> _startNarration(StoryBook story) async {
     final language = story.content.request.presentation.language;
     try {
       final supported = await _narration.supports(language);
@@ -148,12 +167,81 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
         return;
       }
       setState(() => _speaking = true);
-      await _narration.speak(story.content.pages[_pageIndex].text, language);
+      await _narration.speak(
+        NarrationRequest(
+          text: _narrationText(story),
+          language: language,
+          speed: _narrationSpeed,
+        ),
+      );
       if (mounted) setState(() => _speaking = false);
     } on Exception {
       if (mounted) setState(() => _speaking = false);
       _showNarrationUnavailable();
     }
+  }
+
+  /// Chooses either the visible page or all remaining pages for speech.
+  String _narrationText(StoryBook story) {
+    if (_narrationScope == NarrationScope.currentPage) {
+      return story.content.pages[_pageIndex].text;
+    }
+    return story.content.pages
+        .skip(_pageIndex)
+        .map((page) => page.text)
+        .join('\n\n');
+  }
+
+  /// Opens session narration choices and stops stale playback after changes.
+  Future<void> _changeNarrationSettings() async {
+    final selected = await showDialog<_NarrationSelection>(
+      context: context,
+      builder: (_) => _NarrationSettingsDialog(selection: _selection),
+    );
+    if (selected == null || !mounted) return;
+    await _narration.stop();
+    if (!mounted) return;
+    setState(() {
+      _narrationSpeed = selected.speed;
+      _narrationScope = selected.scope;
+      _speaking = false;
+    });
+  }
+
+  /// Returns the current session choices as one immutable dialog value.
+  _NarrationSelection get _selection {
+    return _NarrationSelection(speed: _narrationSpeed, scope: _narrationScope);
+  }
+
+  /// Requests parent access before copying a named child story to a file.
+  Future<void> _exportStory(StoryBook story) async {
+    if (_exporting || !await requestParentAccess(context, ref)) return;
+    await _savePdf(story);
+  }
+
+  /// Renders and saves the PDF while keeping cancellation non-exceptional.
+  Future<void> _savePdf(StoryBook story) async {
+    final text = AppLocalizations.of(context);
+    setState(() => _exporting = true);
+    try {
+      final saved = await ref
+          .read(storyExportControllerProvider)
+          .export(story, text.exportPdfDialogTitle);
+      if (mounted) {
+        _showMessage(saved ? text.pdfSaved : text.pdfSaveCancelled);
+      }
+    } on Exception {
+      if (mounted) _showMessage(text.pdfExportFailed);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  /// Replaces any reader notice with the latest export outcome.
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Explains a missing platform voice without blocking text-based reading.
@@ -337,9 +425,9 @@ class _StoryProse extends StatelessWidget {
 /// Reader actions kept outside story direction so controls follow app locale.
 class _ReaderControls extends StatelessWidget {
   /// Creates controls for the current reader position and narration state.
-  const _ReaderControls({required this.position, required this.actions});
+  const _ReaderControls({required this.status, required this.actions});
 
-  final _ReaderPosition position;
+  final _ReaderStatus status;
   final _ReaderActions actions;
 
   @override
@@ -357,30 +445,43 @@ class _ReaderControls extends StatelessWidget {
         child: Row(
           children: <Widget>[
             IconButton(
-              onPressed: actions.previous,
+              onPressed: actions.navigation.previous,
               tooltip: text.previousPage,
               icon: const Icon(Icons.arrow_back_rounded),
             ),
             Expanded(
               child: Text(
-                text.pageProgress(position.pageIndex + 1, position.pageCount),
+                text.pageProgress(status.pageIndex + 1, status.pageCount),
                 textAlign: TextAlign.center,
               ),
             ),
+            IconButton(
+              onPressed: status.exporting ? null : actions.export,
+              tooltip: status.exporting ? text.exportingPdf : text.exportPdf,
+              icon: status.exporting
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.picture_as_pdf_rounded),
+            ),
+            IconButton(
+              onPressed: actions.narrationSettings,
+              tooltip: text.narrationSettings,
+              icon: const Icon(Icons.tune_rounded),
+            ),
             IconButton.filledTonal(
               onPressed: actions.narration,
-              tooltip: position.speaking
+              tooltip: status.speaking
                   ? text.stopNarration
                   : text.playNarration,
               icon: Icon(
-                position.speaking
-                    ? Icons.stop_rounded
-                    : Icons.volume_up_rounded,
+                status.speaking ? Icons.stop_rounded : Icons.volume_up_rounded,
               ),
             ),
             const SizedBox(width: 8),
             IconButton(
-              onPressed: actions.next,
+              onPressed: actions.navigation.next,
               tooltip: text.nextPage,
               icon: const Icon(Icons.arrow_forward_rounded),
             ),
@@ -392,31 +493,176 @@ class _ReaderControls extends StatelessWidget {
 }
 
 /// Immutable values needed to render the reader control bar.
-class _ReaderPosition {
+class _ReaderStatus {
   /// Groups page progress and narration state into one control input.
-  const _ReaderPosition({
+  const _ReaderStatus({
     required this.pageIndex,
     required this.pageCount,
     required this.speaking,
+    required this.exporting,
   });
 
   final int pageIndex;
   final int pageCount;
   final bool speaking;
+  final bool exporting;
 }
 
 /// User commands exposed by the reader control bar.
 class _ReaderActions {
   /// Groups navigation and narration commands without boolean action flags.
   const _ReaderActions({
-    required this.previous,
-    required this.next,
+    required this.navigation,
     required this.narration,
+    required this.narrationSettings,
+    required this.export,
   });
+
+  final _ReaderNavigation navigation;
+  final VoidCallback narration;
+  final VoidCallback narrationSettings;
+  final VoidCallback export;
+}
+
+/// Optional page movement commands grouped for the reader control bar.
+class _ReaderNavigation {
+  /// Creates movement callbacks disabled at the beginning and end.
+  const _ReaderNavigation({required this.previous, required this.next});
 
   final VoidCallback? previous;
   final VoidCallback? next;
-  final VoidCallback narration;
+}
+
+/// Immutable narration choices returned only after dialog confirmation.
+class _NarrationSelection {
+  /// Groups speech pace and scope without exposing mutable dialog state.
+  const _NarrationSelection({required this.speed, required this.scope});
+
+  final NarrationSpeed speed;
+  final NarrationScope scope;
+}
+
+/// Session-only narration controls that do not alter a child's saved profile.
+class _NarrationSettingsDialog extends StatefulWidget {
+  /// Creates settings from the reader's current narration choices.
+  const _NarrationSettingsDialog({required this.selection});
+
+  final _NarrationSelection selection;
+
+  @override
+  /// Creates a disposable edit buffer for pace and spoken scope.
+  State<_NarrationSettingsDialog> createState() {
+    return _NarrationSettingsDialogState();
+  }
+}
+
+/// Holds uncommitted narration choices until the reader confirms them.
+class _NarrationSettingsDialogState extends State<_NarrationSettingsDialog> {
+  late NarrationSpeed _speed;
+  late NarrationScope _scope;
+
+  @override
+  /// Copies reader values so dismissing the dialog changes nothing.
+  void initState() {
+    super.initState();
+    _speed = widget.selection.speed;
+    _scope = widget.selection.scope;
+  }
+
+  @override
+  /// Composes localized choice chips and explicit cancel/apply actions.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(text.narrationSettings),
+      content: _content(text),
+      actions: _actions(text),
+    );
+  }
+
+  /// Separates pace and spoken scope into two scannable sections.
+  Widget _content(AppLocalizations text) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(text.narrationSpeed),
+        const SizedBox(height: 8),
+        _speedChoices(text),
+        const SizedBox(height: 20),
+        Text(text.narrationScope),
+        const SizedBox(height: 8),
+        _scopeChoices(text),
+      ],
+    );
+  }
+
+  /// Builds pace choices from the bounded platform-safe enum values.
+  Widget _speedChoices(AppLocalizations text) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: NarrationSpeed.values
+          .map((speed) {
+            return ChoiceChip(
+              selected: _speed == speed,
+              onSelected: (_) => setState(() => _speed = speed),
+              label: Text(_speedLabel(text, speed)),
+            );
+          })
+          .toList(growable: false),
+    );
+  }
+
+  /// Builds visible-page and remaining-story speech scope choices.
+  Widget _scopeChoices(AppLocalizations text) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: NarrationScope.values
+          .map((scope) {
+            return ChoiceChip(
+              selected: _scope == scope,
+              onSelected: (_) => setState(() => _scope = scope),
+              label: Text(_scopeLabel(text, scope)),
+            );
+          })
+          .toList(growable: false),
+    );
+  }
+
+  /// Returns cancel and apply actions without saving dismissed changes.
+  List<Widget> _actions(AppLocalizations text) {
+    return <Widget>[
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: Text(text.cancel),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.of(
+          context,
+        ).pop(_NarrationSelection(speed: _speed, scope: _scope)),
+        child: Text(text.applyNarrationSettings),
+      ),
+    ];
+  }
+
+  /// Localizes one device narration pace.
+  String _speedLabel(AppLocalizations text, NarrationSpeed speed) {
+    return switch (speed) {
+      NarrationSpeed.slow => text.slowSpeed,
+      NarrationSpeed.normal => text.normalSpeed,
+      NarrationSpeed.fast => text.fastSpeed,
+    };
+  }
+
+  /// Localizes one reader narration scope.
+  String _scopeLabel(AppLocalizations text, NarrationScope scope) {
+    return switch (scope) {
+      NarrationScope.currentPage => text.currentPage,
+      NarrationScope.remainingStory => text.remainingStory,
+    };
+  }
 }
 
 /// Safe destination when a deep link targets a deleted local story.

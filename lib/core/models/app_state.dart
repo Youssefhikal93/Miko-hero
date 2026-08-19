@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
@@ -12,6 +13,25 @@ class AppState {
     required this.activeProfileId,
   });
 
+  /// Creates an immutable snapshot after checking cross-model relationships.
+  factory AppState.validated({
+    required Locale locale,
+    required List<ChildProfile> profiles,
+    required List<StoryBook> stories,
+    required String? activeProfileId,
+  }) {
+    final sortedStories = stories.toList()
+      ..sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    final state = AppState(
+      locale: locale,
+      profiles: List<ChildProfile>.unmodifiable(profiles),
+      stories: List<StoryBook>.unmodifiable(sortedStories),
+      activeProfileId: activeProfileId,
+    );
+    state._validateRelationships();
+    return state;
+  }
+
   /// Current interface locale.
   final Locale locale;
 
@@ -24,10 +44,56 @@ class AppState {
   /// Profile currently controlling the personalized application theme.
   final String? activeProfileId;
 
+  /// Converts the complete family snapshot into a portable JSON object.
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'locale': locale.languageCode,
+      'profiles': profiles.map((profile) => profile.toJson()).toList(),
+      'stories': stories.map((story) => story.toJson()).toList(),
+      'activeProfileId': activeProfileId,
+    };
+  }
+
+  /// Validates and restores a complete current-schema family snapshot.
+  factory AppState.fromJson(Map<String, Object?> json) {
+    final localeCode = json['locale'];
+    final encodedProfiles = json['profiles'];
+    final encodedStories = json['stories'];
+    final activeProfileId = json['activeProfileId'];
+    if (localeCode is! String ||
+        encodedProfiles is! List ||
+        encodedStories is! List ||
+        (activeProfileId != null && activeProfileId is! String)) {
+      throw const FormatException('Malformed application state.');
+    }
+    final profiles = encodedProfiles.map(_decodeProfile).toList();
+    final stories = encodedStories.map(_decodeStory).toList();
+    return AppState.validated(
+      locale: AppLanguage.requireCode(localeCode).locale,
+      profiles: profiles,
+      stories: stories,
+      activeProfileId: activeProfileId as String?,
+    );
+  }
+
   /// Active profile, or null until the parent selects or saves one.
   ChildProfile? get activeProfile {
     final profileId = activeProfileId;
     return profileId == null ? null : profileById(profileId);
+  }
+
+  /// Parent-approved books visible on child-facing shelves and home.
+  List<StoryBook> get approvedStories {
+    return stories
+        .where((story) => story.reviewStatus == StoryReviewStatus.approved)
+        .toList(growable: false);
+  }
+
+  /// Generated books still waiting for explicit parent review.
+  List<StoryBook> get draftStories {
+    return stories
+        .where((story) => story.reviewStatus == StoryReviewStatus.draft)
+        .toList(growable: false);
   }
 
   /// Resolves the child associated with a story, including its private photo.
@@ -41,7 +107,11 @@ class AppState {
   /// Returns the newest-first shelf belonging to one child profile.
   List<StoryBook> storiesForProfile(String profileId) {
     return stories
-        .where((story) => story.content.request.profileId == profileId)
+        .where(
+          (story) =>
+              story.reviewStatus == StoryReviewStatus.approved &&
+              story.content.request.profileId == profileId,
+        )
         .toList(growable: false);
   }
 
@@ -87,4 +157,43 @@ class AppState {
       activeProfileId: null,
     );
   }
+
+  /// Rejects duplicate identities and references outside this family snapshot.
+  void _validateRelationships() {
+    final profileIds = profiles.map((profile) => profile.id).toSet();
+    if (profileIds.length != profiles.length) {
+      throw const FormatException('Child profile identities must be unique.');
+    }
+    final storyIds = stories.map((story) => story.id).toSet();
+    if (storyIds.length != stories.length) {
+      throw const FormatException('Story identities must be unique.');
+    }
+    final activeId = activeProfileId;
+    if (activeId != null && !profileIds.contains(activeId)) {
+      throw const FormatException('Active child profile does not exist.');
+    }
+    for (final story in stories) {
+      if (!profileIds.contains(story.content.request.profileId)) {
+        throw const FormatException(
+          'Story references an unknown child profile.',
+        );
+      }
+    }
+  }
+}
+
+/// Decodes one profile entry while preserving the model's format validation.
+ChildProfile _decodeProfile(Object? encodedProfile) {
+  if (encodedProfile is! Map<String, Object?>) {
+    throw const FormatException('Malformed child profile entry.');
+  }
+  return ChildProfile.fromJson(encodedProfile);
+}
+
+/// Decodes one story entry while preserving the model's format validation.
+StoryBook _decodeStory(Object? encodedStory) {
+  if (encodedStory is! Map<String, Object?>) {
+    throw const FormatException('Malformed story library entry.');
+  }
+  return StoryBook.fromJson(encodedStory);
 }

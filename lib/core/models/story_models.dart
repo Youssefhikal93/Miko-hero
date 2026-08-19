@@ -1,5 +1,6 @@
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/child_story_preferences.dart';
 
 /// Supported story sizes and their exact number of illustrated pages.
 enum StoryLength {
@@ -30,6 +31,21 @@ enum IllustrationStyle {
   /// Bright, dimensional animated-film-inspired art.
   colorful3d,
 }
+
+/// Parent review state controlling child-library visibility.
+enum StoryReviewStatus {
+  /// Generated content waiting for explicit parent approval.
+  draft,
+
+  /// Parent-approved content visible on normal shelves and recent stories.
+  approved,
+}
+
+/// Maximum number of collection labels assigned to one story.
+const maximumStoryCollections = 6;
+
+/// Maximum characters accepted in one collection label.
+const maximumStoryCollectionNameLength = 40;
 
 /// Story presentation settings that travel together to a generator.
 class StoryPresentation {
@@ -68,7 +84,7 @@ class StoryPresentation {
     }
     try {
       return StoryPresentation(
-        language: AppLanguage.fromCode(language),
+        language: AppLanguage.requireCode(language),
         length: StoryLength.values.byName(length),
         style: IllustrationStyle.values.byName(style),
       );
@@ -131,13 +147,76 @@ class StoryHero {
   }
 }
 
+/// Parent idea plus the selected child's saved prompt and safety context.
+class StoryPrompt {
+  /// Creates immutable prompt context for one generated story.
+  const StoryPrompt({
+    required this.theme,
+    required this.moral,
+    required this.preferences,
+  });
+
+  /// Parent-entered setting or adventure idea.
+  final String theme;
+
+  /// Parent-entered lesson woven into the plot.
+  final String moral;
+
+  /// Per-child preferences copied at story creation time.
+  final ChildStoryPreferences preferences;
+
+  /// Converts prompt context into current story JSON.
+  Map<String, Object> toJson() {
+    return <String, Object>{
+      'theme': theme,
+      'moral': moral,
+      'preferences': preferences.toJson(),
+    };
+  }
+
+  /// Validates current prompt JSON and embedded child preferences.
+  factory StoryPrompt.fromJson(Map<String, Object?> json) {
+    final theme = json['theme'];
+    final moral = json['moral'];
+    final preferences = json['preferences'];
+    if (theme is! String ||
+        theme.trim().isEmpty ||
+        moral is! String ||
+        moral.trim().isEmpty ||
+        preferences is! Map<String, Object?>) {
+      throw const FormatException('Malformed story prompt.');
+    }
+    return StoryPrompt(
+      theme: theme.trim(),
+      moral: moral.trim(),
+      preferences: ChildStoryPreferences.fromJson(preferences),
+    );
+  }
+
+  /// Migrates the original flat theme and moral fields with safe defaults.
+  factory StoryPrompt.fromLegacyJson(Map<String, Object?> json) {
+    final theme = json['theme'];
+    final moral = json['moral'];
+    if (theme is! String ||
+        theme.trim().isEmpty ||
+        moral is! String ||
+        moral.trim().isEmpty) {
+      throw const FormatException('Malformed story request.');
+    }
+    return StoryPrompt(
+      theme: theme.trim(),
+      moral: moral.trim(),
+      preferences: const ChildStoryPreferences(),
+    );
+  }
+}
+
 /// Parent-authored inputs supplied to a story generator.
 class StoryRequest {
   /// Creates an immutable request after user input validation.
   const StoryRequest({
     required this.hero,
-    required this.theme,
-    required this.moral,
+    required this.prompt,
     required this.presentation,
   });
 
@@ -153,11 +232,14 @@ class StoryRequest {
   /// Parent-confirmed gender context used by generation.
   ChildGender get gender => hero.gender;
 
+  /// Parent idea and the child's saved prompt boundaries.
+  final StoryPrompt prompt;
+
   /// Parent-entered setting or adventure idea.
-  final String theme;
+  String get theme => prompt.theme;
 
   /// Parent-entered lesson woven into the plot.
-  final String moral;
+  String get moral => prompt.moral;
 
   /// Language, length, and illustration choices.
   final StoryPresentation presentation;
@@ -166,8 +248,7 @@ class StoryRequest {
   Map<String, Object> toJson() {
     return <String, Object>{
       ...hero.toJson(),
-      'theme': theme,
-      'moral': moral,
+      'prompt': prompt.toJson(),
       'presentation': presentation.toJson(),
     };
   }
@@ -178,15 +259,8 @@ class StoryRequest {
     String? fallbackProfileId,
     ChildGender? fallbackGender,
   }) {
-    final theme = json['theme'];
-    final moral = json['moral'];
+    final encodedPrompt = json['prompt'];
     final presentation = json['presentation'];
-    if (theme is! String ||
-        theme.trim().isEmpty ||
-        moral is! String ||
-        moral.trim().isEmpty) {
-      throw const FormatException('Malformed story request.');
-    }
     if (presentation is! Map<String, Object?>) {
       throw const FormatException('Malformed story presentation.');
     }
@@ -196,11 +270,20 @@ class StoryRequest {
         fallbackProfileId: fallbackProfileId,
         fallbackGender: fallbackGender,
       ),
-      theme: theme,
-      moral: moral,
+      prompt: encodedPrompt == null
+          ? StoryPrompt.fromLegacyJson(json)
+          : StoryPrompt.fromJson(_storyPromptJson(encodedPrompt)),
       presentation: StoryPresentation.fromJson(presentation),
     );
   }
+}
+
+/// Requires a current story prompt field to be a JSON object.
+Map<String, Object?> _storyPromptJson(Object? encodedPrompt) {
+  if (encodedPrompt is! Map<String, Object?>) {
+    throw const FormatException('Malformed story prompt.');
+  }
+  return encodedPrompt;
 }
 
 /// One page of text and its future illustration direction.
@@ -310,6 +393,9 @@ class StoryBook {
     required this.id,
     required this.createdAt,
     required this.content,
+    this.reviewStatus = StoryReviewStatus.approved,
+    this.isFavorite = false,
+    this.collections = const <String>[],
   });
 
   /// Device-local identity used in routes and deletion commands.
@@ -321,12 +407,24 @@ class StoryBook {
   /// Title, generation request, and reader pages.
   final StoryContent content;
 
+  /// Whether this book still needs review or is visible to the child.
+  final StoryReviewStatus reviewStatus;
+
+  /// Child-facing favorite marker retained with the local book.
+  final bool isFavorite;
+
+  /// Parent-managed collection labels used to filter one child's shelf.
+  final List<String> collections;
+
   /// Converts a book into a JSON-compatible local storage object.
   Map<String, Object> toJson() {
     return <String, Object>{
       'id': id,
       'createdAt': createdAt.toIso8601String(),
       'content': content.toJson(),
+      'reviewStatus': reviewStatus.name,
+      'isFavorite': isFavorite,
+      'collections': collections,
     };
   }
 
@@ -339,9 +437,15 @@ class StoryBook {
     final id = json['id'];
     final createdAt = json['createdAt'];
     final content = json['content'];
+    final reviewStatus = json['reviewStatus'];
+    final isFavorite = json['isFavorite'];
+    final collections = json['collections'];
     if (id is! String ||
         createdAt is! String ||
-        content is! Map<String, Object?>) {
+        content is! Map<String, Object?> ||
+        (reviewStatus != null && reviewStatus is! String) ||
+        (isFavorite != null && isFavorite is! bool) ||
+        (collections != null && collections is! List)) {
       throw const FormatException('Malformed story book.');
     }
     return StoryBook(
@@ -352,8 +456,88 @@ class StoryBook {
         fallbackProfileId: fallbackProfileId,
         fallbackGender: fallbackGender,
       ),
+      reviewStatus: _reviewStatus(reviewStatus),
+      isFavorite: isFavorite as bool? ?? false,
+      collections: _storyCollections(collections),
     );
   }
+
+  /// Returns the same book after a parent review-state decision.
+  StoryBook withReviewStatus(StoryReviewStatus status) {
+    return _copy(reviewStatus: status);
+  }
+
+  /// Returns the same book after a child-facing favorite change.
+  StoryBook withFavorite(bool favorite) {
+    return _copy(isFavorite: favorite);
+  }
+
+  /// Returns the same book with validated parent-managed collection labels.
+  StoryBook withCollections(List<String> savedCollections) {
+    return _copy(collections: _storyCollections(savedCollections));
+  }
+
+  /// Returns generated content with the queue-derived idempotent identity.
+  StoryBook withId(String savedId) {
+    if (savedId.trim().isEmpty) throw ArgumentError.value(savedId, 'savedId');
+    return StoryBook(
+      id: savedId,
+      createdAt: createdAt,
+      content: content,
+      reviewStatus: reviewStatus,
+      isFavorite: isFavorite,
+      collections: collections,
+    );
+  }
+
+  /// Copies metadata without rebuilding nested generated story content.
+  StoryBook _copy({
+    StoryReviewStatus? reviewStatus,
+    bool? isFavorite,
+    List<String>? collections,
+  }) {
+    return StoryBook(
+      id: id,
+      createdAt: createdAt,
+      content: content,
+      reviewStatus: reviewStatus ?? this.reviewStatus,
+      isFavorite: isFavorite ?? this.isFavorite,
+      collections: collections ?? this.collections,
+    );
+  }
+}
+
+/// Migrates older books to approved and rejects unknown review states.
+StoryReviewStatus _reviewStatus(Object? encodedStatus) {
+  if (encodedStatus == null) return StoryReviewStatus.approved;
+  try {
+    return StoryReviewStatus.values.byName(encodedStatus as String);
+  } on ArgumentError {
+    throw const FormatException('Unsupported story review status.');
+  }
+}
+
+/// Normalizes collection labels while enforcing bounded unique metadata.
+List<String> _storyCollections(Object? encodedCollections) {
+  if (encodedCollections == null) return const <String>[];
+  if (encodedCollections is! Iterable) {
+    throw const FormatException('Malformed story collections.');
+  }
+  final collections = <String>[];
+  for (final value in encodedCollections) {
+    if (value is! String) {
+      throw const FormatException('Malformed story collection name.');
+    }
+    final name = value.trim();
+    if (name.isEmpty || name.length > maximumStoryCollectionNameLength) {
+      throw const FormatException('Malformed story collection name.');
+    }
+    if (!collections.contains(name)) collections.add(name);
+  }
+  if (collections.length > maximumStoryCollections) {
+    throw const FormatException('Too many story collections.');
+  }
+  return List<String>.unmodifiable(collections);
 }
 
 /// Decodes current gender names or preserves pre-gender stories as unspecified.

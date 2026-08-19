@@ -1,5 +1,6 @@
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:miko_hero/core/models/app_language.dart';
+import 'package:miko_hero/core/narration/narration_options.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
 
 /// Uses the free speech engine already installed on the current device.
@@ -20,11 +21,12 @@ class DeviceNarrationService implements NarrationService {
 
   @override
   /// Configures the locale before speaking so pages never use a stale voice.
-  Future<void> speak(String text, AppLanguage language) async {
+  Future<void> speak(NarrationRequest request) async {
     await _speechEngine.stop();
-    await _speechEngine.setLanguage(language.speechLocale);
+    await _speechEngine.setLanguage(request.language.speechLocale);
+    await _speechEngine.setSpeechRate(request.speed.platformRate);
     await _speechEngine.awaitSpeakCompletion(true);
-    await _speechEngine.speak(text);
+    await _speechEngine.speak(request.text);
   }
 
   @override

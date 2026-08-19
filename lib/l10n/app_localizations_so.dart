@@ -283,7 +283,7 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get privacyBody =>
-      'Xogta bogga, sawirrada, iyo sheekooyinka waxay ku jiraan kaydka qalabka. Falanqayn ama adeeg daruureed oo lacag leh lama isticmaalo.';
+      'Xogta bogagga, sawirrada iyo sheekooyinka waxay ku jiraan kaydka qalabka ilaa aad gacanta uga dhoofiso kayd sirgaxan. Falanqayn ama adeeg daruureed oo lacag leh lama isticmaalo.';
 
   @override
   String get deleteAllData => 'Tirtir dhammaan xogta maxalliga ah';
@@ -403,4 +403,448 @@ class AppLocalizationsSo extends AppLocalizations {
   String profileThemeSaved(String name) {
     return 'Midabka $name waa la kaydiyay';
   }
+
+  @override
+  String get parentSecurityTitle => 'Ilaalinta waalidka';
+
+  @override
+  String get parentSecurityBody =>
+      'PIN maxalli ah oo ikhtiyaari ah ayaa ilaaliya bogagga, Boqortooyadayda, dejinta iyo tirtirka. Ma beddelayo amniga qalabka.';
+
+  @override
+  String get parentPin => 'PIN-ka waalidka';
+
+  @override
+  String get parentPinConfigured => 'PIN waalid ayaa ka shaqaynaya qalabkan.';
+
+  @override
+  String get parentPinNotConfigured =>
+      'PIN waalid lama dejin. Xakamaynta waalidka way furan tahay.';
+
+  @override
+  String get setParentPin => 'Deji PIN waalid';
+
+  @override
+  String get changeParentPin => 'Beddel PIN';
+
+  @override
+  String get removeParentPin => 'Ka saar PIN';
+
+  @override
+  String get lockParentArea => 'Hadda quful';
+
+  @override
+  String get parentAreaLocked => 'Qaybta waalidka waa qufulan tahay';
+
+  @override
+  String get enterParentPin =>
+      'Geli PIN-ka waalidka ee maxalliga ah si aad u sii waddo.';
+
+  @override
+  String get incorrectParentPin => 'PIN-kaasi waa khalad.';
+
+  @override
+  String get unlock => 'Fur qufulka';
+
+  @override
+  String get newParentPin => 'PIN cusub';
+
+  @override
+  String get confirmParentPin => 'Xaqiiji PIN';
+
+  @override
+  String get parentPinRequirements => 'Isticmaal 4 ilaa 8 lambar.';
+
+  @override
+  String get parentPinMismatch => 'PIN-yadu isma laha.';
+
+  @override
+  String get saveParentPin => 'Kaydi PIN';
+
+  @override
+  String get parentPinSaved => 'PIN-ka waalidka waa la kaydiyay';
+
+  @override
+  String get parentPinRemoved => 'PIN-ka waalidka waa laga saaray';
+
+  @override
+  String get removeParentPinTitle => 'Ma ka saartaa PIN-ka waalidka?';
+
+  @override
+  String get removeParentPinBody =>
+      'Xakamaynta waalidku way furnaan doontaa ilaa PIN cusub la dejiyo.';
+
+  @override
+  String get encryptedBackupTitle => 'Kayd sirgaxan';
+
+  @override
+  String get encryptedBackupBody =>
+      'Kaydi fayl eray-sir leh oo ku soo celi qalab kale. Erayga sirta lama kaydiyo, si ammaan ah u xafid.';
+
+  @override
+  String get exportEncryptedBackup => 'Dhoofi kaydka';
+
+  @override
+  String get restoreEncryptedBackup => 'Soo celi kaydka';
+
+  @override
+  String get createBackupPasswordTitle => 'Samee erayga sirta kaydka';
+
+  @override
+  String get enterBackupPasswordTitle => 'Geli erayga sirta kaydka';
+
+  @override
+  String get backupPassword => 'Erayga sirta kaydka';
+
+  @override
+  String get confirmBackupPassword => 'Xaqiiji erayga sirta';
+
+  @override
+  String get backupPasswordRequirements =>
+      'Isticmaal ugu yaraan 8 xaraf. Eraygan sirta ah dib looma heli karo.';
+
+  @override
+  String get backupPasswordMismatch => 'Erayada sirta ahi isma laha.';
+
+  @override
+  String get continueAction => 'Sii wad';
+
+  @override
+  String get backupReadyTitle => 'Kaydka sirgaxan waa diyaar';
+
+  @override
+  String get backupReadyBody =>
+      'Dooro Soo dejiso kaydka si aad u kaydiso faylka sirgaxan.';
+
+  @override
+  String get downloadBackup => 'Soo dejiso kaydka';
+
+  @override
+  String get saveBackupDialogTitle => 'Kaydi nuqulka sirgaxan ee Iam - hero';
+
+  @override
+  String get backupSaved => 'Kaydka sirgaxan waa la kaydiyay';
+
+  @override
+  String restoreFileName(String name) {
+    return 'Faylka la doortay: $name';
+  }
+
+  @override
+  String get confirmRestoreTitle => 'Ma beddeshaa xogta qoyska ee qalabkan?';
+
+  @override
+  String confirmRestoreBody(int profiles, int stories) {
+    return 'Kaydkani wuxuu leeyahay $profiles bog iyo $stories sheeko. Soo celintu waxay beddelaysaa bogagga, sheekooyinka, halyeyga firfircoon iyo luqadda app-ka.';
+  }
+
+  @override
+  String get restoreNow => 'Hadda soo celi';
+
+  @override
+  String get backupRestored => 'Kaydka sirgaxan waa la soo celiyay';
+
+  @override
+  String get backupWrongPassword =>
+      'Erayga sirta waa khalad ama kaydka waa la beddelay.';
+
+  @override
+  String get backupInvalid => 'Kani ma aha kayd Iam - hero oo la taageero.';
+
+  @override
+  String get backupTooLarge =>
+      'Kaydkani aad buu u weyn yahay in si ammaan ah loo furo.';
+
+  @override
+  String get backupFileReadFailed => 'Kaydka la doortay lama akhrin karin.';
+
+  @override
+  String get backupFailed => 'Hawsha kaydka lama dhammaystiri karin.';
+
+  @override
+  String get storyPreferencesTitle => 'Doorbidka sheekada iyo badbaadada';
+
+  @override
+  String storyPreferencesBody(String name) {
+    return 'Dooro waxa dhiirrigeliya sheekooyinka $name iyo waxa AI-ga maxalliga ahi ka fogaanayo.';
+  }
+
+  @override
+  String get editStoryPreferences => 'Beddel doorbidka sheekada';
+
+  @override
+  String get defaultStoryLanguage => 'Luqadda sheekada ee caadiga ah';
+
+  @override
+  String defaultStoryLanguageValue(String language) {
+    return 'Luqadda caadiga ah: $language';
+  }
+
+  @override
+  String get favoriteThings => 'Waxyaabaha uu jecel yahay';
+
+  @override
+  String get favoriteThingsHint => 'Tusaale: tareenno, bisado, xiddigo';
+
+  @override
+  String favoriteThingsValue(String value) {
+    return 'Waxyaabaha la jecel yahay: $value';
+  }
+
+  @override
+  String get recurringWorld => 'Dunida soo noqnoqota';
+
+  @override
+  String get recurringWorldHint => 'Tusaale: Boqortooyada Daruurta Dahabka';
+
+  @override
+  String recurringWorldValue(String value) {
+    return 'Dunida soo noqnoqota: $value';
+  }
+
+  @override
+  String get safetyControls => 'Mawduucyada laga fogaado';
+
+  @override
+  String get safetyControlsHint =>
+      'Ka-reebitaannadan waxaa loo gudbin doonaa samaynta sheeko iyo sawir ee maxalliga ah mustaqbalka.';
+
+  @override
+  String safetyRulesValue(int count) {
+    return 'Ka-reebitaannada badbaadada: $count';
+  }
+
+  @override
+  String get avoidFrighteningContent => 'Waxyaabo cabsi leh';
+
+  @override
+  String get avoidViolence => 'Rabshad ama dhaawac';
+
+  @override
+  String get avoidBullying => 'Cagajuglayn ama ka-saarid';
+
+  @override
+  String get avoidGriefAndLoss => 'Murugo ama lumis';
+
+  @override
+  String get savePreferences => 'Kaydi doorbidka';
+
+  @override
+  String storyPreferencesSaved(String name) {
+    return 'Doorbidka sheekada ee $name waa la kaydiyay';
+  }
+
+  @override
+  String savedPreferencesInUse(String name, int count) {
+    return 'Waxaa la isticmaalayaa doorbidka $name iyo $count ka-reebitaan badbaado.';
+  }
+
+  @override
+  String get reviewStoriesTitle => 'Dib-u-eegista sheekada ee waalidka';
+
+  @override
+  String get reviewStoriesBody =>
+      'Qabyada la sameeyay kama muuqato maktabadda ilmaha ilaa aad akhrido oo ansixiso.';
+
+  @override
+  String get reviewStoryTitle => 'Dib u eeg sheekadan';
+
+  @override
+  String get reviewStoryBody =>
+      'Hubi codsiga iyo bog kasta ka hor inta sheekadu ka muuqan maktabadda.';
+
+  @override
+  String reviewDraftCount(int count) {
+    return 'Dib u eeg qabyada ($count)';
+  }
+
+  @override
+  String get approveStory => 'Ansixi sheekada';
+
+  @override
+  String get storyApproved =>
+      'Sheekada waa la ansixiyay oo maktabadda lagu daray';
+
+  @override
+  String get deleteDraft => 'Tirtir qabyada';
+
+  @override
+  String get deleteDraftTitle => 'Ma tirtirtaa qabyadan?';
+
+  @override
+  String get deleteDraftBody =>
+      'Qabyadan la sameeyay si joogto ah ayaa qalabka looga tirtirayaa.';
+
+  @override
+  String reviewHero(String value) {
+    return 'Halyeyga: $value';
+  }
+
+  @override
+  String reviewTheme(String value) {
+    return 'Mawduuca: $value';
+  }
+
+  @override
+  String reviewMoral(String value) {
+    return 'Casharka: $value';
+  }
+
+  @override
+  String reviewPageNumber(int number) {
+    return 'Bogga $number';
+  }
+
+  @override
+  String get noDrafts => 'Sheeko dib-u-eegis sugaysa ma jirto.';
+
+  @override
+  String get addFavorite => 'Ku dar kuwa la jecel yahay';
+
+  @override
+  String get removeFavorite => 'Ka saar kuwa la jecel yahay';
+
+  @override
+  String get manageCollections => 'Maamul ururinta';
+
+  @override
+  String collectionsHint(int max) {
+    return 'Geli ilaa $max magac ururin, kuna kala saar hakad ama sadar cusub.';
+  }
+
+  @override
+  String get collectionNames => 'Magacyada ururinta';
+
+  @override
+  String get collectionNamesHint => 'Waqtiga hurdada, Tacaburrada hawada';
+
+  @override
+  String get saveCollections => 'Kaydi ururinta';
+
+  @override
+  String tooManyCollections(int max) {
+    return 'Isticmaal ugu badnaan $max ururin.';
+  }
+
+  @override
+  String collectionNameTooLong(int max) {
+    return 'Magac kasta oo ururin ahi ha ahaado $max xaraf ama ka yar.';
+  }
+
+  @override
+  String get filterStories => 'Kala saar khaanaddan';
+
+  @override
+  String get allStories => 'Dhammaan sheekooyinka';
+
+  @override
+  String get favoriteStories => 'Kuwa la jecel yahay';
+
+  @override
+  String get noStoriesInFilter =>
+      'Weli sheeko ku habboon kala-saarkan ma jirto.';
+
+  @override
+  String get generationCenterTitle => 'Xarunta samaynta maxalliga ah';
+
+  @override
+  String get generationCenterBody =>
+      'Arag waxa hadda offline u shaqeeya oo si ammaan ah dib ugu celi codsiyada la kaydiyay ka hor samaynta.';
+
+  @override
+  String get openGenerationCenter => 'Fur xarunta samaynta';
+
+  @override
+  String get generationQueueTitle => 'Safka samaynta ee kaydsan';
+
+  @override
+  String get generationQueueEmpty =>
+      'Codsi sheeko oo sugaya ama fashilmay ma jiro.';
+
+  @override
+  String get demoGeneratorStatus => 'Sameeyaha tijaabada offline';
+
+  @override
+  String get readyOffline => 'Offline ayuu diyaar yahay';
+
+  @override
+  String get ollamaStatus => 'Qaabka sheekada Ollama';
+
+  @override
+  String get comfyUiStatus => 'Sawirrada ComfyUI';
+
+  @override
+  String get notConnectedYet => 'Weli lama xirin';
+
+  @override
+  String get pcRequirementStatus =>
+      'Tijaabadu way shaqaysaa marka PC-gu dansan yahay. Marka AI-ga maxalliga ah la xiro mustaqbalka, PC-ga iyo moodooyinkiisu waa inay shaqaynayaan si loo sameeyo sheekooyin AI cusub; buugaagta kaydsan weli offline ayay u furmaan.';
+
+  @override
+  String get generationQueued => 'Saf ku jira oo kaydsan';
+
+  @override
+  String get generationRunning => 'Hadda ayaa la samaynayaa';
+
+  @override
+  String get generationFailed =>
+      'Isku daygu wuu fashilmay — si ammaan ah dib ugu celi';
+
+  @override
+  String get retryGeneration => 'Dib u samee';
+
+  @override
+  String get cancelGenerationTitle => 'Ma ka saartaa codsigan?';
+
+  @override
+  String get cancelGenerationBody =>
+      'Codsiga sugaya waa laga saarayaa. Sheekooyinka hore loo kaydiyay waxba ma gaarayaan.';
+
+  @override
+  String get removeFromQueue => 'Ka saar safka';
+
+  @override
+  String get exportPdf => 'Keydi PDF';
+
+  @override
+  String get exportPdfDialogTitle => 'Sheekada PDF ahaan u keydi';
+
+  @override
+  String get exportingPdf => 'PDF ayaa la diyaarinayaa…';
+
+  @override
+  String get pdfSaved => 'PDF waa la keydiyay';
+
+  @override
+  String get pdfSaveCancelled => 'Keydinta PDF waa la joojiyay';
+
+  @override
+  String get pdfExportFailed => 'PDF lama keydin karin';
+
+  @override
+  String get narrationSettings => 'Dejinta akhrinta codka';
+
+  @override
+  String get narrationSpeed => 'Xawaaraha akhrinta';
+
+  @override
+  String get slowSpeed => 'Gaabis';
+
+  @override
+  String get normalSpeed => 'Caadi';
+
+  @override
+  String get fastSpeed => 'Degdeg';
+
+  @override
+  String get narrationScope => 'Kor u akhri';
+
+  @override
+  String get currentPage => 'Bogga hadda';
+
+  @override
+  String get remainingStory => 'Boggan ilaa dhammaadka';
+
+  @override
+  String get applyNarrationSettings => 'Dhaqan geli';
 }

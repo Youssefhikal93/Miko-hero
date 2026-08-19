@@ -276,7 +276,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get privacyBody =>
-      'تبقى معلومات الملف والصور والقصص في التخزين المحلي للجهاز. لا نستخدم التحليلات أو أي خدمة سحابية مدفوعة.';
+      'تبقى بيانات الملفات والصور والقصص في التخزين المحلي لهذا الجهاز ما لم تُصدّر نسخة احتياطية مشفرة يدوياً. لا تُستخدم تحليلات أو خدمة سحابية مدفوعة.';
 
   @override
   String get deleteAllData => 'حذف جميع البيانات المحلية';
@@ -396,4 +396,439 @@ class AppLocalizationsAr extends AppLocalizations {
   String profileThemeSaved(String name) {
     return 'تم حفظ لون $name';
   }
+
+  @override
+  String get parentSecurityTitle => 'حماية الوالدين';
+
+  @override
+  String get parentSecurityBody =>
+      'يحمي رمز PIN محلي اختياري الملفات ومملكتي والإعدادات والحذف. وهو لا يغني عن حماية الجهاز.';
+
+  @override
+  String get parentPin => 'رمز PIN للوالدين';
+
+  @override
+  String get parentPinConfigured => 'رمز PIN للوالدين مفعّل على هذا الجهاز.';
+
+  @override
+  String get parentPinNotConfigured =>
+      'لم يتم تعيين رمز PIN. أدوات الوالدين مفتوحة حالياً.';
+
+  @override
+  String get setParentPin => 'تعيين رمز PIN';
+
+  @override
+  String get changeParentPin => 'تغيير الرمز';
+
+  @override
+  String get removeParentPin => 'إزالة الرمز';
+
+  @override
+  String get lockParentArea => 'القفل الآن';
+
+  @override
+  String get parentAreaLocked => 'قسم الوالدين مقفل';
+
+  @override
+  String get enterParentPin => 'أدخل رمز PIN المحلي للمتابعة.';
+
+  @override
+  String get incorrectParentPin => 'رمز PIN غير صحيح.';
+
+  @override
+  String get unlock => 'فتح القفل';
+
+  @override
+  String get newParentPin => 'رمز PIN جديد';
+
+  @override
+  String get confirmParentPin => 'تأكيد رمز PIN';
+
+  @override
+  String get parentPinRequirements => 'استخدم من 4 إلى 8 أرقام.';
+
+  @override
+  String get parentPinMismatch => 'رمزا PIN غير متطابقين.';
+
+  @override
+  String get saveParentPin => 'حفظ الرمز';
+
+  @override
+  String get parentPinSaved => 'تم حفظ رمز PIN للوالدين';
+
+  @override
+  String get parentPinRemoved => 'تمت إزالة رمز PIN للوالدين';
+
+  @override
+  String get removeParentPinTitle => 'هل تريد إزالة رمز PIN؟';
+
+  @override
+  String get removeParentPinBody =>
+      'ستبقى أدوات الوالدين مفتوحة على هذا الجهاز حتى تعيين رمز جديد.';
+
+  @override
+  String get encryptedBackupTitle => 'نسخة احتياطية مشفرة';
+
+  @override
+  String get encryptedBackupBody =>
+      'احفظ ملفاً محمياً بكلمة مرور واستعده على جهاز آخر. لا تُحفظ كلمة مرور النسخة، فاحتفظ بها بأمان.';
+
+  @override
+  String get exportEncryptedBackup => 'تصدير نسخة';
+
+  @override
+  String get restoreEncryptedBackup => 'استعادة نسخة';
+
+  @override
+  String get createBackupPasswordTitle => 'إنشاء كلمة مرور للنسخة';
+
+  @override
+  String get enterBackupPasswordTitle => 'أدخل كلمة مرور النسخة';
+
+  @override
+  String get backupPassword => 'كلمة مرور النسخة';
+
+  @override
+  String get confirmBackupPassword => 'تأكيد كلمة مرور النسخة';
+
+  @override
+  String get backupPasswordRequirements =>
+      'استخدم 8 محارف على الأقل. لا يمكن استعادة كلمة المرور هذه.';
+
+  @override
+  String get backupPasswordMismatch => 'كلمتا المرور غير متطابقتين.';
+
+  @override
+  String get continueAction => 'متابعة';
+
+  @override
+  String get backupReadyTitle => 'النسخة المشفرة جاهزة';
+
+  @override
+  String get backupReadyBody => 'اختر تنزيل النسخة لحفظ الملف المشفر.';
+
+  @override
+  String get downloadBackup => 'تنزيل النسخة';
+
+  @override
+  String get saveBackupDialogTitle => 'حفظ نسخة Iam - hero المشفرة';
+
+  @override
+  String get backupSaved => 'تم حفظ النسخة الاحتياطية المشفرة';
+
+  @override
+  String restoreFileName(String name) {
+    return 'الملف المحدد: $name';
+  }
+
+  @override
+  String get confirmRestoreTitle => 'استبدال بيانات العائلة المحلية؟';
+
+  @override
+  String confirmRestoreBody(int profiles, int stories) {
+    return 'تحتوي النسخة على $profiles ملفات و$stories قصص. ستستبدل الاستعادة الملفات والقصص والبطل النشط ولغة التطبيق على هذا الجهاز.';
+  }
+
+  @override
+  String get restoreNow => 'استعادة الآن';
+
+  @override
+  String get backupRestored => 'تمت استعادة النسخة المشفرة';
+
+  @override
+  String get backupWrongPassword => 'كلمة المرور خاطئة أو تم تعديل النسخة.';
+
+  @override
+  String get backupInvalid => 'هذا الملف ليس نسخة Iam - hero مدعومة.';
+
+  @override
+  String get backupTooLarge => 'النسخة كبيرة جداً ولا يمكن فتحها بأمان.';
+
+  @override
+  String get backupFileReadFailed => 'تعذرت قراءة النسخة المحددة.';
+
+  @override
+  String get backupFailed => 'تعذر إكمال إجراء النسخة الاحتياطية.';
+
+  @override
+  String get storyPreferencesTitle => 'تفضيلات القصة والأمان';
+
+  @override
+  String storyPreferencesBody(String name) {
+    return 'اختر ما يلهم قصص $name وما يجب على الذكاء الاصطناعي المحلي تجنبه.';
+  }
+
+  @override
+  String get editStoryPreferences => 'تعديل تفضيلات القصة';
+
+  @override
+  String get defaultStoryLanguage => 'لغة القصة الافتراضية';
+
+  @override
+  String defaultStoryLanguageValue(String language) {
+    return 'اللغة الافتراضية: $language';
+  }
+
+  @override
+  String get favoriteThings => 'الأشياء المفضلة';
+
+  @override
+  String get favoriteThingsHint => 'مثال: القطارات والقطط والنجوم';
+
+  @override
+  String favoriteThingsValue(String value) {
+    return 'الأشياء المفضلة: $value';
+  }
+
+  @override
+  String get recurringWorld => 'العالم المتكرر';
+
+  @override
+  String get recurringWorldHint => 'مثال: مملكة السحابة الذهبية';
+
+  @override
+  String recurringWorldValue(String value) {
+    return 'العالم المتكرر: $value';
+  }
+
+  @override
+  String get safetyControls => 'مواضيع يجب تجنبها';
+
+  @override
+  String get safetyControlsHint =>
+      'ستُمرر هذه الاستثناءات إلى توليد القصص والصور المحلي مستقبلاً.';
+
+  @override
+  String safetyRulesValue(int count) {
+    return 'استثناءات الأمان: $count';
+  }
+
+  @override
+  String get avoidFrighteningContent => 'محتوى مخيف';
+
+  @override
+  String get avoidViolence => 'العنف أو الإصابة';
+
+  @override
+  String get avoidBullying => 'التنمر أو الاستبعاد';
+
+  @override
+  String get avoidGriefAndLoss => 'الحزن أو الفقد';
+
+  @override
+  String get savePreferences => 'حفظ التفضيلات';
+
+  @override
+  String storyPreferencesSaved(String name) {
+    return 'تم حفظ تفضيلات قصص $name';
+  }
+
+  @override
+  String savedPreferencesInUse(String name, int count) {
+    return 'تُستخدم تفضيلات $name المحفوظة و$count من استثناءات الأمان.';
+  }
+
+  @override
+  String get reviewStoriesTitle => 'مراجعة الوالدين للقصص';
+
+  @override
+  String get reviewStoriesBody =>
+      'تبقى المسودات المولدة خارج مكتبة الطفل حتى تقرأها وتوافق عليها.';
+
+  @override
+  String get reviewStoryTitle => 'مراجعة هذه القصة';
+
+  @override
+  String get reviewStoryBody =>
+      'راجع الطلب وكل صفحة قبل إظهار القصة في المكتبة.';
+
+  @override
+  String reviewDraftCount(int count) {
+    return 'مراجعة المسودات ($count)';
+  }
+
+  @override
+  String get approveStory => 'الموافقة على القصة';
+
+  @override
+  String get storyApproved => 'تمت الموافقة على القصة وإضافتها إلى المكتبة';
+
+  @override
+  String get deleteDraft => 'حذف المسودة';
+
+  @override
+  String get deleteDraftTitle => 'حذف هذه المسودة؟';
+
+  @override
+  String get deleteDraftBody => 'ستُحذف هذه المسودة المولدة نهائياً من الجهاز.';
+
+  @override
+  String reviewHero(String value) {
+    return 'البطل: $value';
+  }
+
+  @override
+  String reviewTheme(String value) {
+    return 'الموضوع: $value';
+  }
+
+  @override
+  String reviewMoral(String value) {
+    return 'القيمة: $value';
+  }
+
+  @override
+  String reviewPageNumber(int number) {
+    return 'الصفحة $number';
+  }
+
+  @override
+  String get noDrafts => 'لا توجد قصص بانتظار المراجعة.';
+
+  @override
+  String get addFavorite => 'إضافة إلى المفضلة';
+
+  @override
+  String get removeFavorite => 'إزالة من المفضلة';
+
+  @override
+  String get manageCollections => 'إدارة المجموعات';
+
+  @override
+  String collectionsHint(int max) {
+    return 'أدخل حتى $max أسماء مجموعات، وافصل بينها بفواصل أو أسطر جديدة.';
+  }
+
+  @override
+  String get collectionNames => 'أسماء المجموعات';
+
+  @override
+  String get collectionNamesHint => 'وقت النوم، مغامرات الفضاء';
+
+  @override
+  String get saveCollections => 'حفظ المجموعات';
+
+  @override
+  String tooManyCollections(int max) {
+    return 'استخدم $max مجموعات كحد أقصى.';
+  }
+
+  @override
+  String collectionNameTooLong(int max) {
+    return 'يجب ألا يتجاوز اسم المجموعة $max محرفاً.';
+  }
+
+  @override
+  String get filterStories => 'تصفية هذا الرف';
+
+  @override
+  String get allStories => 'كل القصص';
+
+  @override
+  String get favoriteStories => 'المفضلة';
+
+  @override
+  String get noStoriesInFilter => 'لا توجد قصص تطابق هذا المرشح بعد.';
+
+  @override
+  String get generationCenterTitle => 'مركز التوليد المحلي';
+
+  @override
+  String get generationCenterBody =>
+      'اعرف ما يعمل دون اتصال الآن وأعد بأمان محاولة الطلبات المحفوظة قبل التوليد.';
+
+  @override
+  String get openGenerationCenter => 'فتح مركز التوليد';
+
+  @override
+  String get generationQueueTitle => 'قائمة انتظار التوليد المحفوظة';
+
+  @override
+  String get generationQueueEmpty => 'لا توجد طلبات قصص منتظرة أو فاشلة.';
+
+  @override
+  String get demoGeneratorStatus => 'مولّد العرض دون اتصال';
+
+  @override
+  String get readyOffline => 'جاهز دون اتصال';
+
+  @override
+  String get ollamaStatus => 'نموذج القصص Ollama';
+
+  @override
+  String get comfyUiStatus => 'رسومات ComfyUI';
+
+  @override
+  String get notConnectedYet => 'غير متصل بعد';
+
+  @override
+  String get pcRequirementStatus =>
+      'يعمل العرض والجهاز مطفأ. بعد ربط الذكاء الاصطناعي المحلي لاحقاً، يجب تشغيل الكمبيوتر والنماذج لإنشاء قصص ذكاء اصطناعي جديدة؛ وتبقى الكتب المحفوظة متاحة دون اتصال.';
+
+  @override
+  String get generationQueued => 'في الانتظار ومحفوظ';
+
+  @override
+  String get generationRunning => 'يتم التوليد الآن';
+
+  @override
+  String get generationFailed => 'فشلت المحاولة — يمكن إعادتها بأمان';
+
+  @override
+  String get retryGeneration => 'إعادة محاولة التوليد';
+
+  @override
+  String get cancelGenerationTitle => 'إزالة هذا الطلب؟';
+
+  @override
+  String get cancelGenerationBody =>
+      'سيُزال الطلب المنتظر. لن تتأثر القصص المحفوظة.';
+
+  @override
+  String get removeFromQueue => 'إزالة من القائمة';
+
+  @override
+  String get exportPdf => 'حفظ PDF';
+
+  @override
+  String get exportPdfDialogTitle => 'حفظ القصة بصيغة PDF';
+
+  @override
+  String get exportingPdf => 'جارٍ إنشاء ملف PDF…';
+
+  @override
+  String get pdfSaved => 'تم حفظ ملف PDF';
+
+  @override
+  String get pdfSaveCancelled => 'تم إلغاء حفظ ملف PDF';
+
+  @override
+  String get pdfExportFailed => 'تعذر حفظ ملف PDF';
+
+  @override
+  String get narrationSettings => 'إعدادات القراءة الصوتية';
+
+  @override
+  String get narrationSpeed => 'سرعة القراءة';
+
+  @override
+  String get slowSpeed => 'بطيئة';
+
+  @override
+  String get normalSpeed => 'عادية';
+
+  @override
+  String get fastSpeed => 'سريعة';
+
+  @override
+  String get narrationScope => 'القراءة بصوت عالٍ';
+
+  @override
+  String get currentPage => 'الصفحة الحالية';
+
+  @override
+  String get remainingStory => 'من هذه الصفحة حتى النهاية';
+
+  @override
+  String get applyNarrationSettings => 'تطبيق';
 }

@@ -114,6 +114,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   /// Renders validated inputs and an honest explanation of demo behavior.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
+    final selectedProfile = _profileById(_selectedProfileId);
     return ScreenLayout(
       maxWidth: 820,
       child: Form(
@@ -138,6 +139,10 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
             ],
             const SizedBox(height: 16),
             _DemoNotice(text: text),
+            if (selectedProfile != null) ...<Widget>[
+              const SizedBox(height: 16),
+              _SavedPreferencesNotice(profile: selectedProfile),
+            ],
             const SizedBox(height: 20),
             _languageField(text),
             const SizedBox(height: 16),
@@ -192,6 +197,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     setState(() {
       _selectedProfileId = profileId;
       _selectedGender = selectedGender;
+      _language = profile.storyPreferences.defaultLanguage;
     });
     if (selectedGender != null) {
       setState(() => _savingProfileSelection = true);
@@ -352,7 +358,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).storyCreated)),
       );
-      context.go('/story/${story.id}');
+      context.go('/review/${story.id}');
     } on Exception {
       if (!mounted) return;
       setState(() => _generating = false);
@@ -368,8 +374,11 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
         name: profile.name,
         gender: gender,
       ),
-      theme: _themeController.text.trim(),
-      moral: _moralController.text.trim(),
+      prompt: StoryPrompt(
+        theme: _themeController.text.trim(),
+        moral: _moralController.text.trim(),
+        preferences: profile.storyPreferences,
+      ),
       presentation: StoryPresentation(
         language: _language,
         length: _length,
@@ -383,6 +392,15 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     return widget.profiles.firstWhere(
       (candidate) => candidate.id == _selectedProfileId,
     );
+  }
+
+  /// Resolves an optional form selection without assuming a profile exists.
+  ChildProfile? _profileById(String? profileId) {
+    if (profileId == null) return null;
+    for (final profile in widget.profiles) {
+      if (profile.id == profileId) return profile;
+    }
+    return null;
   }
 
   /// Shows recoverable local-write or generation failure feedback.
@@ -411,6 +429,46 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   }
 }
 
+/// Visible confirmation that saved per-child prompt rules are being copied.
+class _SavedPreferencesNotice extends StatelessWidget {
+  /// Creates a prompt-context summary for the selected hero.
+  const _SavedPreferencesNotice({required this.profile});
+
+  final ChildProfile profile;
+
+  @override
+  /// Shows only saved inspiration plus the active safety-rule count.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    final preferences = profile.storyPreferences;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              text.savedPreferencesInUse(
+                profile.name,
+                preferences.excludedTopics.length,
+              ),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (preferences.favoriteThings.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 6),
+              Text(text.favoriteThingsValue(preferences.favoriteThings)),
+            ],
+            if (preferences.recurringWorld.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 6),
+              Text(text.recurringWorldValue(preferences.recurringWorld)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Persistent explanation that the current generator is an offline sample.
 class _DemoNotice extends StatelessWidget {
   /// Creates the notice from localized copy.
@@ -433,7 +491,20 @@ class _DemoNotice extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(text.demoModeNotice)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(text.demoModeNotice),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () => context.go('/generation'),
+                    icon: const Icon(Icons.monitor_heart_outlined),
+                    label: Text(text.openGenerationCenter),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

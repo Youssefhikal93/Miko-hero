@@ -621,7 +621,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyBody.
   ///
   /// In en, this message translates to:
-  /// **'Profile details, photos, and stories stay in local device storage. No analytics or paid cloud service is used.'**
+  /// **'Profile details, photos, and stories stay in local device storage unless you manually export an encrypted backup. No analytics or paid cloud service is used.'**
   String get privacyBody;
 
   /// No description provided for @deleteAllData.
@@ -839,6 +839,786 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Color saved for {name}'**
   String profileThemeSaved(String name);
+
+  /// No description provided for @parentSecurityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent protection'**
+  String get parentSecurityTitle;
+
+  /// No description provided for @parentSecurityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'An optional local PIN protects profiles, My Kingdom, settings, and deletion. It is not a replacement for device security.'**
+  String get parentSecurityBody;
+
+  /// No description provided for @parentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent PIN'**
+  String get parentPin;
+
+  /// No description provided for @parentPinConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'A parent PIN is enabled on this device.'**
+  String get parentPinConfigured;
+
+  /// No description provided for @parentPinNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No parent PIN is set. Parent controls are currently open.'**
+  String get parentPinNotConfigured;
+
+  /// No description provided for @setParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Set parent PIN'**
+  String get setParentPin;
+
+  /// No description provided for @changeParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Change PIN'**
+  String get changeParentPin;
+
+  /// No description provided for @removeParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove PIN'**
+  String get removeParentPin;
+
+  /// No description provided for @lockParentArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock now'**
+  String get lockParentArea;
+
+  /// No description provided for @parentAreaLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent area locked'**
+  String get parentAreaLocked;
+
+  /// No description provided for @enterParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the local parent PIN to continue.'**
+  String get enterParentPin;
+
+  /// No description provided for @incorrectParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'That PIN is incorrect.'**
+  String get incorrectParentPin;
+
+  /// No description provided for @unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlock;
+
+  /// No description provided for @newParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'New PIN'**
+  String get newParentPin;
+
+  /// No description provided for @confirmParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm PIN'**
+  String get confirmParentPin;
+
+  /// No description provided for @parentPinRequirements.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 4 to 8 digits.'**
+  String get parentPinRequirements;
+
+  /// No description provided for @parentPinMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The PINs do not match.'**
+  String get parentPinMismatch;
+
+  /// No description provided for @saveParentPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PIN'**
+  String get saveParentPin;
+
+  /// No description provided for @parentPinSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent PIN saved'**
+  String get parentPinSaved;
+
+  /// No description provided for @parentPinRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent PIN removed'**
+  String get parentPinRemoved;
+
+  /// No description provided for @removeParentPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove parent PIN?'**
+  String get removeParentPinTitle;
+
+  /// No description provided for @removeParentPinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent controls will remain open on this device until a new PIN is set.'**
+  String get removeParentPinBody;
+
+  /// No description provided for @encryptedBackupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup'**
+  String get encryptedBackupTitle;
+
+  /// No description provided for @encryptedBackupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a password-protected file and restore it on another device. The backup password is never stored, so keep it safe.'**
+  String get encryptedBackupBody;
+
+  /// No description provided for @exportEncryptedBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Export backup'**
+  String get exportEncryptedBackup;
+
+  /// No description provided for @restoreEncryptedBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup'**
+  String get restoreEncryptedBackup;
+
+  /// No description provided for @createBackupPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a backup password'**
+  String get createBackupPasswordTitle;
+
+  /// No description provided for @enterBackupPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the backup password'**
+  String get enterBackupPasswordTitle;
+
+  /// No description provided for @backupPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup password'**
+  String get backupPassword;
+
+  /// No description provided for @confirmBackupPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm backup password'**
+  String get confirmBackupPassword;
+
+  /// No description provided for @backupPasswordRequirements.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least 8 characters. This password cannot be recovered.'**
+  String get backupPasswordRequirements;
+
+  /// No description provided for @backupPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup passwords do not match.'**
+  String get backupPasswordMismatch;
+
+  /// No description provided for @continueAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueAction;
+
+  /// No description provided for @backupReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup ready'**
+  String get backupReadyTitle;
+
+  /// No description provided for @backupReadyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Download backup to save the encrypted file.'**
+  String get backupReadyBody;
+
+  /// No description provided for @downloadBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Download backup'**
+  String get downloadBackup;
+
+  /// No description provided for @saveBackupDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save encrypted Iam - hero backup'**
+  String get saveBackupDialogTitle;
+
+  /// No description provided for @backupSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup saved'**
+  String get backupSaved;
+
+  /// No description provided for @restoreFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected file: {name}'**
+  String restoreFileName(String name);
+
+  /// No description provided for @confirmRestoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace local family data?'**
+  String get confirmRestoreTitle;
+
+  /// No description provided for @confirmRestoreBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup contains {profiles} profiles and {stories} stories. Restoring replaces the profiles, stories, active hero, and app language currently on this device.'**
+  String confirmRestoreBody(int profiles, int stories);
+
+  /// No description provided for @restoreNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore now'**
+  String get restoreNow;
+
+  /// No description provided for @backupRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup restored'**
+  String get backupRestored;
+
+  /// No description provided for @backupWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The password is wrong or the backup was changed.'**
+  String get backupWrongPassword;
+
+  /// No description provided for @backupInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a supported Iam - hero backup.'**
+  String get backupInvalid;
+
+  /// No description provided for @backupTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup is too large to open safely.'**
+  String get backupTooLarge;
+
+  /// No description provided for @backupFileReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected backup could not be read.'**
+  String get backupFileReadFailed;
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup action could not be completed.'**
+  String get backupFailed;
+
+  /// No description provided for @storyPreferencesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Story preferences and safety'**
+  String get storyPreferencesTitle;
+
+  /// No description provided for @storyPreferencesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what inspires {name}\'s stories and what local AI must avoid.'**
+  String storyPreferencesBody(String name);
+
+  /// No description provided for @editStoryPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit story preferences'**
+  String get editStoryPreferences;
+
+  /// No description provided for @defaultStoryLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Default story language'**
+  String get defaultStoryLanguage;
+
+  /// No description provided for @defaultStoryLanguageValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Default language: {language}'**
+  String defaultStoryLanguageValue(String language);
+
+  /// No description provided for @favoriteThings.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite things'**
+  String get favoriteThings;
+
+  /// No description provided for @favoriteThingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example: trains, cats, stars'**
+  String get favoriteThingsHint;
+
+  /// No description provided for @favoriteThingsValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite things: {value}'**
+  String favoriteThingsValue(String value);
+
+  /// No description provided for @recurringWorld.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring world'**
+  String get recurringWorld;
+
+  /// No description provided for @recurringWorldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example: The Golden Cloud Kingdom'**
+  String get recurringWorldHint;
+
+  /// No description provided for @recurringWorldValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring world: {value}'**
+  String recurringWorldValue(String value);
+
+  /// No description provided for @safetyControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics to avoid'**
+  String get safetyControls;
+
+  /// No description provided for @safetyControlsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'These exclusions will be passed to future local story and image generation.'**
+  String get safetyControlsHint;
+
+  /// No description provided for @safetyRulesValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety exclusions: {count}'**
+  String safetyRulesValue(int count);
+
+  /// No description provided for @avoidFrighteningContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Frightening content'**
+  String get avoidFrighteningContent;
+
+  /// No description provided for @avoidViolence.
+  ///
+  /// In en, this message translates to:
+  /// **'Violence or injury'**
+  String get avoidViolence;
+
+  /// No description provided for @avoidBullying.
+  ///
+  /// In en, this message translates to:
+  /// **'Bullying or exclusion'**
+  String get avoidBullying;
+
+  /// No description provided for @avoidGriefAndLoss.
+  ///
+  /// In en, this message translates to:
+  /// **'Grief or loss'**
+  String get avoidGriefAndLoss;
+
+  /// No description provided for @savePreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Save preferences'**
+  String get savePreferences;
+
+  /// No description provided for @storyPreferencesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Story preferences saved for {name}'**
+  String storyPreferencesSaved(String name);
+
+  /// No description provided for @savedPreferencesInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Using {name}\'s saved preferences and {count} safety exclusions.'**
+  String savedPreferencesInUse(String name, int count);
+
+  /// No description provided for @reviewStoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent story review'**
+  String get reviewStoriesTitle;
+
+  /// No description provided for @reviewStoriesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated drafts stay out of the child library until you read and approve them.'**
+  String get reviewStoriesBody;
+
+  /// No description provided for @reviewStoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review this story'**
+  String get reviewStoryTitle;
+
+  /// No description provided for @reviewStoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the request and every page before making the story visible in the library.'**
+  String get reviewStoryBody;
+
+  /// No description provided for @reviewDraftCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Review drafts ({count})'**
+  String reviewDraftCount(int count);
+
+  /// No description provided for @approveStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve story'**
+  String get approveStory;
+
+  /// No description provided for @storyApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Story approved and added to the library'**
+  String get storyApproved;
+
+  /// No description provided for @deleteDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete draft'**
+  String get deleteDraft;
+
+  /// No description provided for @deleteDraftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this draft?'**
+  String get deleteDraftTitle;
+
+  /// No description provided for @deleteDraftBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This generated draft will be permanently removed from this device.'**
+  String get deleteDraftBody;
+
+  /// No description provided for @reviewHero.
+  ///
+  /// In en, this message translates to:
+  /// **'Hero: {value}'**
+  String reviewHero(String value);
+
+  /// No description provided for @reviewTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme: {value}'**
+  String reviewTheme(String value);
+
+  /// No description provided for @reviewMoral.
+  ///
+  /// In en, this message translates to:
+  /// **'Moral: {value}'**
+  String reviewMoral(String value);
+
+  /// No description provided for @reviewPageNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {number}'**
+  String reviewPageNumber(int number);
+
+  /// No description provided for @noDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'No stories are waiting for review.'**
+  String get noDrafts;
+
+  /// No description provided for @addFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get addFavorite;
+
+  /// No description provided for @removeFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removeFavorite;
+
+  /// No description provided for @manageCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage collections'**
+  String get manageCollections;
+
+  /// No description provided for @collectionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter up to {max} collection names, separated by commas or new lines.'**
+  String collectionsHint(int max);
+
+  /// No description provided for @collectionNames.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection names'**
+  String get collectionNames;
+
+  /// No description provided for @collectionNamesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime, Space adventures'**
+  String get collectionNamesHint;
+
+  /// No description provided for @saveCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'Save collections'**
+  String get saveCollections;
+
+  /// No description provided for @tooManyCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'Use no more than {max} collections.'**
+  String tooManyCollections(int max);
+
+  /// No description provided for @collectionNameTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Each collection name must be {max} characters or fewer.'**
+  String collectionNameTooLong(int max);
+
+  /// No description provided for @filterStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter this shelf'**
+  String get filterStories;
+
+  /// No description provided for @allStories.
+  ///
+  /// In en, this message translates to:
+  /// **'All stories'**
+  String get allStories;
+
+  /// No description provided for @favoriteStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favoriteStories;
+
+  /// No description provided for @noStoriesInFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'No stories match this filter yet.'**
+  String get noStoriesInFilter;
+
+  /// No description provided for @generationCenterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Local generation center'**
+  String get generationCenterTitle;
+
+  /// No description provided for @generationCenterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'See what works offline now and safely retry requests saved before generation.'**
+  String get generationCenterBody;
+
+  /// No description provided for @openGenerationCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Open generation center'**
+  String get openGenerationCenter;
+
+  /// No description provided for @generationQueueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved generation queue'**
+  String get generationQueueTitle;
+
+  /// No description provided for @generationQueueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No story requests are waiting or failed.'**
+  String get generationQueueEmpty;
+
+  /// No description provided for @demoGeneratorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline demo generator'**
+  String get demoGeneratorStatus;
+
+  /// No description provided for @readyOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready offline'**
+  String get readyOffline;
+
+  /// No description provided for @ollamaStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Ollama story model'**
+  String get ollamaStatus;
+
+  /// No description provided for @comfyUiStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'ComfyUI illustrations'**
+  String get comfyUiStatus;
+
+  /// No description provided for @notConnectedYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected yet'**
+  String get notConnectedYet;
+
+  /// No description provided for @pcRequirementStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'The demo works with the PC off. After local AI is connected later, the PC and its models must be running for new AI stories; saved books still open offline.'**
+  String get pcRequirementStatus;
+
+  /// No description provided for @generationQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued and saved'**
+  String get generationQueued;
+
+  /// No description provided for @generationRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating now'**
+  String get generationRunning;
+
+  /// No description provided for @generationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Attempt failed — safe to retry'**
+  String get generationFailed;
+
+  /// No description provided for @retryGeneration.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry generation'**
+  String get retryGeneration;
+
+  /// No description provided for @cancelGenerationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this request?'**
+  String get cancelGenerationTitle;
+
+  /// No description provided for @cancelGenerationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The pending request will be removed. Already saved stories are not affected.'**
+  String get cancelGenerationBody;
+
+  /// No description provided for @removeFromQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue'**
+  String get removeFromQueue;
+
+  /// No description provided for @exportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PDF'**
+  String get exportPdf;
+
+  /// No description provided for @exportPdfDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save story as PDF'**
+  String get exportPdfDialogTitle;
+
+  /// No description provided for @exportingPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating PDF…'**
+  String get exportingPdf;
+
+  /// No description provided for @pdfSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF saved'**
+  String get pdfSaved;
+
+  /// No description provided for @pdfSaveCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF save cancelled'**
+  String get pdfSaveCancelled;
+
+  /// No description provided for @pdfExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the PDF'**
+  String get pdfExportFailed;
+
+  /// No description provided for @narrationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Narration settings'**
+  String get narrationSettings;
+
+  /// No description provided for @narrationSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading speed'**
+  String get narrationSpeed;
+
+  /// No description provided for @slowSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Slow'**
+  String get slowSpeed;
+
+  /// No description provided for @normalSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get normalSpeed;
+
+  /// No description provided for @fastSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast'**
+  String get fastSpeed;
+
+  /// No description provided for @narrationScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Read aloud'**
+  String get narrationScope;
+
+  /// No description provided for @currentPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Current page'**
+  String get currentPage;
+
+  /// No description provided for @remainingStory.
+  ///
+  /// In en, this message translates to:
+  /// **'From this page to the end'**
+  String get remainingStory;
+
+  /// No description provided for @applyNarrationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get applyNarrationSettings;
 }
 
 class _AppLocalizationsDelegate

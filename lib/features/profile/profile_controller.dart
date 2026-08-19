@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/child_story_preferences.dart';
 
 /// Supplies profile commands without exposing persistence details to widgets.
 final profileControllerProvider = Provider<ProfileController>(
@@ -61,6 +63,30 @@ class ProfileController {
     );
   }
 
+  /// Saves story defaults and safety boundaries only for one child profile.
+  Future<void> setStoryPreferences(
+    String profileId,
+    ChildStoryPreferences preferences,
+  ) async {
+    final current = _currentState;
+    final profile = _requireProfile(current, profileId);
+    final validatedPreferences = ChildStoryPreferences.fromJson(
+      preferences.toJson(),
+    );
+    final savedProfiles = _upsertProfile(
+      current.profiles,
+      profile.withStoryPreferences(validatedPreferences),
+    );
+    final repository = await _ref.read(localRepositoryProvider.future);
+    await repository.saveProfiles(savedProfiles);
+    _commit(
+      current.withProfiles(
+        savedProfiles,
+        savedActiveProfileId: current.activeProfileId,
+      ),
+    );
+  }
+
   /// Persists a Girl/Boy choice and activates the selected story hero.
   Future<void> selectProfile(String profileId, ChildGender gender) async {
     if (!gender.isSpecified) throw ArgumentError.value(gender, 'gender');
@@ -97,6 +123,11 @@ class ProfileController {
           ? existingProfile!.themeColorValue
           : defaultProfileThemeColorValue(draft.gender),
       hasCustomThemeColor: customTheme,
+      storyPreferences:
+          existingProfile?.storyPreferences ??
+          ChildStoryPreferences(
+            defaultLanguage: AppLanguage.fromCode(current.locale.languageCode),
+          ),
     );
   }
 

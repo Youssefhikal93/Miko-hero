@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/core/models/app_language.dart';
+import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -38,13 +41,19 @@ void main() {
           gender: ChildGender.boy,
           themeColorValue: _customPurpleThemeColorValue,
           hasCustomThemeColor: true,
+          storyPreferences: ChildStoryPreferences(
+            defaultLanguage: AppLanguage.somali,
+            favoriteThings: 'trains and stars',
+            recurringWorld: 'Golden Cloud Kingdom',
+            excludedTopics: <SafetyTopic>{SafetyTopic.violence},
+          ),
         ),
       ];
       final story = _story(
         profileId: 'abbas',
         heroName: 'Abbas',
         gender: ChildGender.boy,
-      );
+      ).withFavorite(true).withCollections(<String>['Bedtime', 'Space']);
 
       await repository.saveProfiles(profiles);
       await repository.saveActiveProfileId('abbas');
@@ -64,6 +73,14 @@ void main() {
         _customPurpleThemeColorValue,
       );
       expect(state.activeProfile?.hasCustomThemeColor, isTrue);
+      expect(
+        state.activeProfile?.storyPreferences.defaultLanguage,
+        AppLanguage.somali,
+      );
+      expect(
+        state.activeProfile?.storyPreferences.excludedTopics,
+        const <SafetyTopic>{SafetyTopic.violence},
+      );
     },
   );
 
@@ -98,6 +115,43 @@ void main() {
     },
   );
 
+  test(
+    'restoring family state preserves PIN and removes a stale active hero',
+    () async {
+      final repository = await LocalRepository.open();
+      const oldProfile = ChildProfile(
+        id: 'old-hero',
+        name: 'Old hero',
+        age: 7,
+        photoBase64: 'cGhvdG8=',
+        gender: ChildGender.girl,
+        themeColorValue: roseProfileThemeColorValue,
+        hasCustomThemeColor: false,
+      );
+      final security = ParentSecurityRecord(
+        saltBase64: base64Encode(List<int>.filled(16, 1)),
+        verifierBase64: base64Encode(List<int>.filled(32, 2)),
+      );
+      await repository.saveProfiles(const <ChildProfile>[oldProfile]);
+      await repository.saveActiveProfileId(oldProfile.id);
+      await repository.saveParentSecurity(security);
+      final replacement = AppState.validated(
+        locale: const Locale('so'),
+        profiles: const <ChildProfile>[],
+        stories: const <StoryBook>[],
+        activeProfileId: null,
+      );
+
+      await repository.replaceState(replacement);
+      final reopened = await LocalRepository.open();
+      final restored = await reopened.readState();
+      final preservedSecurity = await reopened.readParentSecurity();
+
+      expect(restored.toJson(), replacement.toJson());
+      expect(preservedSecurity?.toJson(), security.toJson());
+    },
+  );
+
   test('single-profile storage migrates with its existing stories', () async {
     final legacyStory = _story(
       profileId: 'discarded-during-legacy-encoding',
@@ -106,6 +160,9 @@ void main() {
     ).toJson();
     final content = legacyStory['content']! as Map<String, Object>;
     final request = content['request']! as Map<String, Object>;
+    final prompt = request.remove('prompt')! as Map<String, Object>;
+    request['theme'] = prompt['theme']!;
+    request['moral'] = prompt['moral']!;
     request.remove('profileId');
     request.remove('gender');
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -135,6 +192,7 @@ void main() {
       legacyChildProfileId,
     );
     expect(migrated.stories.single.content.request.gender, ChildGender.girl);
+    expect(migrated.stories.single.reviewStatus, StoryReviewStatus.approved);
     expect(persisted.storiesForProfile(legacyChildProfileId), hasLength(1));
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.containsKey('daughter_profile'), isFalse);
@@ -201,8 +259,11 @@ StoryBook _story({
       title: 'Moon Garden',
       request: StoryRequest(
         hero: StoryHero(profileId: profileId, name: heroName, gender: gender),
-        theme: 'moon garden',
-        moral: 'kindness',
+        prompt: const StoryPrompt(
+          theme: 'moon garden',
+          moral: 'kindness',
+          preferences: ChildStoryPreferences(),
+        ),
         presentation: const StoryPresentation(
           language: AppLanguage.english,
           length: StoryLength.short,

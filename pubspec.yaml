@@ -28,7 +28,9 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  cryptography: 2.9.0
   cupertino_icons: ^1.0.8
+  file_picker: 11.0.3
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -38,6 +40,7 @@ dependencies:
   go_router: ^16.0.0
   image_picker: ^1.1.2
   intl: any
+  pdf: 3.13.0
   shared_preferences: ^2.5.3
 
 dev_dependencies:
@@ -58,6 +61,10 @@ dev_dependencies:
 flutter:
 
   generate: true
+
+  assets:
+    - assets/fonts/NotoSans-Regular.ttf
+    - assets/fonts/NotoNaskhArabic-Regular.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

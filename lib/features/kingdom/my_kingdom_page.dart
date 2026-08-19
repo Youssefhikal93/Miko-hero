@@ -7,6 +7,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/features/kingdom/story_preferences_card.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -63,6 +64,8 @@ class _KingdomContent extends ConsumerWidget {
               _ChooseHeroPrompt(text: text)
             else ...<Widget>[
               _ProfileSummary(profile: activeProfile),
+              const SizedBox(height: 18),
+              StoryPreferencesCard(profile: activeProfile),
               const SizedBox(height: 18),
               _ThemeCard(
                 profile: activeProfile,

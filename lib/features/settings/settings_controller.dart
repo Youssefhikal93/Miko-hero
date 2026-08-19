@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 
 /// Supplies application-wide preference and deletion commands to settings.
 final settingsControllerProvider = Provider<SettingsController>(
@@ -32,5 +33,6 @@ class SettingsController {
     _ref
         .read(appControllerProvider.notifier)
         .commit(current.withoutFamilyData());
+    _ref.invalidate(generationQueueControllerProvider);
   }
 }

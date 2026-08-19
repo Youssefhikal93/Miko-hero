@@ -196,7 +196,8 @@ class _RecentStories extends StatelessWidget {
   @override
   /// Shows at most three books to keep the home page focused.
   Widget build(BuildContext context) {
-    if (state.stories.isEmpty) {
+    final approvedStories = state.approvedStories;
+    if (approvedStories.isEmpty) {
       return _EmptyLibrary(text: text);
     }
     return Column(
@@ -212,12 +213,14 @@ class _RecentStories extends StatelessWidget {
             return Wrap(
               spacing: 16,
               runSpacing: 16,
-              children: state.stories.take(3).map((story) {
+              children: approvedStories.take(3).map((story) {
                 return SizedBox(
                   width: width,
                   child: StoryCard(
                     story: story,
-                    onOpen: () => context.go('/story/${story.id}'),
+                    actions: StoryCardActions(
+                      open: () => context.go('/story/${story.id}'),
+                    ),
                   ),
                 );
               }).toList(),

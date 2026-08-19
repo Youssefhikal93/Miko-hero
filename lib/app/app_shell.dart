@@ -71,8 +71,12 @@ class AppShell extends StatelessWidget {
 
   /// Highlights the parent destination for detail and editor routes.
   int _selectedIndex(String path) {
-    if (path.startsWith('/create')) return 1;
-    if (path.startsWith('/library') || path.startsWith('/story/')) return 2;
+    if (path.startsWith('/create') || path.startsWith('/generation')) return 1;
+    if (path.startsWith('/library') ||
+        path.startsWith('/story/') ||
+        path.startsWith('/review')) {
+      return 2;
+    }
     if (path.startsWith('/kingdom') || path.startsWith('/profile')) return 3;
     if (path.startsWith('/settings')) return 4;
     return 0;

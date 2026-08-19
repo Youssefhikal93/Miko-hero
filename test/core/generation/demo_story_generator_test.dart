@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
 /// Verifies the observable contract of the temporary local demo generator.
@@ -80,6 +81,19 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test('saved child inspiration is carried into demo story context', () async {
+    const preferences = ChildStoryPreferences(
+      favoriteThings: 'trains and stars',
+      recurringWorld: 'Golden Cloud Kingdom',
+      excludedTopics: <SafetyTopic>{SafetyTopic.frighteningContent},
+    );
+
+    final story = await generator.generate(_request(preferences: preferences));
+
+    expect(story.content.title, contains(preferences.recurringWorld));
+    expect(story.content.pages[2].text, contains(preferences.favoriteThings));
+  });
 }
 
 /// Creates a valid request while allowing tests to vary one generator contract.
@@ -87,11 +101,15 @@ StoryRequest _request({
   AppLanguage language = AppLanguage.english,
   StoryLength length = StoryLength.short,
   ChildGender gender = ChildGender.girl,
+  ChildStoryPreferences preferences = const ChildStoryPreferences(),
 }) {
   return StoryRequest(
     hero: StoryHero(profileId: 'miko', name: 'Miko', gender: gender),
-    theme: 'a moon garden',
-    moral: 'kindness',
+    prompt: StoryPrompt(
+      theme: 'a moon garden',
+      moral: 'kindness',
+      preferences: preferences,
+    ),
     presentation: StoryPresentation(
       language: language,
       length: length,

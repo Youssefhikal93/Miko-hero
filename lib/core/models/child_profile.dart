@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:miko_hero/core/models/child_story_preferences.dart';
+
 /// Largest accepted reference photo after picker-side compression.
 const maximumReferencePhotoBytes = 2 * 1024 * 1024;
 
@@ -80,6 +82,7 @@ class ChildProfile {
     required this.gender,
     required this.themeColorValue,
     required this.hasCustomThemeColor,
+    this.storyPreferences = const ChildStoryPreferences(),
   });
 
   /// Stable local identity used to associate stories with this child.
@@ -103,6 +106,9 @@ class ChildProfile {
   /// Whether the parent deliberately replaced the profile's initial palette.
   final bool hasCustomThemeColor;
 
+  /// Parent-selected language, inspiration, world, and safety defaults.
+  final ChildStoryPreferences storyPreferences;
+
   /// User-facing personalized label requested for profile selection and tabs.
   String get heroName => '$name hero';
 
@@ -116,6 +122,7 @@ class ChildProfile {
       'gender': gender.name,
       'themeColorValue': themeColorValue,
       'hasCustomThemeColor': hasCustomThemeColor,
+      'storyPreferences': storyPreferences.toJson(),
     };
   }
 
@@ -149,6 +156,7 @@ class ChildProfile {
           ? themeColorValue
           : defaultProfileThemeColorValue(selectedGender),
       hasCustomThemeColor: hasCustomThemeColor,
+      storyPreferences: storyPreferences,
     );
   }
 
@@ -165,6 +173,21 @@ class ChildProfile {
       gender: gender,
       themeColorValue: selectedColorValue,
       hasCustomThemeColor: true,
+      storyPreferences: storyPreferences,
+    );
+  }
+
+  /// Returns the same identity with newly confirmed story preferences.
+  ChildProfile withStoryPreferences(ChildStoryPreferences preferences) {
+    return ChildProfile(
+      id: id,
+      name: name,
+      age: age,
+      photoBase64: photoBase64,
+      gender: gender,
+      themeColorValue: themeColorValue,
+      hasCustomThemeColor: hasCustomThemeColor,
+      storyPreferences: preferences,
     );
   }
 }
@@ -184,6 +207,7 @@ ChildProfile _validatedProfile({
     json['hasCustomThemeColor'],
     gender,
   );
+  final storyPreferences = _decodedStoryPreferences(json['storyPreferences']);
   if (profileId is! String || profileId.trim().isEmpty) {
     throw const FormatException('Malformed child profile identity.');
   }
@@ -205,7 +229,17 @@ ChildProfile _validatedProfile({
     gender: gender,
     themeColorValue: theme.colorValue,
     hasCustomThemeColor: theme.isCustom,
+    storyPreferences: storyPreferences,
   );
+}
+
+/// Defaults older profiles and validates current preference objects.
+ChildStoryPreferences _decodedStoryPreferences(Object? encodedPreferences) {
+  if (encodedPreferences == null) return const ChildStoryPreferences();
+  if (encodedPreferences is! Map<String, Object?>) {
+    throw const FormatException('Malformed child story preferences.');
+  }
+  return ChildStoryPreferences.fromJson(encodedPreferences);
 }
 
 /// Distinguishes migrated defaults from colors deliberately chosen by a parent.

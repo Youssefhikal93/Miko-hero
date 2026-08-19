@@ -6,22 +6,14 @@ import 'package:miko_hero/l10n/app_localizations.dart';
 
 /// Library card that exposes only observable story actions.
 class StoryCard extends StatelessWidget {
-  /// Creates a book card with an optional deletion affordance.
-  const StoryCard({
-    required this.story,
-    required this.onOpen,
-    this.onDelete,
-    super.key,
-  });
+  /// Creates a book card with the actions allowed by its surrounding feature.
+  const StoryCard({required this.story, required this.actions, super.key});
 
   /// Story represented by the card.
   final StoryBook story;
 
-  /// Opens the story reader.
-  final VoidCallback onOpen;
-
-  /// Deletes the book when the surrounding screen allows that action.
-  final VoidCallback? onDelete;
+  /// Commands exposed by the current library, review, or home surface.
+  final StoryCardActions actions;
 
   @override
   /// Renders a responsive cover, metadata, and explicit actions.
@@ -30,7 +22,7 @@ class StoryCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onOpen,
+        onTap: actions.open,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -68,15 +60,34 @@ class StoryCard extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: FilledButton.tonalIcon(
-            onPressed: onOpen,
+            onPressed: actions.open,
             icon: const Icon(Icons.chrome_reader_mode_rounded),
             label: Text(text.openStory),
           ),
         ),
-        if (onDelete != null) ...<Widget>[
+        if (actions.favorite != null) ...<Widget>[
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: actions.favorite,
+            tooltip: story.isFavorite ? text.removeFavorite : text.addFavorite,
+            icon: Icon(
+              story.isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+            ),
+          ),
+        ],
+        if (actions.collections != null) ...<Widget>[
+          IconButton(
+            onPressed: actions.collections,
+            tooltip: text.manageCollections,
+            icon: const Icon(Icons.folder_copy_outlined),
+          ),
+        ],
+        if (actions.delete != null) ...<Widget>[
           const SizedBox(width: 8),
           IconButton(
-            onPressed: onDelete,
+            onPressed: actions.delete,
             tooltip: text.delete,
             icon: const Icon(Icons.delete_outline_rounded),
           ),
@@ -84,6 +95,29 @@ class StoryCard extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Observable story-card commands grouped to keep widget construction stable.
+class StoryCardActions {
+  /// Creates actions supported by the card's current feature surface.
+  const StoryCardActions({
+    required this.open,
+    this.delete,
+    this.favorite,
+    this.collections,
+  });
+
+  /// Opens the approved reader or parent draft review.
+  final VoidCallback open;
+
+  /// Permanently deletes the story when the parent surface allows it.
+  final VoidCallback? delete;
+
+  /// Toggles the child-facing favorite marker when available.
+  final VoidCallback? favorite;
+
+  /// Opens parent-managed collection labels when available.
+  final VoidCallback? collections;
 }
 
 /// Generated cover treatment used until ComfyUI supplies real illustrations.
