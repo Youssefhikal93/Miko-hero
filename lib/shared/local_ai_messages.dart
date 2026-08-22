@@ -21,6 +21,7 @@ String localAiFailureMessage(AppLocalizations text, Object error) {
     BridgeFailure.invalidPairingCode => text.bridgeInvalidPairingCode,
     BridgeFailure.invalidRequest => text.bridgeInvalidRequest,
     BridgeFailure.jobNotFound => text.bridgeJobNotFound,
+    BridgeFailure.storyNotFound => text.bridgeStoryNotFound,
     BridgeFailure.generationFailed => text.bridgeGenerationFailed,
     BridgeFailure.cancelled => text.bridgeGenerationCancelled,
     BridgeFailure.invalidResponse => text.bridgeInvalidResponse,

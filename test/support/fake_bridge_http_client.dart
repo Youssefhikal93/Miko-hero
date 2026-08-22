@@ -68,29 +68,111 @@ http.Response bridgeErrorResponse(String code, int statusCode) {
 }
 
 /// Builds one completed story payload with [pageCount] validated pages.
+///
+/// The same shape answers a finished generation job and a synchronization
+/// download, which is exactly the property the bridge contract promises.
 Map<String, Object> bridgeStoryPayload({
   required String storyId,
   required String languageCode,
   required int pageCount,
   String title = 'The Lantern Path',
+  String profileId = 'miko',
+  String createdAtUtc = '2026-08-22T10:06:11.000Z',
+  String updatedAtUtc = '2026-08-22T10:06:11.000Z',
+  String? pageTextPrefix,
 }) {
   return <String, Object>{
     'id': storyId,
-    'profileId': 'miko',
+    'profileId': profileId,
     'title': title,
     'languageCode': languageCode,
-    'createdAtUtc': '2026-08-22T10:06:11.000Z',
+    'createdAtUtc': createdAtUtc,
+    'updatedAtUtc': updatedAtUtc,
     'pages': <Map<String, Object>>[
       for (var number = 1; number <= pageCount; number++)
         <String, Object>{
           'id': 'page-$number',
           'pageNumber': number,
-          'text': 'Page $number prose.',
+          'text': pageTextPrefix == null
+              ? 'Page $number prose.'
+              : '$pageTextPrefix $number.',
           'illustrationScene': 'A lantern scene $number.',
           'illustrationId': 'illustration-$number',
           'illustrationRelativePath': 'illustrations/$storyId/$number.png',
           'illustrationStatus': 'pending',
         },
     ],
+  };
+}
+
+/// Builds one `GET /sync/manifest` answer from its entry lists.
+Map<String, Object?> bridgeManifestPayload({
+  String generatedAtUtc = '2026-08-22T11:00:00.000Z',
+  String? lastSyncedAtUtc,
+  List<Map<String, Object>> profiles = const <Map<String, Object>>[],
+  List<Map<String, Object>> stories = const <Map<String, Object>>[],
+  List<Map<String, Object>> deletions = const <Map<String, Object>>[],
+}) {
+  return <String, Object?>{
+    'generatedAtUtc': generatedAtUtc,
+    'lastSyncedAtUtc': lastSyncedAtUtc,
+    'profiles': profiles,
+    'stories': stories,
+    'deletions': deletions,
+  };
+}
+
+/// Builds one manifest profile entry.
+Map<String, Object> bridgeManifestProfile({
+  required String id,
+  required String displayName,
+  String updatedAtUtc = '2026-08-22T10:00:00.000Z',
+}) {
+  return <String, Object>{
+    'id': id,
+    'displayName': displayName,
+    'updatedAtUtc': updatedAtUtc,
+  };
+}
+
+/// Builds one metadata-only manifest story entry.
+Map<String, Object> bridgeManifestStory({
+  required String id,
+  required String profileId,
+  String title = 'The Lantern Path',
+  String languageCode = 'en',
+  int pageCount = 6,
+  String createdAtUtc = '2026-08-22T10:06:11.000Z',
+  String updatedAtUtc = '2026-08-22T10:06:11.000Z',
+}) {
+  return <String, Object>{
+    'id': id,
+    'profileId': profileId,
+    'title': title,
+    'languageCode': languageCode,
+    'createdAtUtc': createdAtUtc,
+    'updatedAtUtc': updatedAtUtc,
+    'pageCount': pageCount,
+    'illustrations': <Map<String, Object>>[
+      for (var number = 1; number <= pageCount; number++)
+        <String, Object>{
+          'id': 'illustration-$number',
+          'pageNumber': number,
+          'status': 'pending',
+        },
+    ],
+  };
+}
+
+/// Builds one manifest deletion record.
+Map<String, Object> bridgeManifestDeletion({
+  required String entityId,
+  String entityType = 'story',
+  String deletedAtUtc = '2026-08-22T10:30:00.000Z',
+}) {
+  return <String, Object>{
+    'entityType': entityType,
+    'entityId': entityId,
+    'deletedAtUtc': deletedAtUtc,
   };
 }

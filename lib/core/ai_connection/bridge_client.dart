@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
+import 'package:miko_hero/core/ai_connection/bridge_sync_models.dart';
 
 /// Address the bridge listens on out of the box, on the parent's own PC.
 const defaultBridgeBaseUrl = 'http://127.0.0.1:8765';
@@ -147,6 +148,61 @@ class BridgeClient {
     }
   }
 
+  /// Reads what this device needs to decide what to download and what to drop.
+  ///
+  /// Metadata only: titles and timestamps travel here, prose never does.
+  Future<BridgeSyncManifest> readSyncManifest() async {
+    final answer = await _send('GET', '/sync/manifest', authenticated: true);
+    return BridgeSyncManifest.fromJson(answer);
+  }
+
+  /// Downloads one complete story, including the profile it belongs to.
+  Future<BridgeSyncStoryDownload> readSyncStory(String storyId) async {
+    final answer = await _send(
+      'GET',
+      '/sync/stories/${Uri.encodeComponent(storyId)}',
+      authenticated: true,
+    );
+    return BridgeSyncStoryDownload.fromJson(answer);
+  }
+
+  /// Reports the manifest this device finished applying and returns the mark.
+  ///
+  /// The reported moment is the manifest's own generation time, so anything
+  /// the PC wrote while this device was downloading is picked up next sync.
+  Future<DateTime> completeSync({
+    required DateTime manifestGeneratedAtUtc,
+  }) async {
+    final answer = await _send(
+      'POST',
+      '/sync/complete',
+      authenticated: true,
+      body: <String, Object>{
+        'manifestGeneratedAtUtc': manifestGeneratedAtUtc
+            .toUtc()
+            .toIso8601String(),
+      },
+    );
+    final lastSyncedAtUtc = answer['lastSyncedAtUtc'];
+    if (lastSyncedAtUtc is! String) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return parseBridgeTimestamp(lastSyncedAtUtc);
+  }
+
+  /// Deletes one story on the PC, and through it on every paired device.
+  ///
+  /// Idempotent on the bridge: a story that is already gone answers with the
+  /// original deletion, which is still a success for the caller.
+  Future<BridgeStoryDeletion> deleteStoryEverywhere(String storyId) async {
+    final answer = await _send(
+      'POST',
+      '/stories/${Uri.encodeComponent(storyId)}/delete',
+      authenticated: true,
+    );
+    return BridgeStoryDeletion.fromJson(answer);
+  }
+
   /// Performs one bounded call and converts every failure into a typed reason.
   Future<Map<String, Object?>> _send(
     String method,
@@ -227,6 +283,7 @@ class BridgeClient {
       'invalid_pairing_code' => BridgeFailure.invalidPairingCode,
       'invalid_field' || 'invalid_request' => BridgeFailure.invalidRequest,
       'job_not_found' => BridgeFailure.jobNotFound,
+      'story_not_found' => BridgeFailure.storyNotFound,
       'cancelled' => BridgeFailure.cancelled,
       'ollama_unavailable' ||
       'ollama_timeout' ||

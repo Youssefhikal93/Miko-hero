@@ -178,6 +178,9 @@ class BridgeStory {
     required this.title,
     required this.languageCode,
     required this.pages,
+    this.profileId,
+    this.createdAtUtc,
+    this.updatedAtUtc,
   });
 
   /// Master-library identity of the story on the PC.
@@ -192,19 +195,34 @@ class BridgeStory {
   /// Pages in the order the bridge validated them.
   final List<BridgeStoryPage> pages;
 
+  /// Master-library profile owning the story, when the payload carries one.
+  ///
+  /// A generated story is already attached to the profile the request named,
+  /// so only synchronization has to read it back: a downloaded story must be
+  /// placed on the shelf of the child it belongs to.
+  final String? profileId;
+
+  /// When the PC first stored the story, when the payload carries it.
+  final DateTime? createdAtUtc;
+
+  /// When the PC last changed the story, when the payload carries it.
+  final DateTime? updatedAtUtc;
+
   /// Validates the completed payload before it can become a local book.
   factory BridgeStory.fromJson(Map<String, Object?> json) {
     final id = json['id'];
     final title = json['title'];
     final languageCode = json['languageCode'];
     final pages = json['pages'];
+    final profileId = json['profileId'];
     if (id is! String ||
         id.isEmpty ||
         title is! String ||
         title.trim().isEmpty ||
         languageCode is! String ||
         pages is! List ||
-        pages.isEmpty) {
+        pages.isEmpty ||
+        (profileId != null && (profileId is! String || profileId.isEmpty))) {
       throw const BridgeException(BridgeFailure.invalidResponse);
     }
     return BridgeStory(
@@ -214,8 +232,32 @@ class BridgeStory {
       pages: List<BridgeStoryPage>.unmodifiable(
         pages.map(BridgeStoryPage.fromEncodedPage),
       ),
+      profileId: profileId as String?,
+      createdAtUtc: _optionalTimestamp(json['createdAtUtc']),
+      updatedAtUtc: _optionalTimestamp(json['updatedAtUtc']),
     );
   }
+}
+
+/// Parses one bridge timestamp and refuses a value this client cannot read.
+///
+/// Every moment in the contract is an ISO-8601 UTC string, and the app keeps
+/// them in UTC so a device in another time zone compares them correctly.
+DateTime parseBridgeTimestamp(String encodedMoment) {
+  try {
+    return DateTime.parse(encodedMoment).toUtc();
+  } on FormatException {
+    throw const BridgeException(BridgeFailure.invalidResponse);
+  }
+}
+
+/// Reads an optional bridge timestamp without trusting a foreign shape.
+DateTime? _optionalTimestamp(Object? encodedMoment) {
+  if (encodedMoment == null) return null;
+  if (encodedMoment is! String) {
+    throw const BridgeException(BridgeFailure.invalidResponse);
+  }
+  return parseBridgeTimestamp(encodedMoment);
 }
 
 /// One generated page and the identity of its pending illustration.

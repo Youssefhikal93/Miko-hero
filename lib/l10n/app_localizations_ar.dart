@@ -1366,4 +1366,94 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get bridgeProblem => 'أبلغ جسر الكمبيوتر عن مشكلة.';
+
+  @override
+  String get bridgeStoryNotFound => 'لم تبقَ هذه القصة على الكمبيوتر.';
+
+  @override
+  String get librarySyncTitle => 'مكتبة القصص دون اتصال';
+
+  @override
+  String get librarySyncBody =>
+      'أنزِل قصص العائلة من الكمبيوتر إلى هذا الجهاز لتُقرأ حتى عندما يكون الكمبيوتر مغلقاً.';
+
+  @override
+  String get syncNow => 'مزامنة الآن';
+
+  @override
+  String get librarySyncRunning => 'جارٍ المزامنة مع الكمبيوتر…';
+
+  @override
+  String get librarySyncNever => 'لم يزامن هذا الجهاز مع الكمبيوتر بعد.';
+
+  @override
+  String librarySyncLastRun(String moment) {
+    return 'آخر مزامنة: $moment';
+  }
+
+  @override
+  String librarySyncResult(int added, int updated, int removed) {
+    return '$added جديدة · $updated محدَّثة · $removed محذوفة';
+  }
+
+  @override
+  String get librarySyncUpToDate => 'هذا الجهاز مطابق للكمبيوتر بالفعل.';
+
+  @override
+  String get librarySyncPendingProfilesTitle => 'في انتظار ملف بطل';
+
+  @override
+  String librarySyncPendingProfile(int count, String name) {
+    return '$count قصص لـ $name تبقى على الكمبيوتر: لا يوجد ملف لهذا الطفل على هذا الجهاز.';
+  }
+
+  @override
+  String get librarySyncPendingProfilesBody =>
+      'ملف الطفل يخص الجهاز الذي أُنشئ عليه. استعِد نسخة ذلك الجهاز الاحتياطية هنا، أو أنشئ قصصاً لهذا الطفل من هذا الجهاز، وستُزامن قصصه أيضاً.';
+
+  @override
+  String get removedStoriesTitle => 'قصص أُزيلت من هذا الجهاز';
+
+  @override
+  String removedStoriesBody(int count) {
+    return 'أُزيلت $count قصص من هذا الجهاز فقط. ما زالت على الكمبيوتر، ولن تنزلها المزامنة حتى تطلبها.';
+  }
+
+  @override
+  String get redownloadRemovedStories => 'أنزلها من جديد';
+
+  @override
+  String get redownloadRemovedStoriesDone => 'ستعيد المزامنة القادمة تلك القصص';
+
+  @override
+  String get deleteBridgeStoryTitle => 'من أين تُحذف هذه القصة؟';
+
+  @override
+  String get deleteBridgeStoryBody =>
+      'هذه القصة موجودة أيضاً في مكتبة كمبيوتر العائلة، لذلك هناك خياران مختلفان.';
+
+  @override
+  String get removeStoryFromDevice => 'إزالة من هذا الجهاز';
+
+  @override
+  String get removeStoryFromDeviceDetail =>
+      'تحذف النسخة الموجودة هنا. تبقى القصة على الكمبيوتر، ولن ينزلها هذا الجهاز حتى تطلبها.';
+
+  @override
+  String get deleteStoryEverywhere => 'الحذف من كل مكان';
+
+  @override
+  String get deleteStoryEverywhereDetail =>
+      'تحذف القصة من الكمبيوتر ومن كل أجهزة العائلة. لا يمكن التراجع، ويجب أن يكون الكمبيوتر متاحاً.';
+
+  @override
+  String get storyRemovedFromDevice => 'أُزيلت القصة من هذا الجهاز';
+
+  @override
+  String get storyDeletedEverywhere =>
+      'حُذفت القصة من الكمبيوتر ومن كل الأجهزة';
+
+  @override
+  String get storyAlreadyDeletedEverywhere =>
+      'كانت هذه القصة محذوفة للعائلة كلها من قبل';
 }

@@ -58,6 +58,19 @@ class BridgeStoryProvenance {
     return fromSceneDescription(pages.first.sceneDescription) != null;
   }
 
+  /// Master-library identity of [story], or null for content from elsewhere.
+  ///
+  /// This is the identity the PC library, its manifest, and its deletion
+  /// records use. A story downloaded by synchronization also carries it as its
+  /// local [StoryBook.id], but a story generated on this device keeps the
+  /// local identity its queued job produced, so every surface that has to
+  /// recognize one bridge story asks here instead of comparing local ids.
+  static String? storyIdOf(StoryBook story) {
+    final pages = story.content.pages;
+    if (pages.isEmpty) return null;
+    return fromSceneDescription(pages.first.sceneDescription)?.storyId;
+  }
+
   /// Recovers bridge identities, or null for a page from another generator.
   static BridgeStoryProvenance? fromSceneDescription(String sceneDescription) {
     final segments = sceneDescription.split(bridgeProvenanceSeparator);

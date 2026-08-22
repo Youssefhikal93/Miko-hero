@@ -1396,4 +1396,95 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get bridgeProblem => 'Buundada PC-gu waxay soo sheegtay dhibaato.';
+
+  @override
+  String get bridgeStoryNotFound => 'PC-gu hadda ma haysto sheekadan.';
+
+  @override
+  String get librarySyncTitle => 'Maktabad sheeko offline ah';
+
+  @override
+  String get librarySyncBody =>
+      'Sheekooyinka qoyska ka soo dejiso PC-ga qalabkan si loo akhriyi karo xataa marka PC-gu damsan yahay.';
+
+  @override
+  String get syncNow => 'Isku hab hadda';
+
+  @override
+  String get librarySyncRunning => 'Waa la isku habaynayaa PC-ga…';
+
+  @override
+  String get librarySyncNever => 'Qalabkan weli lama isku habayn PC-ga.';
+
+  @override
+  String librarySyncLastRun(String moment) {
+    return 'Isku habaynta ugu dambeysay: $moment';
+  }
+
+  @override
+  String librarySyncResult(int added, int updated, int removed) {
+    return '$added cusub · $updated cusboonaysiiyay · $removed laga saaray';
+  }
+
+  @override
+  String get librarySyncUpToDate => 'Qalabkan horeba wuu la mid yahay PC-ga.';
+
+  @override
+  String get librarySyncPendingProfilesTitle => 'Sugaya bogga halyeeyga';
+
+  @override
+  String librarySyncPendingProfile(int count, String name) {
+    return '$count sheeko oo $name leeyahay waxay ku hadhayaan PC-ga: qalabkan bog uma laha ilmahaas.';
+  }
+
+  @override
+  String get librarySyncPendingProfilesBody =>
+      'Bogga ilmaha wuxuu ka tirsan yahay qalabkii lagu abuuray. Halkan ku soo celi kaydka qalabkaas, ama sheekooyin ilmahaas u samee qalabkan, markaas sheekooyinkiisana way isku habayn doonaan.';
+
+  @override
+  String get removedStoriesTitle => 'Sheekooyin laga saaray qalabkan';
+
+  @override
+  String removedStoriesBody(int count) {
+    return '$count sheeko waxaa laga saaray oo keliya qalabkan. Weli waxay ku jiraan PC-ga, isku habayntuna kama soo dejinayso ilaa aad codsato.';
+  }
+
+  @override
+  String get redownloadRemovedStories => 'Mar kale soo dejiso';
+
+  @override
+  String get redownloadRemovedStoriesDone =>
+      'Isku habaynta soo socota ayaa sheekooyinkaas soo celinaysa';
+
+  @override
+  String get deleteBridgeStoryTitle => 'Xagee sheekada laga tirtirayo?';
+
+  @override
+  String get deleteBridgeStoryBody =>
+      'Sheekadan waxay sidoo kale ku jirtaa maktabadda PC-ga qoyska, sidaas darteed laba dooro oo kala duwan ayaa jira.';
+
+  @override
+  String get removeStoryFromDevice => 'Ka saar qalabkan';
+
+  @override
+  String get removeStoryFromDeviceDetail =>
+      'Waxay tirtiraysaa nuqulka halkan. Sheekadu waxay ku sii jirtaa PC-ga, qalabkanna mar dambe kama soo dejinayo ilaa aad codsato.';
+
+  @override
+  String get deleteStoryEverywhere => 'Meel kasta ka tirtir';
+
+  @override
+  String get deleteStoryEverywhereDetail =>
+      'Waxay sheekada ka tirtiraysaa PC-ga iyo qalab kasta oo qoyska. Lama noqon karo, PC-guna waa inuu la xiriirayo.';
+
+  @override
+  String get storyRemovedFromDevice => 'Sheekada waa laga saaray qalabkan';
+
+  @override
+  String get storyDeletedEverywhere =>
+      'Sheekada waa laga tirtiray PC-ga iyo qalab kasta';
+
+  @override
+  String get storyAlreadyDeletedEverywhere =>
+      'Sheekadaas horeba waa loo tirtiray qoyska oo dhan';
 }

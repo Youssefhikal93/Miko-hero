@@ -2555,6 +2555,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The PC bridge reported a problem.'**
   String get bridgeProblem;
+
+  /// No description provided for @bridgeStoryNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC no longer has this story.'**
+  String get bridgeStoryNotFound;
+
+  /// No description provided for @librarySyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline story library'**
+  String get librarySyncTitle;
+
+  /// No description provided for @librarySyncBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring the family\'s stories from the PC onto this device so they can be read when the PC is off.'**
+  String get librarySyncBody;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNow;
+
+  /// No description provided for @librarySyncRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing with the PC…'**
+  String get librarySyncRunning;
+
+  /// No description provided for @librarySyncNever.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has not synced with the PC yet.'**
+  String get librarySyncNever;
+
+  /// No description provided for @librarySyncLastRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {moment}'**
+  String librarySyncLastRun(String moment);
+
+  /// No description provided for @librarySyncResult.
+  ///
+  /// In en, this message translates to:
+  /// **'{added} new · {updated} updated · {removed} removed'**
+  String librarySyncResult(int added, int updated, int removed);
+
+  /// No description provided for @librarySyncUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'This device already matches the PC.'**
+  String get librarySyncUpToDate;
+
+  /// No description provided for @librarySyncPendingProfilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a hero profile'**
+  String get librarySyncPendingProfilesTitle;
+
+  /// No description provided for @librarySyncPendingProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} stories for {name} stay on the PC: this device has no profile for that child.'**
+  String librarySyncPendingProfile(int count, String name);
+
+  /// No description provided for @librarySyncPendingProfilesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A child\'s profile belongs to the device it was created on. Restore that device\'s backup here, or create stories for this child from this device, and their stories will sync too.'**
+  String get librarySyncPendingProfilesBody;
+
+  /// No description provided for @removedStoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories removed from this device'**
+  String get removedStoriesTitle;
+
+  /// No description provided for @removedStoriesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} stories were removed from this device only. They are still on the PC, and sync leaves them alone until you ask for them.'**
+  String removedStoriesBody(int count);
+
+  /// No description provided for @redownloadRemovedStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Download them again'**
+  String get redownloadRemovedStories;
+
+  /// No description provided for @redownloadRemovedStoriesDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The next sync will bring those stories back'**
+  String get redownloadRemovedStoriesDone;
+
+  /// No description provided for @deleteBridgeStoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where should this story be deleted?'**
+  String get deleteBridgeStoryTitle;
+
+  /// No description provided for @deleteBridgeStoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This story is also in the library on the family PC, so there are two different things you can do.'**
+  String get deleteBridgeStoryBody;
+
+  /// No description provided for @removeStoryFromDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from this device'**
+  String get removeStoryFromDevice;
+
+  /// No description provided for @removeStoryFromDeviceDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes the copy here. The story stays on the PC, and this device will not download it again until you ask for it.'**
+  String get removeStoryFromDeviceDetail;
+
+  /// No description provided for @deleteStoryEverywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everywhere'**
+  String get deleteStoryEverywhere;
+
+  /// No description provided for @deleteStoryEverywhereDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes the story on the PC and on every device in the family. This cannot be undone, and the PC has to be reachable.'**
+  String get deleteStoryEverywhereDetail;
+
+  /// No description provided for @storyRemovedFromDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Story removed from this device'**
+  String get storyRemovedFromDevice;
+
+  /// No description provided for @storyDeletedEverywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Story deleted on the PC and on every device'**
+  String get storyDeletedEverywhere;
+
+  /// No description provided for @storyAlreadyDeletedEverywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'That story had already been deleted for the whole family'**
+  String get storyAlreadyDeletedEverywhere;
 }
 
 class _AppLocalizationsDelegate

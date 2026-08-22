@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:miko_hero/core/ai_connection/ai_connection_settings.dart';
 import 'package:miko_hero/core/ai_connection/bridge_credential.dart';
+import 'package:miko_hero/core/ai_connection/library_sync_state.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -39,6 +40,7 @@ class LocalRepository {
   static const _schemaVersionKey = 'schema_version';
   static const _aiConnectionKey = 'ai_connection';
   static const _bridgeDeviceKey = 'bridge_device';
+  static const _librarySyncKey = 'library_sync';
 
   /// Keys that a backup restore replaces as one all-or-nothing group.
   static const _restoredKeys = <String>[
@@ -256,7 +258,38 @@ class LocalRepository {
     await _preferences.remove(_bridgeDeviceKey);
   }
 
+  /// Reads what this device already took from the PC master library.
+  ///
+  /// A device that never synced reads an empty record, which is also the
+  /// recovery path the bridge contract expects: with no notes, one manifest is
+  /// enough to work out everything that is missing.
+  Future<LibrarySyncState> readLibrarySyncState() async {
+    final encodedState = _preferences.getString(_librarySyncKey);
+    if (encodedState == null) return const LibrarySyncState();
+    try {
+      return LibrarySyncState.fromJson(_jsonObject(encodedState));
+    } on FormatException catch (error) {
+      throw LocalDataFormatException(error);
+    }
+  }
+
+  /// Persists the synchronization record after a sync applied its downloads.
+  ///
+  /// Kept out of the backup-restore key group like the pairing token: a
+  /// watermark and a not-wanted-offline list describe one device's shelf
+  /// space, not family content that should travel between devices.
+  Future<void> saveLibrarySyncState(LibrarySyncState syncState) async {
+    await _preferences.setString(
+      _librarySyncKey,
+      jsonEncode(syncState.toJson()),
+    );
+  }
+
   /// Permanently removes every Iam - hero family value from this device.
+  ///
+  /// The synchronization record goes with the stories it describes: a device
+  /// whose library was deleted must be able to sync it back, which a stale
+  /// not-wanted-offline list would silently prevent.
   Future<void> clearAll() async {
     await Future.wait(<Future<bool>>[
       _preferences.remove(_legacyProfileKey),
@@ -264,6 +297,7 @@ class LocalRepository {
       _preferences.remove(_storiesKey),
       _preferences.remove(_activeProfileKey),
       _preferences.remove(_generationJobsKey),
+      _preferences.remove(_librarySyncKey),
     ]);
   }
 

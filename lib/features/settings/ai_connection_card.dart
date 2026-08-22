@@ -8,6 +8,7 @@ import 'package:miko_hero/core/ai_connection/bridge_client.dart';
 import 'package:miko_hero/core/ai_connection/bridge_credential.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
+import 'package:miko_hero/features/settings/library_sync_section.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 
@@ -115,6 +116,8 @@ class _LoadedAiConnectionCardState
             ],
             const Divider(height: 32),
             _pairingSection(text),
+            const Divider(height: 32),
+            const LibrarySyncSection(),
           ],
         ),
       ),

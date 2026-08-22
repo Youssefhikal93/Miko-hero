@@ -1397,4 +1397,99 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get bridgeProblem => 'Datorns brygga rapporterade ett problem.';
+
+  @override
+  String get bridgeStoryNotFound =>
+      'Datorn har inte längre den här berättelsen.';
+
+  @override
+  String get librarySyncTitle => 'Berättelser offline';
+
+  @override
+  String get librarySyncBody =>
+      'Hämta familjens berättelser från datorn till den här enheten så att de kan läsas när datorn är avstängd.';
+
+  @override
+  String get syncNow => 'Synka nu';
+
+  @override
+  String get librarySyncRunning => 'Synkar med datorn…';
+
+  @override
+  String get librarySyncNever =>
+      'Den här enheten har inte synkat med datorn än.';
+
+  @override
+  String librarySyncLastRun(String moment) {
+    return 'Senaste synk: $moment';
+  }
+
+  @override
+  String librarySyncResult(int added, int updated, int removed) {
+    return '$added nya · $updated uppdaterade · $removed borttagna';
+  }
+
+  @override
+  String get librarySyncUpToDate => 'Den här enheten stämmer redan med datorn.';
+
+  @override
+  String get librarySyncPendingProfilesTitle => 'Väntar på en hjälteprofil';
+
+  @override
+  String librarySyncPendingProfile(int count, String name) {
+    return '$count berättelser för $name stannar på datorn: den här enheten har ingen profil för det barnet.';
+  }
+
+  @override
+  String get librarySyncPendingProfilesBody =>
+      'Ett barns profil hör till enheten den skapades på. Återställ den enhetens säkerhetskopia här, eller skapa berättelser för barnet från den här enheten, så synkas deras berättelser också.';
+
+  @override
+  String get removedStoriesTitle =>
+      'Berättelser borttagna från den här enheten';
+
+  @override
+  String removedStoriesBody(int count) {
+    return '$count berättelser togs bort bara från den här enheten. De finns kvar på datorn, och synken lämnar dem i fred tills du ber om dem.';
+  }
+
+  @override
+  String get redownloadRemovedStories => 'Hämta dem igen';
+
+  @override
+  String get redownloadRemovedStoriesDone =>
+      'Nästa synk hämtar tillbaka de berättelserna';
+
+  @override
+  String get deleteBridgeStoryTitle => 'Var ska berättelsen tas bort?';
+
+  @override
+  String get deleteBridgeStoryBody =>
+      'Den här berättelsen finns också i biblioteket på familjens dator, så det finns två olika saker du kan göra.';
+
+  @override
+  String get removeStoryFromDevice => 'Ta bort från den här enheten';
+
+  @override
+  String get removeStoryFromDeviceDetail =>
+      'Tar bort kopian här. Berättelsen stannar på datorn, och den här enheten hämtar den inte igen förrän du ber om det.';
+
+  @override
+  String get deleteStoryEverywhere => 'Ta bort överallt';
+
+  @override
+  String get deleteStoryEverywhereDetail =>
+      'Tar bort berättelsen på datorn och på alla familjens enheter. Det går inte att ångra, och datorn måste vara nåbar.';
+
+  @override
+  String get storyRemovedFromDevice =>
+      'Berättelsen borttagen från den här enheten';
+
+  @override
+  String get storyDeletedEverywhere =>
+      'Berättelsen borttagen på datorn och på alla enheter';
+
+  @override
+  String get storyAlreadyDeletedEverywhere =>
+      'Den berättelsen var redan borttagen för hela familjen';
 }

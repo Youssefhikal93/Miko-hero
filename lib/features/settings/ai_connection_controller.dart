@@ -20,6 +20,23 @@ final bridgePairingClockProvider = Provider<DateTime Function()>((ref) {
   return DateTime.now;
 });
 
+/// Builds a bridge client for one loaded connection snapshot.
+///
+/// Shared with every other feature that talks to the PC — generation and
+/// library synchronization included — so all of them send the same stored
+/// address and the same stored token, and none of them reaches into the
+/// pairing record itself.
+BridgeClient bridgeClientFor(
+  AiConnectionState connection,
+  http.Client httpClient,
+) {
+  return BridgeClient(
+    httpClient: httpClient,
+    baseUrl: connection.settings.baseUrl,
+    deviceToken: connection.credential?.deviceToken,
+  );
+}
+
 /// Exposes the parent's generator choice, bridge address, and paired state.
 final aiConnectionControllerProvider =
     AsyncNotifierProvider<AiConnectionController, AiConnectionState>(
@@ -132,11 +149,9 @@ class AiConnectionController extends AsyncNotifier<AiConnectionState> {
 
   /// Builds a client for the address and token currently stored.
   BridgeClient _client() {
-    final current = state.requireValue;
-    return BridgeClient(
-      httpClient: ref.read(bridgeHttpClientProvider),
-      baseUrl: current.settings.baseUrl,
-      deviceToken: current.credential?.deviceToken,
+    return bridgeClientFor(
+      state.requireValue,
+      ref.read(bridgeHttpClientProvider),
     );
   }
 

@@ -1381,4 +1381,95 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bridgeProblem => 'The PC bridge reported a problem.';
+
+  @override
+  String get bridgeStoryNotFound => 'The PC no longer has this story.';
+
+  @override
+  String get librarySyncTitle => 'Offline story library';
+
+  @override
+  String get librarySyncBody =>
+      'Bring the family\'s stories from the PC onto this device so they can be read when the PC is off.';
+
+  @override
+  String get syncNow => 'Sync now';
+
+  @override
+  String get librarySyncRunning => 'Syncing with the PC…';
+
+  @override
+  String get librarySyncNever => 'This device has not synced with the PC yet.';
+
+  @override
+  String librarySyncLastRun(String moment) {
+    return 'Last sync: $moment';
+  }
+
+  @override
+  String librarySyncResult(int added, int updated, int removed) {
+    return '$added new · $updated updated · $removed removed';
+  }
+
+  @override
+  String get librarySyncUpToDate => 'This device already matches the PC.';
+
+  @override
+  String get librarySyncPendingProfilesTitle => 'Waiting for a hero profile';
+
+  @override
+  String librarySyncPendingProfile(int count, String name) {
+    return '$count stories for $name stay on the PC: this device has no profile for that child.';
+  }
+
+  @override
+  String get librarySyncPendingProfilesBody =>
+      'A child\'s profile belongs to the device it was created on. Restore that device\'s backup here, or create stories for this child from this device, and their stories will sync too.';
+
+  @override
+  String get removedStoriesTitle => 'Stories removed from this device';
+
+  @override
+  String removedStoriesBody(int count) {
+    return '$count stories were removed from this device only. They are still on the PC, and sync leaves them alone until you ask for them.';
+  }
+
+  @override
+  String get redownloadRemovedStories => 'Download them again';
+
+  @override
+  String get redownloadRemovedStoriesDone =>
+      'The next sync will bring those stories back';
+
+  @override
+  String get deleteBridgeStoryTitle => 'Where should this story be deleted?';
+
+  @override
+  String get deleteBridgeStoryBody =>
+      'This story is also in the library on the family PC, so there are two different things you can do.';
+
+  @override
+  String get removeStoryFromDevice => 'Remove from this device';
+
+  @override
+  String get removeStoryFromDeviceDetail =>
+      'Deletes the copy here. The story stays on the PC, and this device will not download it again until you ask for it.';
+
+  @override
+  String get deleteStoryEverywhere => 'Delete everywhere';
+
+  @override
+  String get deleteStoryEverywhereDetail =>
+      'Deletes the story on the PC and on every device in the family. This cannot be undone, and the PC has to be reachable.';
+
+  @override
+  String get storyRemovedFromDevice => 'Story removed from this device';
+
+  @override
+  String get storyDeletedEverywhere =>
+      'Story deleted on the PC and on every device';
+
+  @override
+  String get storyAlreadyDeletedEverywhere =>
+      'That story had already been deleted for the whole family';
 }

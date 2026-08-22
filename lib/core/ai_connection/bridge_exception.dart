@@ -34,6 +34,9 @@ enum BridgeFailure {
   /// The bridge no longer knows the polled job.
   jobNotFound,
 
+  /// The master library holds no story under the identity this device sent.
+  storyNotFound,
+
   /// Generation ran and failed on the PC; no story exists there.
   generationFailed,
 

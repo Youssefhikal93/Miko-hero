@@ -7,6 +7,7 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/kingdom/kingdom_decorations.dart';
 import 'package:miko_hero/features/library/story_collections_dialog.dart';
+import 'package:miko_hero/features/library/story_delete_actions.dart';
 import 'package:miko_hero/features/library/story_share_actions.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
@@ -268,7 +269,7 @@ class _ProfileShelfState extends ConsumerState<_ProfileShelf> {
                 story: story,
                 actions: StoryCardActions(
                   open: () => context.go('/story/${story.id}'),
-                  delete: () => _confirmDelete(context, story),
+                  delete: () => deleteStoryWithParentGate(context, ref, story),
                   favorite: () => _toggleFavorite(story),
                   collections: () => _manageCollections(context, story),
                   share: () => exportStoryFile(context, ref, story),
@@ -331,33 +332,6 @@ class _ProfileShelfState extends ConsumerState<_ProfileShelf> {
           .setCollections(story.id, collections);
     } on Exception {
       if (mounted) _showError();
-    }
-  }
-
-  /// Requires explicit confirmation before permanent local story deletion.
-  Future<void> _confirmDelete(BuildContext context, StoryBook story) async {
-    final hasAccess = await requestParentAccess(context, ref);
-    if (!hasAccess || !context.mounted) return;
-    final text = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(text.deleteStoryTitle),
-        content: Text(text.deleteStoryBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => context.pop(false),
-            child: Text(text.cancel),
-          ),
-          FilledButton(
-            onPressed: () => context.pop(true),
-            child: Text(text.confirmDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await ref.read(storyControllerProvider).deleteStory(story.id);
     }
   }
 
