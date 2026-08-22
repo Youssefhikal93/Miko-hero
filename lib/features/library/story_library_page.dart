@@ -8,7 +8,9 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/kingdom/kingdom_decorations.dart';
 import 'package:miko_hero/features/library/story_collections_dialog.dart';
 import 'package:miko_hero/features/library/story_delete_actions.dart';
+import 'package:miko_hero/features/library/story_illustrate_actions.dart';
 import 'package:miko_hero/features/library/story_share_actions.dart';
+import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -250,7 +252,11 @@ class _ProfileShelfState extends ConsumerState<_ProfileShelf> {
   }
 
   /// Builds the adaptive approved-story card grid for the active filter.
+  ///
+  /// The picture-making action appears only on books the paired PC actually
+  /// holds, so a demo story and an unpaired device simply never show it.
   Widget _storyGrid(List<StoryBook> stories) {
+    final connection = ref.watch(aiConnectionControllerProvider).value;
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 1000
@@ -273,6 +279,9 @@ class _ProfileShelfState extends ConsumerState<_ProfileShelf> {
                   favorite: () => _toggleFavorite(story),
                   collections: () => _manageCollections(context, story),
                   share: () => exportStoryFile(context, ref, story),
+                  illustrate: canIllustrateStory(story, connection)
+                      ? () => illustrateStoryWithParentGate(context, ref, story)
+                      : null,
                 ),
               ),
             );

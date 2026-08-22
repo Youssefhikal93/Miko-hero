@@ -1472,4 +1472,92 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storyAlreadyDeletedEverywhere =>
       'That story had already been deleted for the whole family';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get illustrateStory => 'Illustrate this story';
+
+  @override
+  String get illustrateStoryTitle => 'Make pictures for this story?';
+
+  @override
+  String get illustrateStoryBody =>
+      'The family PC draws one picture for every page. That takes a few minutes per page, so leave the PC on until it is finished. You can stop at any time and the pictures that are already done are kept.';
+
+  @override
+  String get startIllustrating => 'Make the pictures';
+
+  @override
+  String get stopIllustrating => 'Stop';
+
+  @override
+  String get illustrationsSendingPhoto => 'Sending the hero photo to the PC…';
+
+  @override
+  String get illustrationsSubmitting => 'Asking the PC to start drawing…';
+
+  @override
+  String get illustrationsDrawingAny => 'The PC is drawing the pictures…';
+
+  @override
+  String illustrationsDrawing(int done, int total) {
+    return 'Drawing picture $done of $total…';
+  }
+
+  @override
+  String get illustrationsDownloading =>
+      'Bringing the finished pictures to this device…';
+
+  @override
+  String illustrationsReady(int count) {
+    return '$count pictures are ready.';
+  }
+
+  @override
+  String illustrationsPartlyReady(int done, int total) {
+    return '$done of $total pictures are ready. The PC could not draw the rest.';
+  }
+
+  @override
+  String get illustrationsNoneDrawn => 'The PC could not draw any pictures.';
+
+  @override
+  String get illustrationsAlreadyDone => 'Every page already has its picture.';
+
+  @override
+  String get illustrationsStopped =>
+      'Drawing stopped. The pictures that were finished are kept.';
+
+  @override
+  String illustrationsNotFetched(int count) {
+    return '$count pictures could not be brought to this device.';
+  }
+
+  @override
+  String get referencePhotoSkipped =>
+      'The hero photo could not be used, so the faces in the pictures are not their own.';
+
+  @override
+  String librarySyncPictures(int count) {
+    return '$count new pictures';
+  }
+
+  @override
+  String get bridgeProfileNotFound => 'The PC does not know this child yet.';
+
+  @override
+  String get bridgePhotoTooLarge => 'That photo is too large for the PC.';
+
+  @override
+  String get bridgeUnsupportedImage =>
+      'The PC can only use a JPEG or a PNG photo.';
+
+  @override
+  String get bridgeIllustrationNotFound => 'The PC no longer has that picture.';
+
+  @override
+  String get bridgeIllustrationNotReady =>
+      'That picture has not been made yet.';
 }

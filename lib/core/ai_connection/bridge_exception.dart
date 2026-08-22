@@ -37,6 +37,25 @@ enum BridgeFailure {
   /// The master library holds no story under the identity this device sent.
   storyNotFound,
 
+  /// The master library holds no profile under the identity this device sent.
+  profileNotFound,
+
+  /// The chosen reference photo is larger than the bridge accepts.
+  photoTooLarge,
+
+  /// The chosen reference photo is not a JPEG or a PNG the bridge can read.
+  unsupportedImage,
+
+  /// The master library holds no illustration under the requested identity.
+  illustrationNotFound,
+
+  /// The illustration exists but the PC has not drawn its image yet.
+  ///
+  /// Not a fault: it is the normal answer for a page whose picture is still
+  /// queued, still rendering, or was never rendered successfully, so surfaces
+  /// say "not made yet" instead of showing a failure.
+  illustrationNotReady,
+
   /// Generation ran and failed on the PC; no story exists there.
   generationFailed,
 

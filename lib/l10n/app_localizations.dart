@@ -2705,6 +2705,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That story had already been deleted for the whole family'**
   String get storyAlreadyDeletedEverywhere;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @illustrateStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Illustrate this story'**
+  String get illustrateStory;
+
+  /// No description provided for @illustrateStoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make pictures for this story?'**
+  String get illustrateStoryTitle;
+
+  /// No description provided for @illustrateStoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The family PC draws one picture for every page. That takes a few minutes per page, so leave the PC on until it is finished. You can stop at any time and the pictures that are already done are kept.'**
+  String get illustrateStoryBody;
+
+  /// No description provided for @startIllustrating.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the pictures'**
+  String get startIllustrating;
+
+  /// No description provided for @stopIllustrating.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stopIllustrating;
+
+  /// No description provided for @illustrationsSendingPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending the hero photo to the PC…'**
+  String get illustrationsSendingPhoto;
+
+  /// No description provided for @illustrationsSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking the PC to start drawing…'**
+  String get illustrationsSubmitting;
+
+  /// No description provided for @illustrationsDrawingAny.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC is drawing the pictures…'**
+  String get illustrationsDrawingAny;
+
+  /// No description provided for @illustrationsDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing picture {done} of {total}…'**
+  String illustrationsDrawing(int done, int total);
+
+  /// No description provided for @illustrationsDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Bringing the finished pictures to this device…'**
+  String get illustrationsDownloading;
+
+  /// No description provided for @illustrationsReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pictures are ready.'**
+  String illustrationsReady(int count);
+
+  /// No description provided for @illustrationsPartlyReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} pictures are ready. The PC could not draw the rest.'**
+  String illustrationsPartlyReady(int done, int total);
+
+  /// No description provided for @illustrationsNoneDrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC could not draw any pictures.'**
+  String get illustrationsNoneDrawn;
+
+  /// No description provided for @illustrationsAlreadyDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Every page already has its picture.'**
+  String get illustrationsAlreadyDone;
+
+  /// No description provided for @illustrationsStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing stopped. The pictures that were finished are kept.'**
+  String get illustrationsStopped;
+
+  /// No description provided for @illustrationsNotFetched.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pictures could not be brought to this device.'**
+  String illustrationsNotFetched(int count);
+
+  /// No description provided for @referencePhotoSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'The hero photo could not be used, so the faces in the pictures are not their own.'**
+  String get referencePhotoSkipped;
+
+  /// No description provided for @librarySyncPictures.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new pictures'**
+  String librarySyncPictures(int count);
+
+  /// No description provided for @bridgeProfileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC does not know this child yet.'**
+  String get bridgeProfileNotFound;
+
+  /// No description provided for @bridgePhotoTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That photo is too large for the PC.'**
+  String get bridgePhotoTooLarge;
+
+  /// No description provided for @bridgeUnsupportedImage.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC can only use a JPEG or a PNG photo.'**
+  String get bridgeUnsupportedImage;
+
+  /// No description provided for @bridgeIllustrationNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC no longer has that picture.'**
+  String get bridgeIllustrationNotFound;
+
+  /// No description provided for @bridgeIllustrationNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'That picture has not been made yet.'**
+  String get bridgeIllustrationNotReady;
 }
 
 class _AppLocalizationsDelegate

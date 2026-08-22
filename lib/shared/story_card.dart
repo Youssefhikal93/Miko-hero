@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
+import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
@@ -96,6 +100,12 @@ class StoryCard extends StatelessWidget {
           tooltip: text.manageCollections,
           icon: const Icon(Icons.folder_copy_outlined),
         ),
+      if (actions.illustrate != null)
+        IconButton(
+          onPressed: actions.illustrate,
+          tooltip: text.illustrateStory,
+          icon: const Icon(Icons.palette_outlined),
+        ),
       if (actions.share != null)
         IconButton(
           onPressed: actions.share,
@@ -121,6 +131,7 @@ class StoryCardActions {
     this.favorite,
     this.collections,
     this.share,
+    this.illustrate,
   });
 
   /// Opens the approved reader or parent draft review.
@@ -137,14 +148,22 @@ class StoryCardActions {
 
   /// Saves the story as an encrypted single-story file when available.
   final VoidCallback? share;
+
+  /// Asks the paired PC to draw this story's page pictures when available.
+  final VoidCallback? illustrate;
 }
 
-/// Generated cover treatment used until ComfyUI supplies real illustrations.
-class StoryCover extends StatelessWidget {
-  /// Creates a deterministic visual cover for the supplied story.
+/// Story cover: the book's own first picture once the PC has drawn one.
+///
+/// Until then, and always for demo content, the deterministic gradient stands
+/// in for it. A real drawn cover is deliberately darkened rather than shown at
+/// full strength, because the title and the DEMO badge sit on top of it and
+/// have to stay readable over whatever the PC happened to draw.
+class StoryCover extends ConsumerWidget {
+  /// Creates a cover for the supplied story.
   const StoryCover({required this.story, required this.height, super.key});
 
-  /// Story whose title and style define the cover.
+  /// Story whose first page, title, and style define the cover.
   final StoryBook story;
 
   /// Vertical cover extent in logical pixels.
@@ -152,36 +171,49 @@ class StoryCover extends StatelessWidget {
 
   @override
   /// Makes demo artwork unmistakable while preserving the final layout.
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cover = _coverBytes(ref);
+    return SizedBox(
       height: height,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(gradient: _gradient()),
       child: Stack(
+        fit: StackFit.expand,
         children: <Widget>[
-          const Align(
-            alignment: Alignment.topRight,
-            child: Icon(Icons.auto_awesome, color: Color(0xCCFFFFFF), size: 28),
-          ),
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          DecoratedBox(decoration: BoxDecoration(gradient: _gradient())),
+          if (cover != null) _coverImage(cover),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Stack(
               children: <Widget>[
-                if (!BridgeStoryProvenance.marksStory(story)) ...<Widget>[
-                  _demoBadge(context),
-                  const SizedBox(height: 10),
-                ],
-                Text(
-                  story.content.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
+                const Align(
+                  alignment: Alignment.topRight,
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: Color(0xCCFFFFFF),
+                    size: 28,
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (!BridgeStoryProvenance.marksStory(story)) ...<Widget>[
+                        _demoBadge(context),
+                        const SizedBox(height: 10),
+                      ],
+                      Text(
+                        story.content.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -192,10 +224,36 @@ class StoryCover extends StatelessWidget {
     );
   }
 
+  /// Reads the cached first-page image of a PC story, or null for anything else.
+  Uint8List? _coverBytes(WidgetRef ref) {
+    if (!BridgeStoryProvenance.marksStory(story)) return null;
+    final pages = story.content.pages;
+    if (pages.isEmpty) return null;
+    final provenance = BridgeStoryProvenance.fromSceneDescription(
+      pages.first.sceneDescription,
+    );
+    if (provenance == null) return null;
+    return ref
+        .watch(illustrationBytesProvider(provenance.illustrationId))
+        .value;
+  }
+
+  /// Paints the drawn cover behind the card content, dimmed for readability.
+  Widget _coverImage(Uint8List bytes) {
+    return Image.memory(
+      bytes,
+      key: const ValueKey<String>('story-cover-image'),
+      fit: BoxFit.cover,
+      color: Colors.black45,
+      colorBlendMode: BlendMode.darken,
+      gaplessPlayback: true,
+    );
+  }
+
   /// Labels demo stories so sample content cannot pass as AI output.
   ///
   /// Bridge-generated stories carry no badge: their text is real AI output
-  /// even while the artwork is still the placeholder gradient.
+  /// whether the PC has drawn their pictures yet or not.
   Widget _demoBadge(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

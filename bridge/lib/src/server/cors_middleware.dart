@@ -34,6 +34,10 @@ Middleware corsMiddleware({required List<String> extraAllowedOrigins}) {
   Map<String, String> allowHeaders(String origin) {
     return <String, String>{
       'access-control-allow-origin': origin,
+      // Without this a browser hides the ETag from the web app, which then
+      // re-downloads every illustration on every check instead of getting
+      // the cheap 304.
+      'access-control-expose-headers': 'etag',
       'vary': 'Origin',
     };
   }

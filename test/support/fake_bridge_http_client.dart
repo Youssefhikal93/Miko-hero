@@ -80,6 +80,8 @@ Map<String, Object> bridgeStoryPayload({
   String createdAtUtc = '2026-08-22T10:06:11.000Z',
   String updatedAtUtc = '2026-08-22T10:06:11.000Z',
   String? pageTextPrefix,
+  String illustrationIdPrefix = 'illustration',
+  String illustrationStatus = 'pending',
 }) {
   return <String, Object>{
     'id': storyId,
@@ -97,9 +99,9 @@ Map<String, Object> bridgeStoryPayload({
               ? 'Page $number prose.'
               : '$pageTextPrefix $number.',
           'illustrationScene': 'A lantern scene $number.',
-          'illustrationId': 'illustration-$number',
+          'illustrationId': '$illustrationIdPrefix-$number',
           'illustrationRelativePath': 'illustrations/$storyId/$number.png',
-          'illustrationStatus': 'pending',
+          'illustrationStatus': illustrationStatus,
         },
     ],
   };
@@ -144,6 +146,8 @@ Map<String, Object> bridgeManifestStory({
   int pageCount = 6,
   String createdAtUtc = '2026-08-22T10:06:11.000Z',
   String updatedAtUtc = '2026-08-22T10:06:11.000Z',
+  String illustrationStatus = 'pending',
+  String illustrationIdPrefix = 'illustration',
 }) {
   return <String, Object>{
     'id': id,
@@ -156,9 +160,9 @@ Map<String, Object> bridgeManifestStory({
     'illustrations': <Map<String, Object>>[
       for (var number = 1; number <= pageCount; number++)
         <String, Object>{
-          'id': 'illustration-$number',
+          'id': '$illustrationIdPrefix-$number',
           'pageNumber': number,
-          'status': 'pending',
+          'status': illustrationStatus,
         },
     ],
   };

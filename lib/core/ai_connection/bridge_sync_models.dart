@@ -1,11 +1,16 @@
+import 'dart:typed_data';
+
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
 
 /// Entity type of the only deletion kind the bridge records today.
 const bridgeStoryEntityType = 'story';
 
-/// Illustration status the bridge reports until the ComfyUI milestone lands.
+/// Illustration status the bridge reports before a page has been drawn.
 const bridgePendingIllustrationStatus = 'pending';
+
+/// Illustration status the bridge reports once a page image file exists.
+const bridgeCompletedIllustrationStatus = 'completed';
 
 /// One child profile as the master library advertises it.
 ///
@@ -59,6 +64,9 @@ class BridgeSyncIllustration {
 
   /// Whether the PC has not produced this illustration's image file yet.
   bool get isPending => status == bridgePendingIllustrationStatus;
+
+  /// Whether the PC holds a finished image file for this page.
+  bool get isCompleted => status == bridgeCompletedIllustrationStatus;
 
   /// Validates one entry of a manifest story's illustration list.
   ///
@@ -120,6 +128,14 @@ class BridgeSyncStory {
 
   /// Illustration slots ordered by page number.
   final List<BridgeSyncIllustration> illustrations;
+
+  /// Identities of the pages whose image this device can download today.
+  List<String> get completedIllustrationIds {
+    return illustrations
+        .where((illustration) => illustration.isCompleted)
+        .map((illustration) => illustration.illustrationId)
+        .toList(growable: false);
+  }
 
   /// Validates one entry of the manifest's story list.
   static BridgeSyncStory fromEncodedStory(Object? encodedStory) {
@@ -265,6 +281,28 @@ class BridgeSyncStoryDownload {
     }
     return BridgeSyncStoryDownload(story: story, profileId: profileId);
   }
+}
+
+/// One page image downloaded from the PC, or the note that it is unchanged.
+///
+/// The bridge serves every image with an `ETag`, so a device that already holds
+/// a page asks with `If-None-Match` and normally gets a `304` back instead of
+/// several hundred kilobytes it already has.
+class BridgeIllustrationDownload {
+  /// Creates a download that carried fresh image bytes.
+  const BridgeIllustrationDownload({required this.bytes, this.eTag});
+
+  /// Creates the answer for an image this device already holds.
+  const BridgeIllustrationDownload.unchanged(this.eTag) : bytes = null;
+
+  /// Complete PNG bytes, absent when the PC reported the image unchanged.
+  final Uint8List? bytes;
+
+  /// Version marker to store beside the bytes and send back next time.
+  final String? eTag;
+
+  /// Whether the cached copy on this device is already the current one.
+  bool get isUnchanged => bytes == null;
 }
 
 /// Outcome of deleting one story on the PC and therefore everywhere.

@@ -1456,4 +1456,93 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get storyAlreadyDeletedEverywhere =>
       'كانت هذه القصة محذوفة للعائلة كلها من قبل';
+
+  @override
+  String get close => 'إغلاق';
+
+  @override
+  String get illustrateStory => 'رسم صور لهذه القصة';
+
+  @override
+  String get illustrateStoryTitle => 'هل تريد رسم صور لهذه القصة؟';
+
+  @override
+  String get illustrateStoryBody =>
+      'يرسم كمبيوتر العائلة صورة لكل صفحة. يستغرق ذلك بضع دقائق للصفحة، لذلك اترك الكمبيوتر مشتغلاً حتى ينتهي. يمكنك التوقف في أي وقت، والصور الجاهزة تبقى محفوظة.';
+
+  @override
+  String get startIllustrating => 'ابدأ رسم الصور';
+
+  @override
+  String get stopIllustrating => 'إيقاف';
+
+  @override
+  String get illustrationsSendingPhoto =>
+      'جارٍ إرسال صورة البطل إلى الكمبيوتر…';
+
+  @override
+  String get illustrationsSubmitting =>
+      'جارٍ الطلب من الكمبيوتر أن يبدأ الرسم…';
+
+  @override
+  String get illustrationsDrawingAny => 'الكمبيوتر يرسم الصور…';
+
+  @override
+  String illustrationsDrawing(int done, int total) {
+    return 'جارٍ رسم الصورة $done من $total…';
+  }
+
+  @override
+  String get illustrationsDownloading =>
+      'جارٍ إنزال الصور الجاهزة إلى هذا الجهاز…';
+
+  @override
+  String illustrationsReady(int count) {
+    return '$count صور جاهزة.';
+  }
+
+  @override
+  String illustrationsPartlyReady(int done, int total) {
+    return '$done من $total صور جاهزة. لم يستطع الكمبيوتر رسم الباقي.';
+  }
+
+  @override
+  String get illustrationsNoneDrawn => 'لم يستطع الكمبيوتر رسم أي صورة.';
+
+  @override
+  String get illustrationsAlreadyDone => 'كل صفحة لديها صورتها بالفعل.';
+
+  @override
+  String get illustrationsStopped =>
+      'توقف الرسم. الصور التي اكتملت تبقى محفوظة.';
+
+  @override
+  String illustrationsNotFetched(int count) {
+    return '$count صور لم يتمكن هذا الجهاز من إنزالها.';
+  }
+
+  @override
+  String get referencePhotoSkipped =>
+      'لم يتم استخدام صورة البطل، لذلك الوجوه في الصور ليست وجهه.';
+
+  @override
+  String librarySyncPictures(int count) {
+    return '$count صور جديدة';
+  }
+
+  @override
+  String get bridgeProfileNotFound => 'لا يعرف الكمبيوتر هذا الطفل بعد.';
+
+  @override
+  String get bridgePhotoTooLarge => 'هذه الصورة كبيرة جداً على الكمبيوتر.';
+
+  @override
+  String get bridgeUnsupportedImage =>
+      'لا يقبل الكمبيوتر إلا صورة JPEG أو PNG.';
+
+  @override
+  String get bridgeIllustrationNotFound => 'لم تبقَ هذه الصورة على الكمبيوتر.';
+
+  @override
+  String get bridgeIllustrationNotReady => 'لم تُرسم هذه الصورة بعد.';
 }

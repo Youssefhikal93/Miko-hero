@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
@@ -11,6 +12,12 @@ const defaultBridgeBaseUrl = 'http://127.0.0.1:8765';
 
 /// Longest a single bridge call may take before it is reported as timed out.
 const defaultBridgeRequestTimeout = Duration(seconds: 20);
+
+/// Content type of a JPEG reference photo the bridge accepts.
+const bridgeJpegContentType = 'image/jpeg';
+
+/// Content type of a PNG reference photo the bridge accepts.
+const bridgePngContentType = 'image/png';
 
 /// Validates a parent-entered bridge address and returns null when unusable.
 ///
@@ -203,6 +210,132 @@ class BridgeClient {
     return BridgeStoryDeletion.fromJson(answer);
   }
 
+  /// Stores one child's reference photo on the PC for face likeness.
+  ///
+  /// The bytes travel as the raw image body the bridge expects, never as
+  /// base64 inside JSON, and they are neither logged nor echoed anywhere: a
+  /// photo of a child is the most private thing this app moves.
+  Future<BridgeProfilePhoto> uploadProfilePhoto({
+    required String profileId,
+    required Uint8List bytes,
+    required String contentType,
+  }) async {
+    final request = http.Request(
+      'PUT',
+      _endpoint('/profiles/${Uri.encodeComponent(profileId)}/photo'),
+    );
+    request.headers['accept'] = 'application/json';
+    _authenticate(request);
+    request.headers['content-type'] = contentType;
+    request.bodyBytes = bytes;
+    return BridgeProfilePhoto.fromJson(_answer(await _response(request)));
+  }
+
+  /// Removes one child's stored reference photo from the PC.
+  ///
+  /// Reports whether a photo was actually there; the endpoint is idempotent, so
+  /// a profile that never had one is still a success.
+  Future<bool> deleteProfilePhoto(String profileId) async {
+    final answer = await _send(
+      'DELETE',
+      '/profiles/${Uri.encodeComponent(profileId)}/photo',
+      authenticated: true,
+    );
+    final removed = answer['removed'];
+    if (removed is! bool) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return removed;
+  }
+
+  /// Asks the PC to draw the page images of one master-library story.
+  ///
+  /// Pages the PC has already drawn are skipped there, so re-invoking this
+  /// after a partial failure costs only the pages that are still missing.
+  Future<BridgeIllustrationSubmission> illustrateStory(
+    String storyId, {
+    String? illustrationStyle,
+    String? genderContext,
+  }) async {
+    final answer = await _send(
+      'POST',
+      '/stories/${Uri.encodeComponent(storyId)}/illustrate',
+      authenticated: true,
+      body: <String, Object>{
+        'illustrationStyle': ?illustrationStyle,
+        'genderContext': ?genderContext,
+      },
+    );
+    return BridgeIllustrationSubmission.fromJson(answer);
+  }
+
+  /// Polls one illustration job, including how many pages are already drawn.
+  Future<BridgeIllustrationJob> readIllustrationJob(String jobId) async {
+    final answer = await _send(
+      'GET',
+      '/illustrations/jobs/${Uri.encodeComponent(jobId)}',
+      authenticated: true,
+    );
+    return BridgeIllustrationJob.fromJson(answer);
+  }
+
+  /// Asks the PC to stop drawing and reports the state the job ended in.
+  ///
+  /// Pages that were already finished stay on the PC, so cancelling costs the
+  /// family only the pictures that had not been drawn yet.
+  Future<BridgeIllustrationJobStatus> cancelIllustrationJob(
+    String jobId,
+  ) async {
+    final answer = await _send(
+      'POST',
+      '/illustrations/jobs/${Uri.encodeComponent(jobId)}/cancel',
+      authenticated: true,
+    );
+    final status = answer['status'];
+    if (status is! String) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    try {
+      return BridgeIllustrationJobStatus.values.byName(status);
+    } on ArgumentError {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+  }
+
+  /// Downloads one page image, or reports the cached copy as still current.
+  ///
+  /// [knownETag] is the marker stored beside a cached image; when the PC still
+  /// serves that exact version it answers `304` and no bytes travel at all.
+  Future<BridgeIllustrationDownload> downloadIllustration(
+    String illustrationId, {
+    String? knownETag,
+  }) async {
+    final request = http.Request(
+      'GET',
+      _endpoint('/sync/illustrations/${Uri.encodeComponent(illustrationId)}'),
+    );
+    request.headers['accept'] = 'image/png';
+    _authenticate(request);
+    if (knownETag != null && knownETag.isNotEmpty) {
+      request.headers['if-none-match'] = knownETag;
+    }
+    final response = await _response(request);
+    if (response.statusCode == 304) {
+      return BridgeIllustrationDownload.unchanged(knownETag);
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final code = _errorCode(_decoded(response));
+      throw BridgeException(_failure(code, response.statusCode), code: code);
+    }
+    if (response.bodyBytes.isEmpty) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgeIllustrationDownload(
+      bytes: response.bodyBytes,
+      eTag: response.headers['etag'],
+    );
+  }
+
   /// Performs one bounded call and converts every failure into a typed reason.
   Future<Map<String, Object?>> _send(
     String method,
@@ -212,13 +345,7 @@ class BridgeClient {
   }) async {
     final request = http.Request(method, _endpoint(path));
     request.headers['accept'] = 'application/json';
-    if (authenticated) {
-      final token = deviceToken;
-      if (token == null || token.isEmpty) {
-        throw const BridgeException(BridgeFailure.notPaired);
-      }
-      request.headers['authorization'] = 'Bearer $token';
-    }
+    if (authenticated) _authenticate(request);
     if (body != null) {
       // Explicit UTF-8 bytes with the charset stated: Arabic prose corrupts
       // when the transport is allowed to guess a Latin-1 body encoding.
@@ -227,6 +354,15 @@ class BridgeClient {
     }
     final response = await _response(request);
     return _answer(response);
+  }
+
+  /// Attaches the stored device token, refusing the call when there is none.
+  void _authenticate(http.Request request) {
+    final token = deviceToken;
+    if (token == null || token.isEmpty) {
+      throw const BridgeException(BridgeFailure.notPaired);
+    }
+    request.headers['authorization'] = 'Bearer $token';
   }
 
   /// Sends one request and reports transport failures as typed reasons.
@@ -284,6 +420,12 @@ class BridgeClient {
       'invalid_field' || 'invalid_request' => BridgeFailure.invalidRequest,
       'job_not_found' => BridgeFailure.jobNotFound,
       'story_not_found' => BridgeFailure.storyNotFound,
+      'profile_not_found' => BridgeFailure.profileNotFound,
+      'photo_too_large' => BridgeFailure.photoTooLarge,
+      'invalid_image' ||
+      'unsupported_image_type' => BridgeFailure.unsupportedImage,
+      'illustration_not_found' => BridgeFailure.illustrationNotFound,
+      'illustration_not_ready' => BridgeFailure.illustrationNotReady,
       'cancelled' => BridgeFailure.cancelled,
       'ollama_unavailable' ||
       'ollama_timeout' ||
@@ -299,6 +441,7 @@ class BridgeClient {
     return switch (statusCode) {
       401 || 403 => BridgeFailure.unauthorized,
       404 => BridgeFailure.jobNotFound,
+      413 => BridgeFailure.photoTooLarge,
       429 => BridgeFailure.rateLimited,
       _ => BridgeFailure.bridgeError,
     };

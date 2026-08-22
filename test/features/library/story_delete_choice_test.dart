@@ -8,11 +8,13 @@ import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
+import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_bridge_http_client.dart';
+import '../../support/in_memory_illustration_store.dart';
 
 /// Verifies the two very different things "delete" can mean for one story.
 ///
@@ -129,9 +131,15 @@ void main() {
 }
 
 /// Builds the real application over one scripted PC boundary.
+///
+/// The page-image cache is replaced too: the real store reaches for this
+/// machine's application folder, which a widget test must never touch.
 Widget _app(FakeBridgeHttpClient httpClient) {
   return ProviderScope(
-    overrides: [bridgeHttpClientProvider.overrideWithValue(httpClient)],
+    overrides: [
+      bridgeHttpClientProvider.overrideWithValue(httpClient),
+      illustrationStoreProvider.overrideWithValue(InMemoryIllustrationStore()),
+    ],
     child: const IamHeroApp(),
   );
 }

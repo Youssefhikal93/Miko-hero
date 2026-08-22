@@ -96,6 +96,20 @@ class _LoadedLibrarySyncSection extends ConsumerWidget {
             key: const ValueKey<String>('library-sync-result'),
           ),
         ],
+        if (result != null && result.savedPictureCount > 0) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            text.librarySyncPictures(result.savedPictureCount),
+            key: const ValueKey<String>('library-sync-pictures'),
+          ),
+        ],
+        if (result != null && result.failedPictureCount > 0) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            text.illustrationsNotFetched(result.failedPictureCount),
+            key: const ValueKey<String>('library-sync-pictures-failed'),
+          ),
+        ],
         if (failure != null) ...<Widget>[
           const SizedBox(height: 6),
           Text(

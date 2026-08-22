@@ -1487,4 +1487,94 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get storyAlreadyDeletedEverywhere =>
       'Sheekadaas horeba waa loo tirtiray qoyska oo dhan';
+
+  @override
+  String get close => 'Xir';
+
+  @override
+  String get illustrateStory => 'Sawirro u samee sheekadan';
+
+  @override
+  String get illustrateStoryTitle => 'Ma sawirro u samaynaysaa sheekadan?';
+
+  @override
+  String get illustrateStoryBody =>
+      'PC-ga qoyska wuxuu bog kasta u sawiraa hal sawir. Bog kasta waxay qaadataa dhowr daqiiqo, sidaas darteed PC-ga sii shid ilaa uu dhammaysto. Waqti kasta waad joojin kartaa, sawirradii diyaar noqday na way sii hadhayaan.';
+
+  @override
+  String get startIllustrating => 'Samee sawirrada';
+
+  @override
+  String get stopIllustrating => 'Jooji';
+
+  @override
+  String get illustrationsSendingPhoto =>
+      'Sawirka halyeeyga waxaa loo dirayaa PC-ga…';
+
+  @override
+  String get illustrationsSubmitting =>
+      'PC-ga waxaa laga codsanayaa inuu sawirka bilaabo…';
+
+  @override
+  String get illustrationsDrawingAny => 'PC-gu wuxuu sawirayaa sawirrada…';
+
+  @override
+  String illustrationsDrawing(int done, int total) {
+    return 'Waxaa la sawirayaa sawirka $done ee $total…';
+  }
+
+  @override
+  String get illustrationsDownloading =>
+      'Sawirrada dhammaaday waxaa loo soo dejinayaa qalabkan…';
+
+  @override
+  String illustrationsReady(int count) {
+    return '$count sawir diyaar bay yihiin.';
+  }
+
+  @override
+  String illustrationsPartlyReady(int done, int total) {
+    return '$done sawir oo $total ah diyaar bay yihiin. PC-gu ma sawiri karin kuwa kale.';
+  }
+
+  @override
+  String get illustrationsNoneDrawn => 'PC-gu sawir midna ma sawiri karin.';
+
+  @override
+  String get illustrationsAlreadyDone =>
+      'Bog kastaa horeba wuxuu leeyahay sawirkiisa.';
+
+  @override
+  String get illustrationsStopped =>
+      'Sawirku waa istaagay. Sawirradii dhammaaday way sii hadhayaan.';
+
+  @override
+  String illustrationsNotFetched(int count) {
+    return '$count sawir lama soo dejin karin qalabkan.';
+  }
+
+  @override
+  String get referencePhotoSkipped =>
+      'Sawirka halyeeyga lama isticmaali karin, sidaas darteed wejiyada sawirrada ku jira kuwiisa ma aha.';
+
+  @override
+  String librarySyncPictures(int count) {
+    return '$count sawir cusub';
+  }
+
+  @override
+  String get bridgeProfileNotFound => 'PC-gu weli ma garanayo ilmahan.';
+
+  @override
+  String get bridgePhotoTooLarge => 'Sawirkaas aad buu u weyn yahay PC-ga.';
+
+  @override
+  String get bridgeUnsupportedImage =>
+      'PC-gu wuxuu keliya isticmaali karaa sawir JPEG ama PNG ah.';
+
+  @override
+  String get bridgeIllustrationNotFound => 'PC-gu hadda ma haysto sawirkaas.';
+
+  @override
+  String get bridgeIllustrationNotReady => 'Sawirkaas weli lama samayn.';
 }

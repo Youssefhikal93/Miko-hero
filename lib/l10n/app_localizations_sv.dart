@@ -1492,4 +1492,92 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get storyAlreadyDeletedEverywhere =>
       'Den berättelsen var redan borttagen för hela familjen';
+
+  @override
+  String get close => 'Stäng';
+
+  @override
+  String get illustrateStory => 'Skapa bilder till berättelsen';
+
+  @override
+  String get illustrateStoryTitle => 'Skapa bilder till den här berättelsen?';
+
+  @override
+  String get illustrateStoryBody =>
+      'Familjens dator ritar en bild till varje sida. Det tar några minuter per sida, så låt datorn vara igång tills den är klar. Du kan avbryta när som helst, och bilderna som redan är klara sparas.';
+
+  @override
+  String get startIllustrating => 'Skapa bilderna';
+
+  @override
+  String get stopIllustrating => 'Avbryt';
+
+  @override
+  String get illustrationsSendingPhoto => 'Skickar hjältens foto till datorn…';
+
+  @override
+  String get illustrationsSubmitting => 'Ber datorn börja rita…';
+
+  @override
+  String get illustrationsDrawingAny => 'Datorn ritar bilderna…';
+
+  @override
+  String illustrationsDrawing(int done, int total) {
+    return 'Ritar bild $done av $total…';
+  }
+
+  @override
+  String get illustrationsDownloading =>
+      'Hämtar de färdiga bilderna till den här enheten…';
+
+  @override
+  String illustrationsReady(int count) {
+    return '$count bilder är klara.';
+  }
+
+  @override
+  String illustrationsPartlyReady(int done, int total) {
+    return '$done av $total bilder är klara. Datorn kunde inte rita resten.';
+  }
+
+  @override
+  String get illustrationsNoneDrawn => 'Datorn kunde inte rita några bilder.';
+
+  @override
+  String get illustrationsAlreadyDone => 'Varje sida har redan sin bild.';
+
+  @override
+  String get illustrationsStopped =>
+      'Ritandet avbröts. Bilderna som blev klara sparas.';
+
+  @override
+  String illustrationsNotFetched(int count) {
+    return '$count bilder kunde inte hämtas till den här enheten.';
+  }
+
+  @override
+  String get referencePhotoSkipped =>
+      'Hjältens foto kunde inte användas, så ansiktena i bilderna är inte deras egna.';
+
+  @override
+  String librarySyncPictures(int count) {
+    return '$count nya bilder';
+  }
+
+  @override
+  String get bridgeProfileNotFound =>
+      'Datorn känner inte till det här barnet än.';
+
+  @override
+  String get bridgePhotoTooLarge => 'Fotot är för stort för datorn.';
+
+  @override
+  String get bridgeUnsupportedImage =>
+      'Datorn kan bara använda ett foto i JPEG eller PNG.';
+
+  @override
+  String get bridgeIllustrationNotFound => 'Datorn har inte längre den bilden.';
+
+  @override
+  String get bridgeIllustrationNotReady => 'Den bilden är inte gjord än.';
 }

@@ -41,8 +41,17 @@ dependencies:
   http: ^1.6.0
   image_picker: ^1.1.2
   intl: any
+  # Joins cache paths for the file-backed illustration store on desktop and
+  # mobile; already resolved through Flutter, declared so it can be imported.
+  path: ^1.9.1
+  # Resolves the per-platform application support folder the illustration cache
+  # writes page images into. First-party Flutter plugin.
+  path_provider: ^2.1.5
   pdf: 3.13.0
   shared_preferences: ^2.5.3
+  # IndexedDB bindings for the web illustration cache; page images are far too
+  # large for localStorage, which is the only other browser store available.
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

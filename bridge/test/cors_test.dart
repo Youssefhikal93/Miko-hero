@@ -64,6 +64,9 @@ void main() {
       );
       expect(response.statusCode, 200);
       expect(response.headers['access-control-allow-origin'], origin);
+      // Without the exposure a browser hides the ETag from the web app and
+      // every illustration re-check becomes a full re-download.
+      expect(response.headers['access-control-expose-headers'], 'etag');
       expect(response.headers['vary'], 'Origin');
     }
   });

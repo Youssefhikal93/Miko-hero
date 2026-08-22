@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
+import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -457,9 +459,9 @@ class _ReaderPage extends StatelessWidget {
   }
 }
 
-/// Honest placeholder composition for the future ComfyUI page illustration.
-class _PageIllustration extends StatelessWidget {
-  /// Creates placeholder art from story styling and optional private photo bytes.
+/// The page's drawn picture, or the honest placeholder while it has none.
+class _PageIllustration extends ConsumerWidget {
+  /// Creates page art from the cached picture, or from story styling.
   const _PageIllustration({
     required this.story,
     required this.page,
@@ -473,10 +475,12 @@ class _PageIllustration extends StatelessWidget {
   final bool bedtime;
 
   @override
-  /// Uses local photo bytes only; demo stories keep their DEMO chip while
-  /// bridge stories wait unlabeled for their Milestone 4 illustration.
-  Widget build(BuildContext context) {
-    final photo = profile?.photoBase64;
+  /// Shows the PC's picture once this device has it, and the gradient until
+  /// then. No spinner ever appears over a child's page: a book that is waiting
+  /// for artwork simply looks like the book it already was. Demo stories keep
+  /// their DEMO chip, and the page number stays on top in both cases.
+  Widget build(BuildContext context, WidgetRef ref) {
+    final illustration = _illustrationBytes(ref);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -484,23 +488,14 @@ class _PageIllustration extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
       ),
       child: Stack(
+        // The drawn page fills the frame, so the stack has to take the space
+        // the layout gives it rather than shrink to its positioned children.
+        fit: StackFit.expand,
         children: <Widget>[
-          Center(
-            child: CircleAvatar(
-              radius: 72,
-              backgroundColor: Colors.white24,
-              backgroundImage: photo == null
-                  ? null
-                  : MemoryImage(base64Decode(photo)),
-              child: photo == null
-                  ? const Icon(
-                      Icons.face_rounded,
-                      size: 74,
-                      color: Colors.white,
-                    )
-                  : null,
-            ),
-          ),
+          if (illustration == null)
+            _placeholderFace()
+          else
+            _drawnPage(illustration),
           if (!BridgeStoryProvenance.marksStory(story))
             PositionedDirectional(
               top: 18,
@@ -531,6 +526,47 @@ class _PageIllustration extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// Reads this page's cached picture, or null while it has none to show.
+  Uint8List? _illustrationBytes(WidgetRef ref) {
+    final provenance = BridgeStoryProvenance.fromSceneDescription(
+      page.sceneDescription,
+    );
+    if (provenance == null) return null;
+    return ref
+        .watch(illustrationBytesProvider(provenance.illustrationId))
+        .value;
+  }
+
+  /// Fills the page with the drawn picture inside the same rounded frame.
+  Widget _drawnPage(Uint8List bytes) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Image.memory(
+        bytes,
+        key: const ValueKey<String>('page-illustration'),
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+      ),
+    );
+  }
+
+  /// Centres the child's own photo, or a friendly face, over the gradient.
+  Widget _placeholderFace() {
+    final photo = profile?.photoBase64;
+    return Center(
+      child: CircleAvatar(
+        radius: 72,
+        backgroundColor: Colors.white24,
+        backgroundImage: photo == null
+            ? null
+            : MemoryImage(base64Decode(photo)),
+        child: photo == null
+            ? const Icon(Icons.face_rounded, size: 74, color: Colors.white)
+            : null,
       ),
     );
   }

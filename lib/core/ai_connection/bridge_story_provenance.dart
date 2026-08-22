@@ -71,6 +71,20 @@ class BridgeStoryProvenance {
     return fromSceneDescription(pages.first.sceneDescription)?.storyId;
   }
 
+  /// Master-library illustration identities of every page of [story].
+  ///
+  /// The single source of truth for "which pictures belong to this book": the
+  /// cache, the download loop, and both deletion paths all read it here rather
+  /// than keeping a second mapping that could drift from the stored pages.
+  static List<String> illustrationIdsOf(StoryBook story) {
+    final illustrationIds = <String>[];
+    for (final page in story.content.pages) {
+      final provenance = fromSceneDescription(page.sceneDescription);
+      if (provenance != null) illustrationIds.add(provenance.illustrationId);
+    }
+    return List<String>.unmodifiable(illustrationIds);
+  }
+
   /// Recovers bridge identities, or null for a page from another generator.
   static BridgeStoryProvenance? fromSceneDescription(String sceneDescription) {
     final segments = sceneDescription.split(bridgeProvenanceSeparator);

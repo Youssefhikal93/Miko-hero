@@ -3,6 +3,8 @@ import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/ai_connection/bridge_sync_models.dart';
 import 'package:miko_hero/core/ai_connection/library_sync_state.dart';
+import 'package:miko_hero/core/illustrations/illustration_downloader.dart';
+import 'package:miko_hero/core/illustrations/illustration_store.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
@@ -45,6 +47,8 @@ class LibrarySyncResult {
     required this.addedCount,
     required this.updatedCount,
     required this.removedCount,
+    this.savedPictureCount = 0,
+    this.failedPictureCount = 0,
     this.pendingProfiles = const <LibrarySyncPendingProfile>[],
   });
 
@@ -60,10 +64,23 @@ class LibrarySyncResult {
   /// Local copies dropped because the PC recorded them as deleted.
   final int removedCount;
 
+  /// Page pictures newly copied onto this device.
+  final int savedPictureCount;
+
+  /// Finished pictures the PC has but this device could not fetch.
+  ///
+  /// Never a reason to fail a sync: the stories arrived, and a missing picture
+  /// only means a page shows its placeholder art until the next run.
+  final int failedPictureCount;
+
   /// Children whose stories cannot be placed until a profile exists here.
   final List<LibrarySyncPendingProfile> pendingProfiles;
 
-  /// Whether the PC library and this device already agreed on everything.
+  /// Whether the PC library and this device already agreed on every story.
+  ///
+  /// Deliberately about stories only: pictures are reported on their own line,
+  /// so a run that fetched artwork for books that were already here still says
+  /// truthfully that the shelf itself did not change.
   bool get changedNothing =>
       addedCount == 0 && updatedCount == 0 && removedCount == 0;
 }
@@ -78,6 +95,7 @@ class LibrarySyncOutcome {
   const LibrarySyncOutcome({
     required this.downloadedStories,
     required this.removedStoryIds,
+    required this.savedIllustrationIds,
     required this.syncState,
     required this.result,
   });
@@ -87,6 +105,13 @@ class LibrarySyncOutcome {
 
   /// Local identities to drop because the PC recorded them as deleted.
   final List<String> removedStoryIds;
+
+  /// Page images newly written into the local cache during this run.
+  ///
+  /// Already persisted when the outcome exists — an image cache is not part of
+  /// the all-or-nothing library transaction — so these are only the identities
+  /// whose open readers still have to be told to repaint.
+  final List<String> savedIllustrationIds;
 
   /// Synchronization record to persist together with the library.
   final LibrarySyncState syncState;
@@ -126,15 +151,25 @@ List<StoryBook> mergeSyncedLibrary({
 /// Downloads the family's stories from the PC master library onto this device.
 ///
 /// One sync is a manifest, then the downloads that manifest justifies, then
-/// the report back to the PC. Nothing is written locally until all three
+/// the report back to the PC. No story is written locally until all three
 /// succeed, and stories are matched by their master-library identity, so
 /// running a sync twice cannot create a second copy of anything.
+///
+/// Page images are the one exception, and deliberately so: they are a cache of
+/// files the PC still holds, they are far too large to carry through the
+/// library transaction, and a picture that fails to arrive costs a page its
+/// artwork rather than a family their story. They are written as they arrive,
+/// individual failures are counted instead of thrown, and the next run simply
+/// asks for the ones that are still missing.
 class LibrarySync {
-  /// Creates a synchronization bound to one configured and paired client.
-  const LibrarySync({required this.client});
+  /// Creates a synchronization bound to one client and this device's cache.
+  const LibrarySync({required this.client, required this.store});
 
   /// Typed HTTP boundary to the PC bridge.
   final BridgeClient client;
+
+  /// Local page-image cache the finished pictures of synced stories land in.
+  final IllustrationStore store;
 
   /// Applies one manifest to the supplied local library and reports the result.
   Future<LibrarySyncOutcome> synchronize({
@@ -155,6 +190,7 @@ class LibrarySync {
     final downloadedStories = <StoryBook>[];
     var addedCount = 0;
     final pendingCounts = <String, int>{};
+    final wantedIllustrationIds = <String>{};
     for (final entry in manifest.stories) {
       if (deletedIds.contains(entry.id) || nextState.isDeclined(entry.id)) {
         continue;
@@ -172,6 +208,10 @@ class LibrarySync {
       if (localStory != null && removedStoryIds.contains(localStory.id)) {
         continue;
       }
+      // Everything past this point is a story this device is keeping, so its
+      // finished pictures are wanted — including for a story that is already
+      // here unchanged, because the PC may have drawn its pages since.
+      wantedIllustrationIds.addAll(entry.completedIllustrationIds);
       if (localStory != null && nextState.versionOf(entry.id) == null) {
         // This device generated the story: the book is already here, prose and
         // all, and it may still be a draft awaiting review on this device.
@@ -197,18 +237,26 @@ class LibrarySync {
       nextState = nextState.withStoryVersion(entry.id, entry.updatedAtUtc);
     }
 
+    final pictures = await IllustrationDownloader(
+      client: client,
+      store: store,
+    ).download(wantedIllustrationIds);
+
     final reportedMoment = await client.completeSync(
       manifestGeneratedAtUtc: manifest.generatedAtUtc,
     );
     return LibrarySyncOutcome(
       downloadedStories: List<StoryBook>.unmodifiable(downloadedStories),
       removedStoryIds: List<String>.unmodifiable(removedStoryIds),
+      savedIllustrationIds: pictures.savedIllustrationIds,
       syncState: nextState.withLastSyncedAt(reportedMoment),
       result: LibrarySyncResult(
         syncedAtUtc: reportedMoment,
         addedCount: addedCount,
         updatedCount: downloadedStories.length - addedCount,
         removedCount: removedStoryIds.length,
+        savedPictureCount: pictures.savedIllustrationIds.length,
+        failedPictureCount: pictures.failureCount,
         pendingProfiles: _pendingProfiles(manifest, pendingCounts),
       ),
     );

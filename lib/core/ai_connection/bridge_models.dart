@@ -307,6 +307,210 @@ class BridgeStoryPage {
   }
 }
 
+/// Stored reference photo of one child exactly as the PC recorded it.
+///
+/// The photo itself never comes back: the app already holds the bytes it sent,
+/// and the master library keeps its own copy on the PC. Only where the PC put
+/// it, what it decided the type was, and how large it is cross this boundary.
+class BridgeProfilePhoto {
+  /// Creates one validated `PUT /profiles/<id>/photo` answer.
+  const BridgeProfilePhoto({
+    required this.relativePath,
+    required this.contentType,
+    required this.sizeBytes,
+  });
+
+  /// Where the photo lives inside the PC master library folder.
+  final String relativePath;
+
+  /// Image type the bridge accepted the bytes as.
+  final String contentType;
+
+  /// Number of bytes the PC stored.
+  final int sizeBytes;
+
+  /// Validates the upload answer before the flow continues to rendering.
+  factory BridgeProfilePhoto.fromJson(Map<String, Object?> json) {
+    final relativePath = json['relativePath'];
+    final contentType = json['contentType'];
+    final sizeBytes = json['sizeBytes'];
+    if (relativePath is! String ||
+        relativePath.isEmpty ||
+        contentType is! String ||
+        contentType.isEmpty ||
+        sizeBytes is! int ||
+        sizeBytes <= 0) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgeProfilePhoto(
+      relativePath: relativePath,
+      contentType: contentType,
+      sizeBytes: sizeBytes,
+    );
+  }
+}
+
+/// Lifecycle of one illustration job as the bridge reports it.
+enum BridgeIllustrationJobStatus {
+  /// Accepted and waiting for the single renderer; reports a queue position.
+  queued,
+
+  /// The PC is drawing pages right now.
+  rendering,
+
+  /// The job finished, which does not by itself mean every page succeeded.
+  completed,
+
+  /// The job stopped without finishing; earlier pages may still exist.
+  failed,
+
+  /// The job stopped because this device asked the bridge to cancel it.
+  cancelled;
+
+  /// Whether this state can still change on the next poll.
+  bool get isRunning => this == queued || this == rendering;
+}
+
+/// Accepted illustration job identity plus how much work it queued.
+class BridgeIllustrationSubmission {
+  /// Creates the `202 Accepted` answer of `POST /stories/<id>/illustrate`.
+  const BridgeIllustrationSubmission({
+    required this.jobId,
+    required this.pageCount,
+    required this.queuePosition,
+  });
+
+  /// Identity used to poll and to cancel this job.
+  final String jobId;
+
+  /// Number of pages the PC is going to draw.
+  final int pageCount;
+
+  /// Place in line, where `1` means next or already starting.
+  final int queuePosition;
+
+  /// Validates the queued-job answer before any polling begins.
+  factory BridgeIllustrationSubmission.fromJson(Map<String, Object?> json) {
+    final jobId = json['jobId'];
+    final pageCount = json['pageCount'];
+    final queuePosition = json['queuePosition'];
+    if (jobId is! String ||
+        jobId.isEmpty ||
+        pageCount is! int ||
+        pageCount < 0 ||
+        (queuePosition != null && queuePosition is! int)) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgeIllustrationSubmission(
+      jobId: jobId,
+      pageCount: pageCount,
+      queuePosition: queuePosition as int? ?? 1,
+    );
+  }
+}
+
+/// One polled illustration job and how far the PC has come with it.
+class BridgeIllustrationJob {
+  /// Creates a snapshot of a validated `GET /illustrations/jobs/<id>` answer.
+  const BridgeIllustrationJob({
+    required this.jobId,
+    required this.storyId,
+    required this.status,
+    required this.pageCount,
+    required this.completedPageCount,
+    required this.failedPageCount,
+    this.queuePosition,
+    this.errorCode,
+  });
+
+  /// Identity of the polled job.
+  final String jobId;
+
+  /// Master-library story whose pages this job draws.
+  final String storyId;
+
+  /// Current lifecycle state on the PC.
+  final BridgeIllustrationJobStatus status;
+
+  /// Number of pages this job set out to draw.
+  final int pageCount;
+
+  /// Pages whose image file now exists on the PC.
+  final int completedPageCount;
+
+  /// Pages the PC tried and could not draw.
+  ///
+  /// A job reaches `completed` even when this is greater than zero, so every
+  /// surface reads it rather than assuming a finished job produced every page.
+  final int failedPageCount;
+
+  /// Place in line, present only while the job is still queued.
+  final int? queuePosition;
+
+  /// Typed bridge failure code, present only on a failed job.
+  final String? errorCode;
+
+  /// Whether this state can still change on the next poll.
+  bool get isRunning => status.isRunning;
+
+  /// Validates one illustration job answer before it drives a waiting screen.
+  factory BridgeIllustrationJob.fromJson(Map<String, Object?> json) {
+    final jobId = json['jobId'];
+    final storyId = json['storyId'];
+    final status = json['status'];
+    final queuePosition = json['queuePosition'];
+    if (jobId is! String ||
+        jobId.isEmpty ||
+        storyId is! String ||
+        storyId.isEmpty ||
+        status is! String ||
+        (queuePosition != null && queuePosition is! int)) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgeIllustrationJob(
+      jobId: jobId,
+      storyId: storyId,
+      status: _illustrationJobStatus(status),
+      pageCount: _requiredCount(json['pageCount']),
+      completedPageCount: _requiredCount(json['completedPageCount']),
+      failedPageCount: _requiredCount(json['failedPageCount']),
+      queuePosition: queuePosition as int?,
+      errorCode: _illustrationErrorCode(json['error']),
+    );
+  }
+}
+
+/// Decodes an illustration state this build can reason about, or refuses it.
+BridgeIllustrationJobStatus _illustrationJobStatus(String encodedStatus) {
+  try {
+    return BridgeIllustrationJobStatus.values.byName(encodedStatus);
+  } on ArgumentError {
+    throw const BridgeException(BridgeFailure.invalidResponse);
+  }
+}
+
+/// Requires one non-negative page count of an illustration job answer.
+int _requiredCount(Object? encodedCount) {
+  if (encodedCount is! int || encodedCount < 0) {
+    throw const BridgeException(BridgeFailure.invalidResponse);
+  }
+  return encodedCount;
+}
+
+/// Reads the typed code of a failed illustration job, whatever shape it took.
+///
+/// The contract states only that a failed job carries an `error`, so both a
+/// bare code and the bridge's usual `{code, message}` envelope are accepted.
+/// The English message is never read.
+String? _illustrationErrorCode(Object? encodedError) {
+  if (encodedError is String) {
+    return encodedError.isEmpty ? null : encodedError;
+  }
+  if (encodedError is! Map<String, Object?>) return null;
+  final code = encodedError['code'];
+  return code is String ? code : null;
+}
+
 /// Exact `POST /stories/generate` body accepted by the bridge.
 class BridgeStoryRequest {
   /// Creates the request payload after the app validated every field.

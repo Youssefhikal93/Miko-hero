@@ -4,6 +4,7 @@ import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/ai_connection/bridge_sync_models.dart';
 import 'package:miko_hero/core/ai_connection/library_sync.dart';
 import 'package:miko_hero/core/ai_connection/library_sync_state.dart';
+import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
@@ -149,6 +150,7 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
     final bridgeId = BridgeStoryProvenance.storyIdOf(story);
     if (bridgeId == null) throw const UnknownEntityException('bridge story');
     await ref.read(storyControllerProvider).deleteStory(storyId);
+    await _forgetCachedIllustrations(story);
     await _saveSyncState(current.syncState.withDeclinedStory(bridgeId));
   }
 
@@ -170,6 +172,7 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
     );
     final deletion = await client.deleteStoryEverywhere(bridgeId);
     await ref.read(storyControllerProvider).deleteStory(storyId);
+    await _forgetCachedIllustrations(story);
     await _saveSyncState(current.syncState.withoutStories(<String>{bridgeId}));
     return deletion;
   }
@@ -194,6 +197,7 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
               connection,
               ref.read(bridgeHttpClientProvider),
             ),
+            store: ref.read(illustrationStoreProvider),
           ).synchronize(
             syncState: current.syncState,
             localStories: appState.stories,
@@ -211,10 +215,11 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
   /// Persists one synchronization outcome as a single library transaction.
   Future<void> _applyOutcome(LibrarySyncOutcome outcome) async {
     final current = _currentState;
+    final removedStoryIds = outcome.removedStoryIds.toSet();
     final savedStories = mergeSyncedLibrary(
       localStories: current.stories,
       downloadedStories: outcome.downloadedStories,
-      removedStoryIds: outcome.removedStoryIds.toSet(),
+      removedStoryIds: removedStoryIds,
       localProfileIds: current.profiles.map((profile) => profile.id).toSet(),
     );
     final repository = await ref.read(localRepositoryProvider.future);
@@ -226,6 +231,29 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
     for (final storyId in outcome.removedStoryIds) {
       await ref.read(profileControllerProvider).forgetFinishedStory(storyId);
     }
+    for (final story in current.stories) {
+      if (removedStoryIds.contains(story.id)) {
+        await _forgetCachedIllustrations(story);
+      }
+    }
+    invalidateCachedIllustrations(ref, outcome.savedIllustrationIds);
+  }
+
+  /// Drops one story's cached page images and repaints anything showing them.
+  ///
+  /// A cache miss is not a failure worth surfacing: the story is already gone
+  /// from this device either way, and the leftover file would be replaced or
+  /// cleared the next time the family asks for anything.
+  Future<void> _forgetCachedIllustrations(StoryBook story) async {
+    final illustrationIds = BridgeStoryProvenance.illustrationIdsOf(story);
+    if (illustrationIds.isEmpty) return;
+    try {
+      await ref.read(illustrationStoreProvider).removeForStory(illustrationIds);
+    } on Exception {
+      // The book is gone regardless, so an unwritable or unavailable cache is
+      // not worth failing a deletion the parent already asked for.
+    }
+    invalidateCachedIllustrations(ref, illustrationIds);
   }
 
   /// Persists the synchronization record and publishes it once stored.
