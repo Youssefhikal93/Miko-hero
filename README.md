@@ -71,8 +71,10 @@ the source tree lives in [Codebase map](docs/CODEBASE.md).
 `LocalRepository` stores the interface locale, profiles, each profile's
 Girl/Boy choice, theme color, kingdom decoration, reading comfort and finished-story
 badges, the active profile, base64-encoded reference photos, and story JSON through
-`shared_preferences`. The app contains no network
-client and sends no profile or story content to an external service.
+`shared_preferences`; downloaded page illustrations live in files (or IndexedDB
+on the web). The app's only network client talks to the family's own PC bridge
+on the home network: the child's reference photo travels only there, and no
+profile or story content is ever sent to an external service.
 
 Local app storage is not an encrypted vault. It relies on the operating system
 and device account for access control. The optional parent PIN is an app-level
@@ -124,8 +126,9 @@ sample prose and gender-colored gradient placeholders. Every placeholder cover
 and page displays a demo label. It does not call an LLM or image model and must
 not be presented as AI output.
 
-`StoryGenerator` is the application boundary that a later local adapter will
-implement. Screens depend on that boundary rather than Ollama or ComfyUI APIs.
+`StoryGenerator` is the application boundary both generators implement: the
+demo generator and the local AI generator that talks to the PC bridge. Screens
+depend on that boundary rather than on Ollama or ComfyUI APIs directly.
 
 ## Project structure
 
@@ -231,3 +234,30 @@ release keystore before any store distribution.
   and is off again the next time a story is opened.
 - The Flutter TTS web plugin currently prevents a WebAssembly build; the
   standard JavaScript web release compiles successfully.
+
+## Deployment
+
+Every push to `main` runs the GitHub Actions workflow in
+[`.github/workflows/web-deploy.yml`](.github/workflows/web-deploy.yml):
+
+1. **Build and test** — `flutter analyze`, the full app test suite, the bridge
+   package's analyzer and tests, and a `flutter build web --release`. The
+   built site is kept as a workflow artifact for 7 days.
+2. **Deploy** — the same build is published to Vercel production. This step
+   runs only when the repository has the three Vercel secrets configured
+   under *Settings → Secrets and variables → Actions*: `VERCEL_TOKEN`,
+   `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`. Without them the deploy is
+   skipped and the workflow still verifies the push.
+
+So publishing an update is exactly one command:
+
+```
+git push origin main
+```
+
+Privacy note: the deployed site is static files only. Profiles, photos,
+stories, and pictures live in each browser's local storage and IndexedDB;
+nothing is uploaded to the hosting service. The PC bridge stays on the private
+home network — a hosted page can reach it only on the PC itself (`localhost`
+is exempt from mixed-content rules); phones on the LAN use the app served from
+the bridge's own network instead.

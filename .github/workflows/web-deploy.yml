@@ -32,6 +32,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # Pinned to the version the app is developed and tested with, so a
+          # Flutter release cannot silently change what a push deploys.
+          flutter-version: 3.44.9
           cache: true
 
       - name: Flutter analyze
