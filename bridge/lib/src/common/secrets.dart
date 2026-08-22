@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
@@ -11,13 +12,24 @@ String sha256Hex(String value) {
   return sha256.convert(utf8.encode(value)).toString();
 }
 
+/// Generates [count] cryptographically secure random bytes.
+///
+/// The single source of randomness in the bridge: bearer tokens, backup salts
+/// and backup nonces all come from here.
+Uint8List secureRandomBytes(int count) {
+  final Random secureRandom = Random.secure();
+  final bytes = Uint8List(count);
+  for (var i = 0; i < count; i++) {
+    bytes[i] = secureRandom.nextInt(256);
+  }
+  return bytes;
+}
+
 /// Generates a cryptographically secure URL-safe bearer token.
 ///
 /// The token carries [bytes] random bytes (default: 256 bits of entropy).
 String generateDeviceToken({int bytes = deviceTokenBytes}) {
-  final Random secureRandom = Random.secure();
-  final values = List<int>.generate(bytes, (_) => secureRandom.nextInt(256));
-  return base64UrlEncode(values).replaceAll('=', '');
+  return base64UrlEncode(secureRandomBytes(bytes)).replaceAll('=', '');
 }
 
 /// Compares two byte lists in constant time.

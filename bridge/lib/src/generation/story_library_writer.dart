@@ -78,13 +78,14 @@ class StoryLibraryWriter {
         for (final page in pages) {
           db.execute(
             'INSERT INTO story_pages '
-            '(id, story_id, page_index, prose, created_at_utc, '
-            'updated_at_utc) VALUES (?, ?, ?, ?, ?, ?)',
+            '(id, story_id, page_index, prose, scene_description, '
+            'created_at_utc, updated_at_utc) VALUES (?, ?, ?, ?, ?, ?, ?)',
             <Object?>[
               page.id,
               storyId,
               page.pageNumber - 1,
               page.text,
+              page.illustrationScene,
               stamp,
               stamp,
             ],
@@ -121,6 +122,7 @@ class StoryLibraryWriter {
       title: draft.title,
       languageCode: request.language.code,
       createdAtUtc: timestamp,
+      updatedAtUtc: timestamp,
       pages: List<GeneratedStoryPage>.unmodifiable(pages),
     );
   }

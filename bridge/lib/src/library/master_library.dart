@@ -36,7 +36,7 @@ class MasterLibrary {
   MasterLibrary({required this.rootPath});
 
   /// Schema version implemented by this build of the bridge.
-  static const int currentSchemaVersion = 1;
+  static const int currentSchemaVersion = 2;
 
   /// Absolute or relative root folder of this library.
   final String rootPath;
@@ -72,8 +72,10 @@ class MasterLibrary {
   ///
   /// Safe to call repeatedly: existing folders are kept and already-applied
   /// schema versions are skipped, so a second startup on an initialized
-  /// library changes nothing. Throws when folders cannot be created, the
-  /// database cannot be opened, or its schema is newer than supported.
+  /// library changes nothing. Migration is stepped, so a library created by
+  /// an older build is upgraded in place without losing rows. Throws when
+  /// folders cannot be created, the database cannot be opened, or its schema
+  /// is newer than supported.
   Future<void> initialize() async {
     _database?.dispose();
     _database = null;
@@ -121,9 +123,17 @@ class MasterLibrary {
       if (currentVersion == currentSchemaVersion) {
         return;
       }
-      for (final statement in schemaV1Statements) {
-        db.execute(statement);
+      for (final step in schemaSteps.entries) {
+        if (step.key <= currentVersion) {
+          continue;
+        }
+        for (final statement in step.value) {
+          db.execute(statement);
+        }
       }
+      // One row always describes the schema actually on disk, so a migrated
+      // library is indistinguishable from a freshly created one.
+      db.execute('DELETE FROM schema_version');
       db.execute(
         'INSERT INTO schema_version (version, applied_at_utc) VALUES (?, ?)',
         <Object?>[currentSchemaVersion, appliedAt],
@@ -131,6 +141,15 @@ class MasterLibrary {
     });
   }
 }
+
+/// DDL of every schema version, keyed by the version it produces.
+///
+/// Applied in ascending key order, skipping versions a library already has,
+/// which is what makes migration of an existing library additive.
+const Map<int, List<String>> schemaSteps = <int, List<String>>{
+  1: schemaV1Statements,
+  2: schemaV2Statements,
+};
 
 /// Ordered DDL statements that build schema version 1.
 ///
@@ -201,5 +220,19 @@ const List<String> schemaV1Statements = <String>[
     last_synced_at_utc TEXT,
     updated_at_utc TEXT NOT NULL
   )
+  ''',
+];
+
+/// Ordered DDL statements that upgrade schema version 1 to version 2.
+///
+/// Version 2 adds the English scene description a page was generated with.
+/// It was previously returned to the generating device and then dropped, so a
+/// second device downloading the same story through `/sync` could not see it;
+/// the illustration milestone needs it on every device. Additive and
+/// defaulted, so migrating an existing library keeps every stored row.
+const List<String> schemaV2Statements = <String>[
+  '''
+  ALTER TABLE story_pages
+    ADD COLUMN scene_description TEXT NOT NULL DEFAULT ''
   ''',
 ];

@@ -41,6 +41,9 @@ abstract final class ApiErrorCode {
   /// No generation job with this id belongs to the calling device.
   static const String jobNotFound = 'job_not_found';
 
+  /// No story with this id exists in the master library.
+  static const String storyNotFound = 'story_not_found';
+
   /// Unexpected server-side failure.
   static const String internalError = 'internal_error';
 }

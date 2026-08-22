@@ -3,13 +3,20 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:iam_hero_bridge/src/common/atomic_files.dart';
+import 'package:iam_hero_bridge/src/common/paths.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
+import 'package:iam_hero_bridge/src/generation/generated_story.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
+import 'package:iam_hero_bridge/src/generation/story_draft.dart';
+import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
+import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/app_server.dart';
 import 'package:shelf/shelf.dart';
+import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
 /// A fake [ProbeHttpClient] whose behavior is fully scripted per test.
@@ -296,4 +303,113 @@ Future<String> pairDevice(
 /// Authorization header carrying [token].
 Map<String, String> authHeaders(String token) {
   return <String, String>{'authorization': 'Bearer $token'};
+}
+
+/// Creates and initializes a second, independent temporary library.
+///
+/// Used by the backup tests, which need a restore target that shares nothing
+/// with the library the backup came from.
+Future<MasterLibrary> createTempLibrary() async {
+  final root = await createTempRoot();
+  final library = MasterLibrary(
+    rootPath: '${root.path}${Platform.pathSeparator}library',
+  );
+  await library.initialize();
+  addTearDown(library.close);
+  return library;
+}
+
+/// Writes one complete story straight into [library] and returns it.
+///
+/// Uses the production [StoryLibraryWriter], so the rows are exactly the ones
+/// generation would have produced; only the model call is skipped.
+GeneratedStory seedStory(
+  MasterLibrary library, {
+  String profileId = 'profile-1',
+  String heroName = 'Nour',
+  String title = 'A Lantern by the Sea',
+  StoryLanguage language = StoryLanguage.english,
+  int pageCount = 2,
+  String prosePrefix = 'Distinctive page prose ',
+  String scenePrefix = 'A harbour at dusk, page ',
+  DateTime? writtenAtUtc,
+}) {
+  final writer = StoryLibraryWriter(library: library);
+  return writer.writeStory(
+    request: StoryGenerationRequest(
+      profileId: profileId,
+      heroName: heroName,
+      ageYears: 6,
+      gender: StoryGenderContext.girl,
+      language: language,
+      theme: 'A lantern festival by the sea',
+      moral: 'Sharing a small light makes it bigger',
+      pageCount: pageCount,
+      illustrationStyle: StoryIllustrationStyle.pictureBook,
+    ),
+    draft: StoryDraft(
+      title: title,
+      pages: List<StoryDraftPage>.generate(
+        pageCount,
+        (index) => StoryDraftPage(
+          pageNumber: index + 1,
+          text: '$prosePrefix${index + 1}',
+          illustrationScene: '$scenePrefix${index + 1}',
+        ),
+        growable: false,
+      ),
+    ),
+    nowUtc: writtenAtUtc ?? DateTime.now().toUtc(),
+  );
+}
+
+/// Writes [bytes] to [relativePath] inside [library] and returns the file.
+Future<File> writeLibraryFile(
+  MasterLibrary library,
+  String relativePath,
+  List<int> bytes,
+) {
+  return writeFileAtomic(
+    joinPath(library.rootPath, toPlatformRelativePath(relativePath)),
+    bytes,
+  );
+}
+
+/// Reads every row of [table] from [library] as plain maps.
+///
+/// Sorted by encoded content so two libraries can be compared row by row
+/// without depending on physical row order.
+List<Map<String, Object?>> dumpTable(MasterLibrary library, String table) {
+  final ResultSet rows = library.database.select('SELECT * FROM $table');
+  final dumped = rows
+      .map(
+        (row) => <String, Object?>{
+          for (final column in row.keys) column: row[column],
+        },
+      )
+      .toList();
+  dumped.sort((a, b) => jsonEncode(a).compareTo(jsonEncode(b)));
+  return List<Map<String, Object?>>.unmodifiable(dumped);
+}
+
+/// Reads every library-relative file path under [roots], sorted.
+Future<List<String>> listLibraryFiles(
+  MasterLibrary library, {
+  Set<String> roots = const <String>{'photos', 'illustrations'},
+}) async {
+  final prefix = joinPath(library.rootPath, '');
+  final paths = <String>[];
+  for (final root in roots) {
+    final directory = Directory(joinPath(library.rootPath, root));
+    if (!directory.existsSync()) {
+      continue;
+    }
+    await for (final entity in directory.list(recursive: true)) {
+      if (entity is File) {
+        paths.add(entity.path.substring(prefix.length).replaceAll(r'\', '/'));
+      }
+    }
+  }
+  paths.sort();
+  return paths;
 }

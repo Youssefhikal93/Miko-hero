@@ -67,6 +67,22 @@ PairedDevice? authenticatedDevice(Map<String, Object?> context) {
   return device is PairedDevice ? device : null;
 }
 
+/// Reads the authenticated device of [request] or raises a typed `401`.
+///
+/// Handlers behind [requireDeviceAuth] always have one; this exists so a
+/// handler never has to treat "somehow unauthenticated" as a success path.
+PairedDevice requireAuthenticatedDevice(Request request) {
+  final device = authenticatedDevice(request.context);
+  if (device == null) {
+    throw ApiError(
+      401,
+      ApiErrorCode.unauthorized,
+      'A valid device bearer token is required.',
+    );
+  }
+  return device;
+}
+
 /// Parses one JSON object request body, raising typed errors otherwise.
 Future<Map<String, Object?>> parseJsonObjectBody(Request request) async {
   final Uint8List rawBytes;
@@ -140,4 +156,21 @@ String requiredStringField(
     );
   }
   return value.trim();
+}
+
+/// Reads a required ISO-8601 timestamp field and returns it in UTC.
+DateTime requiredUtcTimestampField(
+  Map<String, Object?> body,
+  String fieldName,
+) {
+  final value = body[fieldName];
+  final DateTime? parsed = value is String ? DateTime.tryParse(value) : null;
+  if (parsed == null) {
+    throw ApiError(
+      400,
+      ApiErrorCode.invalidField,
+      'Field "$fieldName" must be an ISO-8601 timestamp.',
+    );
+  }
+  return parsed.toUtc();
 }

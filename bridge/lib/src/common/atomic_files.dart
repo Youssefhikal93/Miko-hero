@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+int _temporaryFileCounter = 0;
+
 /// Writes [bytes] to [path] atomically: the payload is fully written to a
 /// temporary sibling file which is then renamed over [path].
 ///
@@ -11,11 +13,36 @@ import 'dart:io';
 ///
 /// Returns the resulting [File] at [path].
 Future<File> writeFileAtomic(String path, List<int> bytes) async {
-  final target = File(path);
+  final File temp = await writeTemporarySibling(path, bytes);
+  try {
+    return await replaceWithTemporaryFile(temp, path);
+  } catch (_) {
+    await deleteTemporaryFile(temp);
+    rethrow;
+  }
+}
+
+/// Writes [contents] encoded as UTF-8 to [path] atomically.
+///
+/// See [writeFileAtomic] for the exact durability guarantees.
+Future<File> writeStringAtomic(String path, String contents) async {
+  return writeFileAtomic(path, utf8.encode(contents));
+}
+
+/// Writes [bytes] into a fresh temporary sibling of [targetPath] and returns
+/// it, leaving [targetPath] itself untouched.
+///
+/// This is the first half of [writeFileAtomic], split out so a caller that
+/// swaps many files at once can stage every one of them before committing
+/// any: a failure while staging changes nothing. Finish with
+/// [replaceWithTemporaryFile], or discard with [deleteTemporaryFile].
+Future<File> writeTemporarySibling(String targetPath, List<int> bytes) async {
+  final target = File(targetPath);
   await target.parent.create(recursive: true);
-  final tempPath =
-      '${target.path}.tmp-${DateTime.now().microsecondsSinceEpoch}';
-  final temp = File(tempPath);
+  final serial = _temporaryFileCounter++;
+  final temp = File(
+    '${target.path}.tmp-${DateTime.now().microsecondsSinceEpoch}-$serial',
+  );
   IOSink? sink;
   try {
     sink = temp.openWrite();
@@ -23,24 +50,9 @@ Future<File> writeFileAtomic(String path, List<int> bytes) async {
     await sink.flush();
     await sink.close();
     sink = null;
-    try {
-      await temp.rename(target.path);
-    } on FileSystemException {
-      // Windows refuses to rename onto an existing file; replace it instead.
-      if (await target.exists()) {
-        await target.delete();
-      }
-      await temp.rename(target.path);
-    }
-    return target;
+    return temp;
   } catch (_) {
-    try {
-      if (await temp.exists()) {
-        await temp.delete();
-      }
-    } on FileSystemException {
-      // Best-effort cleanup only; surface the original error below.
-    }
+    await deleteTemporaryFile(temp);
     rethrow;
   } finally {
     if (sink != null) {
@@ -53,9 +65,27 @@ Future<File> writeFileAtomic(String path, List<int> bytes) async {
   }
 }
 
-/// Writes [contents] encoded as UTF-8 to [path] atomically.
-///
-/// See [writeFileAtomic] for the exact durability guarantees.
-Future<File> writeStringAtomic(String path, String contents) async {
-  return writeFileAtomic(path, utf8.encode(contents));
+/// Renames [temporary] over [targetPath], replacing an existing target.
+Future<File> replaceWithTemporaryFile(File temporary, String targetPath) async {
+  final target = File(targetPath);
+  try {
+    return await temporary.rename(target.path);
+  } on FileSystemException {
+    // Windows refuses to rename onto an existing file; replace it instead.
+    if (await target.exists()) {
+      await target.delete();
+    }
+    return temporary.rename(target.path);
+  }
+}
+
+/// Removes a staged temporary file, ignoring a failed cleanup.
+Future<void> deleteTemporaryFile(File temporary) async {
+  try {
+    if (await temporary.exists()) {
+      await temporary.delete();
+    }
+  } on FileSystemException {
+    // Best-effort cleanup only; the caller's original error must win.
+  }
 }

@@ -1,7 +1,6 @@
 import 'package:iam_hero_bridge/src/generation/generation_job.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
-import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
 import 'package:iam_hero_bridge/src/server/auth_middleware.dart';
 import 'package:shelf/shelf.dart';
@@ -18,7 +17,7 @@ class GenerationHandlers {
 
   /// Handles `POST /stories/generate`.
   Future<Response> createJob(Request request) async {
-    final device = _requireDevice(request);
+    final device = requireAuthenticatedDevice(request);
     final body = await parseJsonObjectBody(request);
     final StoryGenerationRequest generationRequest;
     try {
@@ -56,7 +55,7 @@ class GenerationHandlers {
   }
 
   GenerationJob _requireOwnJob(Request request, String jobId) {
-    final device = _requireDevice(request);
+    final device = requireAuthenticatedDevice(request);
     final job = _queue.job(jobId);
     if (job == null || job.deviceId != device.id) {
       throw ApiError(
@@ -66,17 +65,5 @@ class GenerationHandlers {
       );
     }
     return job;
-  }
-
-  PairedDevice _requireDevice(Request request) {
-    final device = authenticatedDevice(request.context);
-    if (device == null) {
-      throw ApiError(
-        401,
-        ApiErrorCode.unauthorized,
-        'A valid device bearer token is required.',
-      );
-    }
-    return device;
   }
 }

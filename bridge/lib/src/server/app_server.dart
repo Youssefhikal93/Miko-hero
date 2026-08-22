@@ -1,22 +1,28 @@
 import 'dart:io';
 
+import 'package:iam_hero_bridge/src/backup/library_backup_service.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
 import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
+import 'package:iam_hero_bridge/src/library/story_deleter.dart';
 import 'package:iam_hero_bridge/src/pairing/pairing_service.dart';
 import 'package:iam_hero_bridge/src/probes/health_probes.dart';
 import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
 import 'package:iam_hero_bridge/src/server/auth_middleware.dart';
+import 'package:iam_hero_bridge/src/server/backup_handlers.dart';
 import 'package:iam_hero_bridge/src/server/cors_middleware.dart';
 import 'package:iam_hero_bridge/src/server/devices_handler.dart';
 import 'package:iam_hero_bridge/src/server/generation_handlers.dart';
 import 'package:iam_hero_bridge/src/server/health_handler.dart';
 import 'package:iam_hero_bridge/src/server/pairing_handlers.dart';
 import 'package:iam_hero_bridge/src/server/request_limits.dart';
+import 'package:iam_hero_bridge/src/server/sync_handlers.dart';
+import 'package:iam_hero_bridge/src/sync/sync_reader.dart';
+import 'package:iam_hero_bridge/src/sync/sync_state_store.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -32,7 +38,8 @@ import 'package:uuid/uuid.dart';
 /// 3. per-request timeout,
 /// 4. request body size limit,
 /// 5. routing: public endpoints (`/health`, `/pair/*`) bypass auth; every
-///    other endpoint sits behind [requireDeviceAuth].
+///    other endpoint sits behind [requireDeviceAuth] — story generation,
+///    synchronization, deletion and master-library backup included.
 class AppServer {
   /// Creates a server for [config] over an initialized [library].
   ///
@@ -76,6 +83,14 @@ class AppServer {
     );
     _devicesHandler = DevicesHandler(deviceStore: deviceStore);
     _generationHandlers = GenerationHandlers(queue: generationQueue);
+    _syncHandlers = SyncHandlers(
+      reader: SyncReader(library: library),
+      stateStore: SyncStateStore(library: library),
+      deleter: StoryDeleter(library: library, uuid: uuid),
+    );
+    _backupHandlers = BackupHandlers(
+      service: LibraryBackupService(library: library),
+    );
   }
 
   /// Runtime configuration this server was built from.
@@ -98,6 +113,8 @@ class AppServer {
   late final PairingHandlers _pairingHandlers;
   late final DevicesHandler _devicesHandler;
   late final GenerationHandlers _generationHandlers;
+  late final SyncHandlers _syncHandlers;
+  late final BackupHandlers _backupHandlers;
 
   /// Builds the fully wired request handler without binding a socket.
   ///
@@ -119,7 +136,13 @@ class AppServer {
                 ..post(
                   '/stories/jobs/<jobId>/cancel',
                   _generationHandlers.cancelJob,
-                ))
+                )
+                ..post('/stories/<storyId>/delete', _syncHandlers.deleteStory)
+                ..get('/sync/manifest', _syncHandlers.readManifest)
+                ..get('/sync/stories/<storyId>', _syncHandlers.downloadStory)
+                ..post('/sync/complete', _syncHandlers.completeSync)
+                ..post('/library/backup', _backupHandlers.createBackup)
+                ..post('/library/restore', _backupHandlers.restoreBackup))
               .call,
         );
 

@@ -64,6 +64,7 @@ class GeneratedStory {
     required this.title,
     required this.languageCode,
     required this.createdAtUtc,
+    required this.updatedAtUtc,
     required this.pages,
   });
 
@@ -82,6 +83,12 @@ class GeneratedStory {
   /// When the story was written to the library.
   final DateTime createdAtUtc;
 
+  /// When the story last changed.
+  ///
+  /// Equal to [createdAtUtc] for a freshly generated story. Devices compare
+  /// this against the copy they hold to decide what to download again.
+  final DateTime updatedAtUtc;
+
   /// Ordered pages, one per requested page.
   final List<GeneratedStoryPage> pages;
 
@@ -93,6 +100,7 @@ class GeneratedStory {
       'title': title,
       'languageCode': languageCode,
       'createdAtUtc': createdAtUtc.toIso8601String(),
+      'updatedAtUtc': updatedAtUtc.toIso8601String(),
       'pages': pages.map((page) => page.toJson()).toList(growable: false),
     };
   }
