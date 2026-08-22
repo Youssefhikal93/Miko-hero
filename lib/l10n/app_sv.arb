@@ -100,7 +100,7 @@
   "deleteAllBody": "Alla profiler, foton och berättelser tas bort permanent från enheten.",
   "allDataDeleted": "All lokal data togs bort",
   "aboutTitle": "Om Iam - hero",
-  "aboutBody": "En privat familjebilderbok. Berättelserna skrivs av en lokal Ollama-modell på din egen dator; ComfyUI-illustrationer kommer i en senare fas.",
+  "aboutBody": "En privat familjebilderbok. Berättelserna skrivs av en lokal Ollama-modell och bilderna ritas av ComfyUI, båda på din egen dator.",
   "english": "Engelska",
   "arabic": "Arabiska",
   "swedish": "Svenska",

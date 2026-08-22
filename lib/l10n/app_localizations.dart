@@ -705,7 +705,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutBody.
   ///
   /// In en, this message translates to:
-  /// **'A private family storybook. Stories are written by a local Ollama model on your own PC; ComfyUI illustrations follow in a later phase.'**
+  /// **'A private family storybook. Stories are written by a local Ollama model and pictures are drawn by ComfyUI, both on your own PC.'**
   String get aboutBody;
 
   /// No description provided for @english.

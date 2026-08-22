@@ -330,7 +330,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'A private family storybook. Stories are written by a local Ollama model on your own PC; ComfyUI illustrations follow in a later phase.';
+      'A private family storybook. Stories are written by a local Ollama model and pictures are drawn by ComfyUI, both on your own PC.';
 
   @override
   String get english => 'English';

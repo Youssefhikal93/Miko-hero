@@ -330,7 +330,7 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'Buug sheeko qoys oo gaar ah. Sheekooyinka waxaa qora moodel Ollama ah oo PC-gaaga ku shaqeeya; sawirrada ComfyUI ayaa marxalad dambe imanaya.';
+      'Buug sheeko qoys oo gaar ah. Sheekooyinka waxaa qora moodel Ollama ah, sawirradana waxaa sawira ComfyUI, labaduba PC-gaaga ayay ku shaqeeyaan.';
 
   @override
   String get english => 'Ingiriisi';

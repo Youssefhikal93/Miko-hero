@@ -4,11 +4,14 @@ Iam - hero is a private Flutter storybook for one parent and multiple children.
 It runs without accounts, payments, analytics, advertising, or a required cloud
 service.
 
-The current application provides the complete local user flow while clearly
-labeling generated books as demo content. Ollama and ComfyUI are intentionally
-not connected yet; their integration boundary is documented in
-[Local AI integration](docs/LOCAL_AI_INTEGRATION.md). A file-by-file map of the
-source tree lives in [Codebase map](docs/CODEBASE.md).
+Stories are written by a local Ollama model and page illustrations are drawn
+by a local ComfyUI, both running on the family's own PC and reached over the
+home network through the bridge in [`bridge/`](bridge/README.md). Devices pair
+with a one-time console code, synchronize the shared library, and keep read
+stories and pictures offline. An offline demo generator remains available and
+its books are clearly labeled as demo content. The integration is documented
+in [Local AI integration](docs/LOCAL_AI_INTEGRATION.md); a file-by-file map of
+the source tree lives in [Codebase map](docs/CODEBASE.md).
 
 ## Current features
 
@@ -202,10 +205,13 @@ release keystore before any store distribution.
 
 ## Known limitations
 
-- Cover and page illustrations are demo placeholders until local ComfyUI work.
-- Stories use sample templates until the local Ollama adapter is implemented.
-- Safety-topic exclusions are stored and displayed but are only enforced once
-  local AI generation is connected; the demo generator is inherently safe.
+- Demo stories keep gradient placeholder art; only stories from the PC library
+  get real ComfyUI illustrations, and each page takes minutes to render on a
+  home GPU.
+- Face likeness from the reference photo is "recognizably similar", not
+  photographic — a 4 GB GPU runs SD 1.5 with a face adapter, nothing larger.
+- Somali story generation is noticeably weaker than the other three languages
+  with the current local model; the parent review step matters most there.
 - PIN hashing and backup encryption run on a background isolate on Android, iOS,
   and desktop. Flutter web has no isolates, so `compute` runs inline there and
   the interface still pauses briefly during those actions.
@@ -215,8 +221,9 @@ release keystore before any store distribution.
   speech engines insert a short gap between sentences, and resuming after a
   pause repeats the paused sentence from its beginning rather than relying on
   platform pause support.
-- Stories and profiles do not sync automatically; moving them requires a manual
-  encrypted backup, or a single encrypted story file, and its separate password.
+- Library sync requires the PC bridge to be running and reachable on the home
+  network; profiles themselves move between devices via the encrypted backup
+  or a single encrypted story file, each with its own password.
 - The easy-reading font covers Latin script only. Arabic story prose keeps the
   interface font, and PDF export always uses the bundled Noto fonts regardless of
   the setting.

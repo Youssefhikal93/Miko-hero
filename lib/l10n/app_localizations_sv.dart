@@ -329,7 +329,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'En privat familjebilderbok. Berättelserna skrivs av en lokal Ollama-modell på din egen dator; ComfyUI-illustrationer kommer i en senare fas.';
+      'En privat familjebilderbok. Berättelserna skrivs av en lokal Ollama-modell och bilderna ritas av ComfyUI, båda på din egen dator.';
 
   @override
   String get english => 'Engelska';

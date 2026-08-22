@@ -108,7 +108,7 @@
   "deleteAllBody": "All profiles, photos, and stories will be permanently deleted from this device.",
   "allDataDeleted": "All local data was deleted",
   "aboutTitle": "About Iam - hero",
-  "aboutBody": "A private family storybook. Stories are written by a local Ollama model on your own PC; ComfyUI illustrations follow in a later phase.",
+  "aboutBody": "A private family storybook. Stories are written by a local Ollama model and pictures are drawn by ComfyUI, both on your own PC.",
   "english": "English",
   "arabic": "Arabic",
   "swedish": "Swedish",

@@ -323,7 +323,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'كتاب قصص عائلي خاص. تُكتب القصص بنموذج Ollama محلي على كمبيوترك، وستأتي رسومات ComfyUI في مرحلة لاحقة.';
+      'كتاب قصص عائلي خاص. تُكتب القصص بنموذج Ollama محلي وتُرسم الصور بواسطة ComfyUI، وكلاهما على كمبيوترك.';
 
   @override
   String get english => 'الإنجليزية';
