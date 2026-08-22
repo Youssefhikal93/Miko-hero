@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:miko_hero/app/app_theme.dart';
+import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
@@ -168,8 +169,10 @@ class StoryCover extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _demoBadge(context),
-                const SizedBox(height: 10),
+                if (!BridgeStoryProvenance.marksStory(story)) ...<Widget>[
+                  _demoBadge(context),
+                  const SizedBox(height: 10),
+                ],
                 Text(
                   story.content.title,
                   maxLines: 2,
@@ -189,7 +192,10 @@ class StoryCover extends StatelessWidget {
     );
   }
 
-  /// Labels placeholder art so it cannot be mistaken for AI output.
+  /// Labels demo stories so sample content cannot pass as AI output.
+  ///
+  /// Bridge-generated stories carry no badge: their text is real AI output
+  /// even while the artwork is still the placeholder gradient.
   Widget _demoBadge(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

@@ -495,7 +495,7 @@ abstract class AppLocalizations {
   /// No description provided for @demoModeNotice.
   ///
   /// In en, this message translates to:
-  /// **'Local AI is not connected yet. Demo mode creates a clearly marked sample story so the complete app flow can be tested for free.'**
+  /// **'Demo mode creates a clearly marked sample story with no PC and no AI. Switch the story generator to Local AI in settings to write on your family PC.'**
   String get demoModeNotice;
 
   /// No description provided for @profileNeeded.
@@ -705,7 +705,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutBody.
   ///
   /// In en, this message translates to:
-  /// **'A private family storybook. Local Ollama and ComfyUI connections will be added in a later phase.'**
+  /// **'A private family storybook. Stories are written by a local Ollama model on your own PC; ComfyUI illustrations follow in a later phase.'**
   String get aboutBody;
 
   /// No description provided for @english.
@@ -1575,7 +1575,7 @@ abstract class AppLocalizations {
   /// No description provided for @pcRequirementStatus.
   ///
   /// In en, this message translates to:
-  /// **'The demo works with the PC off. After local AI is connected later, the PC and its models must be running for new AI stories; saved books still open offline.'**
+  /// **'The demo works with the PC switched off. Local AI stories need the PC, its bridge, and its model running; saved books always open offline.'**
   String get pcRequirementStatus;
 
   /// No description provided for @generationQueued.
@@ -2225,6 +2225,336 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This story file was created by a newer version of the app.'**
   String get storyFileNewerVersion;
+
+  /// No description provided for @aiConnectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI connection'**
+  String get aiConnectionTitle;
+
+  /// No description provided for @aiConnectionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose whether new stories come from the offline sample or from the AI running on your own family PC.'**
+  String get aiConnectionBody;
+
+  /// No description provided for @aiConnectionParentNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'These controls are for parents only. Children never see the PC address or the pairing.'**
+  String get aiConnectionParentNotice;
+
+  /// No description provided for @storyGeneratorMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Story generator'**
+  String get storyGeneratorMode;
+
+  /// No description provided for @demoGeneratorMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo · offline sample'**
+  String get demoGeneratorMode;
+
+  /// No description provided for @localAiGeneratorMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Local AI on the PC'**
+  String get localAiGeneratorMode;
+
+  /// No description provided for @storyGeneratorModeSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Story generator updated'**
+  String get storyGeneratorModeSaved;
+
+  /// No description provided for @bridgeAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'PC bridge address'**
+  String get bridgeAddress;
+
+  /// No description provided for @bridgeAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'http://127.0.0.1:8765'**
+  String get bridgeAddressHint;
+
+  /// No description provided for @bridgeAddressInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a full address, for example http://192.168.1.20:8765.'**
+  String get bridgeAddressInvalid;
+
+  /// No description provided for @saveBridgeAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Save address'**
+  String get saveBridgeAddress;
+
+  /// No description provided for @bridgeAddressSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'PC bridge address saved'**
+  String get bridgeAddressSaved;
+
+  /// No description provided for @testBridgeConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get testBridgeConnection;
+
+  /// No description provided for @bridgeReachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC bridge answered. Version {version}.'**
+  String bridgeReachable(String version);
+
+  /// No description provided for @bridgeStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get bridgeStatusReady;
+
+  /// No description provided for @bridgeStatusUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get bridgeStatusUnavailable;
+
+  /// No description provided for @bridgeLibraryStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'PC story library'**
+  String get bridgeLibraryStatus;
+
+  /// No description provided for @pairWithPc.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair with PC'**
+  String get pairWithPc;
+
+  /// No description provided for @pairDeviceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair this device'**
+  String get pairDeviceTitle;
+
+  /// No description provided for @pairDeviceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Look at the PC screen: it shows a 6-digit code for two minutes. Type that code here together with a name for this device.'**
+  String get pairDeviceBody;
+
+  /// No description provided for @pairingCode.
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit code from the PC'**
+  String get pairingCode;
+
+  /// No description provided for @pairingCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6 digits shown on the PC.'**
+  String get pairingCodeInvalid;
+
+  /// No description provided for @pairedDeviceNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name for this device'**
+  String get pairedDeviceNameLabel;
+
+  /// No description provided for @pairedDeviceNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Family tablet'**
+  String get pairedDeviceNameHint;
+
+  /// No description provided for @pairedDeviceNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name of up to {max} characters.'**
+  String pairedDeviceNameInvalid(int max);
+
+  /// No description provided for @confirmPairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair device'**
+  String get confirmPairing;
+
+  /// No description provided for @devicePaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Device paired with the PC'**
+  String get devicePaired;
+
+  /// No description provided for @devicePairedAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired with the PC as {name}'**
+  String devicePairedAs(String name);
+
+  /// No description provided for @deviceNotPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is not paired with the PC yet.'**
+  String get deviceNotPaired;
+
+  /// No description provided for @forgetPairedDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget this device'**
+  String get forgetPairedDevice;
+
+  /// No description provided for @forgetPairedDeviceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget this pairing?'**
+  String get forgetPairedDeviceTitle;
+
+  /// No description provided for @forgetPairedDeviceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This device stops using the PC until it is paired again. Remove it on the PC as well if it should not stay listed there.'**
+  String get forgetPairedDeviceBody;
+
+  /// No description provided for @pairedDeviceForgotten.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing removed from this device'**
+  String get pairedDeviceForgotten;
+
+  /// No description provided for @openAiConnectionSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open AI connection settings'**
+  String get openAiConnectionSettings;
+
+  /// No description provided for @localAiModeNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories are written by the AI on your family PC. The PC, its bridge, and its model must be running.'**
+  String get localAiModeNotice;
+
+  /// No description provided for @generateLocalAiStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate story on the PC'**
+  String get generateLocalAiStory;
+
+  /// No description provided for @localAiSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending the request to the PC…'**
+  String get localAiSubmitting;
+
+  /// No description provided for @localAiQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the PC to start.'**
+  String get localAiQueued;
+
+  /// No description provided for @localAiQueuedPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting on the PC · {position} in line.'**
+  String localAiQueuedPosition(int position);
+
+  /// No description provided for @localAiWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC is writing the story…'**
+  String get localAiWriting;
+
+  /// No description provided for @localAiChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the finished pages…'**
+  String get localAiChecking;
+
+  /// No description provided for @bridgeUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC did not answer. Check that the bridge is running and that the address is correct.'**
+  String get bridgeUnreachable;
+
+  /// No description provided for @bridgeTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC took too long to answer.'**
+  String get bridgeTimedOut;
+
+  /// No description provided for @bridgeNotPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair this device with the PC before generating a story there.'**
+  String get bridgeNotPaired;
+
+  /// No description provided for @bridgeUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC refused this device. Pair it again.'**
+  String get bridgeUnauthorized;
+
+  /// No description provided for @bridgeRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many pairing requests. Wait a minute and try again.'**
+  String get bridgeRateLimited;
+
+  /// No description provided for @bridgePairingNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'That pairing is no longer waiting. Start a new one.'**
+  String get bridgePairingNotFound;
+
+  /// No description provided for @bridgePairingExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The code expired. Ask the PC for a new one.'**
+  String get bridgePairingExpired;
+
+  /// No description provided for @bridgeInvalidPairingCode.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is not correct. Five wrong codes cancel the pairing.'**
+  String get bridgeInvalidPairingCode;
+
+  /// No description provided for @bridgeInvalidRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC refused this story request.'**
+  String get bridgeInvalidRequest;
+
+  /// No description provided for @bridgeJobNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC no longer knows this story request.'**
+  String get bridgeJobNotFound;
+
+  /// No description provided for @bridgeGenerationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC could not finish the story. Nothing was saved.'**
+  String get bridgeGenerationFailed;
+
+  /// No description provided for @bridgeGenerationCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Story generation was cancelled. Nothing was saved.'**
+  String get bridgeGenerationCancelled;
+
+  /// No description provided for @bridgeInvalidResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC answered with something this app cannot read.'**
+  String get bridgeInvalidResponse;
+
+  /// No description provided for @bridgeProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC bridge reported a problem.'**
+  String get bridgeProblem;
 }
 
 class _AppLocalizationsDelegate

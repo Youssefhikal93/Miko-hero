@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
+import 'package:miko_hero/features/settings/ai_connection_card.dart';
 import 'package:miko_hero/features/settings/backup_settings_card.dart';
 import 'package:miko_hero/features/settings/parent_security_settings_card.dart';
 import 'package:miko_hero/features/settings/settings_controller.dart';
@@ -51,6 +52,8 @@ class _SettingsContent extends ConsumerWidget {
           _profileCard(context, text),
           const SizedBox(height: 16),
           const ParentSecuritySettingsCard(),
+          const SizedBox(height: 16),
+          const AiConnectionCard(),
           const SizedBox(height: 16),
           const BackupSettingsCard(),
           const SizedBox(height: 16),

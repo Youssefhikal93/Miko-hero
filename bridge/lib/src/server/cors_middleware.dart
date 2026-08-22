@@ -1,0 +1,80 @@
+import 'package:shelf/shelf.dart';
+
+/// Grants browser pages controlled cross-origin access to the bridge.
+///
+/// Web apps are served from a different origin than the bridge (a hosting
+/// service, a dev server, or a different local port), so the browser demands
+/// CORS consent before it lets the page read a bridge response. Consent is
+/// deliberately narrow:
+///
+/// * loopback origins — `localhost`, `127.0.0.1` and `[::1]` on any port —
+///   are always allowed, so a web app opened on the PC itself just works;
+/// * every other origin must be listed in the configuration's
+///   `allowedWebOrigins`;
+/// * disallowed origins receive no CORS headers at all, which makes the
+///   browser block the response without the bridge revealing anything.
+///
+/// Requests without an `Origin` header (native apps, curl, the Flutter
+/// mobile client) pass through untouched.
+Middleware corsMiddleware({required List<String> extraAllowedOrigins}) {
+  final normalizedExtra = extraAllowedOrigins.map(_normalizeOrigin).toSet();
+
+  bool isAllowed(String origin) {
+    final normalized = _normalizeOrigin(origin);
+    if (normalizedExtra.contains(normalized)) {
+      return true;
+    }
+    final uri = Uri.tryParse(normalized);
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return false;
+    }
+    return _loopbackHosts.contains(uri.host.toLowerCase());
+  }
+
+  Map<String, String> allowHeaders(String origin) {
+    return <String, String>{
+      'access-control-allow-origin': origin,
+      'vary': 'Origin',
+    };
+  }
+
+  return (Handler innerHandler) {
+    return (Request request) async {
+      final origin = request.headers['origin'];
+      if (origin == null) {
+        return innerHandler(request);
+      }
+      final allowed = isAllowed(origin);
+      if (request.method == 'OPTIONS') {
+        if (!allowed) {
+          // No CORS headers: the browser refuses the exchange on its own.
+          return Response(204);
+        }
+        return Response(
+          204,
+          headers: <String, String>{
+            ...allowHeaders(origin),
+            'access-control-allow-methods': 'GET, POST, OPTIONS',
+            'access-control-allow-headers': 'authorization, content-type',
+            'access-control-max-age': '86400',
+          },
+        );
+      }
+      final response = await innerHandler(request);
+      if (!allowed) {
+        return response;
+      }
+      return response.change(headers: allowHeaders(origin));
+    };
+  };
+}
+
+/// Hosts treated as the PC itself and therefore always trusted for CORS.
+const Set<String> _loopbackHosts = <String>{'localhost', '127.0.0.1', '::1'};
+
+String _normalizeOrigin(String origin) {
+  final trimmed = origin.trim().toLowerCase();
+  return trimmed.endsWith('/')
+      ? trimmed.substring(0, trimmed.length - 1)
+      : trimmed;
+}

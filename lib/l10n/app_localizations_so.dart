@@ -215,7 +215,7 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get demoModeNotice =>
-      'AI-ga maxalliga ah weli lama xirin. Habka tijaabadu wuxuu abuuraa sheeko tusaale ah oo si cad loo calaamadeeyay si app-ka oo dhan bilaash loogu tijaabiyo.';
+      'Habka tijaabadu wuxuu abuuraa sheeko tusaale ah oo si cad loo calaamadeeyay, PC la\'aan iyo AI la\'aan. Ku beddel abuuraha sheekada AI-ga maxalliga ah ee goobaha si loogu qoro PC-ga qoyska.';
 
   @override
   String get profileNeeded => 'Marka hore ku dar ugu yaraan hal bog halyey.';
@@ -330,7 +330,7 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'Buug sheeko qoys oo gaar ah. Xiriirka maxalliga ah ee Ollama iyo ComfyUI waxaa lagu dari doonaa marxalad dambe.';
+      'Buug sheeko qoys oo gaar ah. Sheekooyinka waxaa qora moodel Ollama ah oo PC-gaaga ku shaqeeya; sawirrada ComfyUI ayaa marxalad dambe imanaya.';
 
   @override
   String get english => 'Ingiriisi';
@@ -832,7 +832,7 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get pcRequirementStatus =>
-      'Tijaabadu way shaqaysaa marka PC-gu dansan yahay. Marka AI-ga maxalliga ah la xiro mustaqbalka, PC-ga iyo moodooyinkiisu waa inay shaqaynayaan si loo sameeyo sheekooyin AI cusub; buugaagta kaydsan weli offline ayay u furmaan.';
+      'Tijaabadu way shaqaysaa marka PC-gu damsan yahay. Sheekooyinka AI-ga maxalliga ah waxay u baahan yihiin in PC-ga, buundadiisa iyo moodelkiisu shaqaynayaan; buugaagta kaydsan had iyo jeer offline ayay u furmaan.';
 
   @override
   String get generationQueued => 'Saf ku jira oo kaydsan';
@@ -1205,4 +1205,195 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get storyFileNewerVersion =>
       'Faylkan sheekada waxaa sameeyay nooc app ah oo ka cusub kan.';
+
+  @override
+  String get aiConnectionTitle => 'Xiriirka AI-ga';
+
+  @override
+  String get aiConnectionBody =>
+      'Dooro in sheekooyinka cusub ka yimaadaan tusaalaha offline mise AI-ga ku shaqeeya PC-ga qoyska.';
+
+  @override
+  String get aiConnectionParentNotice =>
+      'Xakamayntanu waxay u gaar tahay waalidiinta oo keliya. Carruurtu waligood ma arkaan cinwaanka PC-ga ama xiriirinta.';
+
+  @override
+  String get storyGeneratorMode => 'Abuuraha sheekada';
+
+  @override
+  String get demoGeneratorMode => 'Tijaabo · tusaale offline';
+
+  @override
+  String get localAiGeneratorMode => 'AI maxalli ah oo PC-ga ku jira';
+
+  @override
+  String get storyGeneratorModeSaved =>
+      'Abuuraha sheekada waa la cusboonaysiiyay';
+
+  @override
+  String get bridgeAddress => 'Cinwaanka buundada PC-ga';
+
+  @override
+  String get bridgeAddressHint => 'http://127.0.0.1:8765';
+
+  @override
+  String get bridgeAddressInvalid =>
+      'Geli cinwaan buuxa, tusaale http://192.168.1.20:8765.';
+
+  @override
+  String get saveBridgeAddress => 'Kaydi cinwaanka';
+
+  @override
+  String get bridgeAddressSaved => 'Cinwaanka buundada PC-ga waa la kaydiyay';
+
+  @override
+  String get testBridgeConnection => 'Tijaabi xiriirka';
+
+  @override
+  String bridgeReachable(String version) {
+    return 'Buundada PC-gu way jawaabtay. Nooca $version.';
+  }
+
+  @override
+  String get bridgeStatusReady => 'Diyaar';
+
+  @override
+  String get bridgeStatusUnavailable => 'Lama helo';
+
+  @override
+  String get bridgeLibraryStatus => 'Maktabadda sheekooyinka PC-ga';
+
+  @override
+  String get pairWithPc => 'Ku xir PC-ga';
+
+  @override
+  String get pairDeviceTitle => 'Xir qalabkan';
+
+  @override
+  String get pairDeviceBody =>
+      'Eeg shaashadda PC-ga: waxay muujinaysaa koodh 6 lambar ah muddo laba daqiiqo ah. Halkan ku qor koodhka iyo magac qalabkan.';
+
+  @override
+  String get pairingCode => 'Koodhka 6-da lambar ee PC-ga';
+
+  @override
+  String get pairingCodeInvalid => 'Geli lixda lambar ee PC-ga lagu muujiyay.';
+
+  @override
+  String get pairedDeviceNameLabel => 'Magaca qalabkan';
+
+  @override
+  String get pairedDeviceNameHint => 'Tabletka qoyska';
+
+  @override
+  String pairedDeviceNameInvalid(int max) {
+    return 'Geli magac aan ka badnayn $max xaraf.';
+  }
+
+  @override
+  String get confirmPairing => 'Xir qalabka';
+
+  @override
+  String get devicePaired => 'Qalabka waa lagu xiray PC-ga';
+
+  @override
+  String devicePairedAs(String name) {
+    return 'Lagu xiray PC-ga magaca $name';
+  }
+
+  @override
+  String get deviceNotPaired => 'Qalabkan weli lagama xirin PC-ga.';
+
+  @override
+  String get forgetPairedDevice => 'Iloow qalabkan';
+
+  @override
+  String get forgetPairedDeviceTitle => 'Ma illoobaysaa xiriirintan?';
+
+  @override
+  String get forgetPairedDeviceBody =>
+      'Qalabkani wuu joojinayaa isticmaalka PC-ga ilaa mar kale la xiro. Sidoo kale PC-ga ka saar haddii aanad rabin inuu liiska ku sii jiro.';
+
+  @override
+  String get pairedDeviceForgotten => 'Xiriirinta waa laga saaray qalabkan';
+
+  @override
+  String get openAiConnectionSettings => 'Fur goobaha xiriirka AI-ga';
+
+  @override
+  String get localAiModeNotice =>
+      'Sheekooyinka waxaa qora AI-ga PC-ga qoyska. PC-ga, buundadiisa iyo moodelkiisu waa inay shaqaynayaan.';
+
+  @override
+  String get generateLocalAiStory => 'Ku samee sheekada PC-ga';
+
+  @override
+  String get localAiSubmitting => 'Codsiga waxaa loo dirayaa PC-ga…';
+
+  @override
+  String get localAiQueued => 'Sugaya in PC-gu bilaabo.';
+
+  @override
+  String localAiQueuedPosition(int position) {
+    return 'Sugaya PC-ga · kaalinta $position safka.';
+  }
+
+  @override
+  String get localAiWriting => 'PC-gu wuxuu qorayaa sheekada…';
+
+  @override
+  String get localAiChecking => 'Waxaa la hubinayaa bogagga dhammaaday…';
+
+  @override
+  String get bridgeUnreachable =>
+      'PC-gu ma jawaabin. Hubi in buundadu shaqaynayso iyo in cinwaanku sax yahay.';
+
+  @override
+  String get bridgeTimedOut =>
+      'PC-gu wuxuu qaatay waqti aad u dheer inuu jawaabo.';
+
+  @override
+  String get bridgeNotPaired =>
+      'Qalabkan ku xir PC-ga ka hor inta aanad sheeko halkaas ka samayn.';
+
+  @override
+  String get bridgeUnauthorized =>
+      'PC-gu wuu diiday qalabkan. Mar kale ku xir.';
+
+  @override
+  String get bridgeRateLimited =>
+      'Codsiyo xiriirin ah oo aad u badan. Sug daqiiqad kadibna isku day.';
+
+  @override
+  String get bridgePairingNotFound =>
+      'Xiriirintaas hadda ma sugayso. Mid cusub bilow.';
+
+  @override
+  String get bridgePairingExpired =>
+      'Koodhku wuu dhacay. PC-ga ka codso mid cusub.';
+
+  @override
+  String get bridgeInvalidPairingCode =>
+      'Koodhkaas sax ma aha. Shan koodh oo khaldan ayaa xiriirinta joojinaysa.';
+
+  @override
+  String get bridgeInvalidRequest => 'PC-gu wuu diiday codsigan sheeko.';
+
+  @override
+  String get bridgeJobNotFound => 'PC-gu hadda ma garanayo codsigan sheeko.';
+
+  @override
+  String get bridgeGenerationFailed =>
+      'PC-gu ma dhammaystiri karin sheekada. Waxba lama kaydin.';
+
+  @override
+  String get bridgeGenerationCancelled =>
+      'Samaynta sheekada waa la joojiyay. Waxba lama kaydin.';
+
+  @override
+  String get bridgeInvalidResponse =>
+      'PC-gu wuxuu ku jawaabay wax uusan app-ku akhrin karin.';
+
+  @override
+  String get bridgeProblem => 'Buundada PC-gu waxay soo sheegtay dhibaato.';
 }

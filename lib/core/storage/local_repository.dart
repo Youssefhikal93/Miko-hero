@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:miko_hero/core/ai_connection/ai_connection_settings.dart';
+import 'package:miko_hero/core/ai_connection/bridge_credential.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -35,6 +37,8 @@ class LocalRepository {
   static const _parentSecurityKey = 'parent_security';
   static const _generationJobsKey = 'generation_jobs';
   static const _schemaVersionKey = 'schema_version';
+  static const _aiConnectionKey = 'ai_connection';
+  static const _bridgeDeviceKey = 'bridge_device';
 
   /// Keys that a backup restore replaces as one all-or-nothing group.
   static const _restoredKeys = <String>[
@@ -200,6 +204,56 @@ class LocalRepository {
   /// Disables the optional local parent PIN without changing family data.
   Future<void> removeParentSecurity() async {
     await _preferences.remove(_parentSecurityKey);
+  }
+
+  /// Reads the generator mode and PC bridge address chosen on this device.
+  ///
+  /// A device that has never opened the AI connection card reads the offline
+  /// demo and the loopback address, so first launch needs no stored value.
+  Future<AiConnectionSettings> readAiConnectionSettings() async {
+    final encodedSettings = _preferences.getString(_aiConnectionKey);
+    if (encodedSettings == null) return defaultAiConnectionSettings();
+    try {
+      return AiConnectionSettings.fromJson(_jsonObject(encodedSettings));
+    } on FormatException catch (error) {
+      throw LocalDataFormatException(error);
+    }
+  }
+
+  /// Persists the parent's generator mode and bridge address.
+  Future<void> saveAiConnectionSettings(AiConnectionSettings settings) async {
+    await _preferences.setString(
+      _aiConnectionKey,
+      jsonEncode(settings.toJson()),
+    );
+  }
+
+  /// Reads this device's pairing token record, absent until it is paired.
+  ///
+  /// Kept out of the backup-restore key group for the same reason as the
+  /// parent PIN: a token belongs to one device and its PC, not to a family
+  /// snapshot that travels between devices.
+  Future<BridgeCredential?> readBridgeCredential() async {
+    final encodedCredential = _preferences.getString(_bridgeDeviceKey);
+    if (encodedCredential == null) return null;
+    try {
+      return BridgeCredential.fromJson(_jsonObject(encodedCredential));
+    } on FormatException catch (error) {
+      throw LocalDataFormatException(error);
+    }
+  }
+
+  /// Persists the bearer token issued by the PC at pairing time.
+  Future<void> saveBridgeCredential(BridgeCredential credential) async {
+    await _preferences.setString(
+      _bridgeDeviceKey,
+      jsonEncode(credential.toJson()),
+    );
+  }
+
+  /// Forgets this device's pairing locally without contacting the PC.
+  Future<void> removeBridgeCredential() async {
+    await _preferences.remove(_bridgeDeviceKey);
   }
 
   /// Permanently removes every Iam - hero family value from this device.

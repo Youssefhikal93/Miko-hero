@@ -15,7 +15,8 @@ flowchart LR
     UI["Pages and widgets<br/>(features/, shared/)"] --> Controllers["Feature controllers<br/>(features/*_controller.dart)"]
     Controllers --> Services["Core services<br/>(core/generation, backup, export, narration, security)"]
     Services --> Storage["Local persistence<br/>(core/storage, shared_preferences)"]
-    Services -.later.-> LocalAI["Ollama and ComfyUI<br/>(not connected yet)"]
+    Services --> Bridge["PC bridge client<br/>(core/ai_connection)"]
+    Bridge --> LocalAI["Family PC: Ollama now,<br/>ComfyUI later"]
 ```
 
 Rules that every change must respect:
@@ -33,8 +34,9 @@ Rules that every change must respect:
   bugs stay `Error`s.
 - Expensive Argon2id work goes through `compute` with a top-level entry point,
   and the services keep an injectable deriver so tests can skip the isolate.
-- Everything is free and local: no accounts, no analytics, no network client,
-  no paid or required cloud service.
+- Everything is free and local: no accounts, no analytics, no paid or required
+  cloud service. The only network client talks to the family's own PC bridge
+  on the home network, and only when the parent selected Local AI.
 - All authored public APIs carry `///` documentation (`public_member_api_docs`
   is enforced by the analyzer).
 
@@ -44,7 +46,7 @@ Rules that every change must respect:
 | --- | --- |
 | `lib/main.dart` | Boots the Flutter binding and runs the root widget inside a Riverpod `ProviderScope`. |
 | `lib/app/iam_hero_app.dart` | Root `MaterialApp.router` widget; binds the persisted locale and active-profile theme to the routed application. |
-| `lib/app/app_controller.dart` | Loads the complete persisted `AppState` on startup and commits snapshots that feature controllers have already persisted. Also hosts the `storyGeneratorProvider` and repository/service providers. |
+| `lib/app/app_controller.dart` | Loads the complete persisted `AppState` on startup and commits snapshots that feature controllers have already persisted. Also the composition root: hosts the repository and service providers and the `storyGeneratorProvider`, which follows the parent's saved generator mode and falls back to the demo only while those settings are still loading. |
 | `lib/app/app_router.dart` | go_router configuration: all routes, the shell wrapper, and parent-PIN gating for parent-only destinations (`/settings`, `/kingdom`, `/profiles`, `/review`, `/generation`). |
 | `lib/app/app_shell.dart` | Responsive navigation frame around every route: app bar plus drawer and bottom navigation on mobile, extended rail on desktop widths (≥ 900 px). |
 | `lib/app/app_theme.dart` | The shared visual system: dark palette, per-child color schemes (rose for girls, cyan for boys, plus saved custom colors), typography, component themes, and the reader's bedtime prose, surface, and warm page wash. |
@@ -71,14 +73,27 @@ Rules that every change must respect:
 
 | File | Responsibility |
 | --- | --- |
-| `story_generator.dart` | The `StoryGenerator` boundary: `generate(StoryRequest) → StoryBook`. Implemented by the demo generator today and by the local Ollama/ComfyUI adapter later (see `docs/LOCAL_AI_INTEGRATION.md`). |
+| `story_generator.dart` | The `StoryGenerator` boundary: `generate(StoryRequest) → StoryBook`, implemented by the demo generator and by the local AI adapter (see `docs/LOCAL_AI_INTEGRATION.md`). Also `CancellableStoryGenerator`, the optional extension for generators whose work runs on another machine and must be stopped there. |
 | `demo_story_generator.dart` | Clearly labeled offline sample generator. Produces deterministic, gender-aware prose in all four languages, weaves in the child's saved preferences and recurring world, and must never be presented as AI output. |
+| `local_ai_story_generator.dart` | The local AI adapter: submits one request to the paired PC bridge, polls the job every two seconds until it is terminal, and maps the completed payload onto `StoryBook` after checking language, page count, and page order. Every failure — unreachable, unauthenticated, failed job, cancelled, unusable payload, timeout — throws a typed `BridgeException`; it never returns demo content and never yields a partial book. Implements `CancellableStoryGenerator` so cancelling in the app also stops the PC. |
+
+### Local AI connection — `core/ai_connection/`
+
+| File | Responsibility |
+| --- | --- |
+| `bridge_client.dart` | Typed HTTP client for the PC bridge over `package:http`, so the same code runs on mobile and web: bearer token attached, bodies sent as explicit UTF-8 with `charset=utf-8` (Arabic corrupts otherwise), one bounded timeout per call, and every transport or bridge failure converted into a typed reason. Also owns the default address and `parseBridgeBaseUrl`, which refuses anything that is not a plain `http`/`https` origin. |
+| `bridge_exception.dart` | `BridgeFailure` and `BridgeException`: the typed reason a bridge call failed, deliberately carrying no bridge-authored prose so every parent-facing sentence is localized in the app. |
+| `bridge_models.dart` | Validated payloads of the bridge contract: health statuses, job submission, job status, the completed story and its pages, and the exact generate-request field names. |
+| `ai_connection_settings.dart` | `StoryGeneratorMode` (demo or local AI) and the persisted `AiConnectionSettings` (mode plus bridge address). Holds no secret. |
+| `bridge_credential.dart` | The stored pairing record — token, device name, pairing time — plus the device-name and pairing-code validators. Stored like the parent-PIN verifier under its own key, never logged, and `toString` never reveals the token. |
+| `bridge_story_provenance.dart` | Builds and reads back the bridge story and illustration identities carried inside `StoryPage.sceneDescription`, following the demo generator's em-dash segment convention, so no stored story needs migrating when ComfyUI lands. |
+| `local_ai_progress.dart` | `LocalAiStage` and `LocalAiProgress`: what the PC is doing right now, as an enum rather than the bridge's English progress sentence. |
 
 ### Storage — `core/storage/`
 
 | File | Responsibility |
 | --- | --- |
-| `local_repository.dart` | The only code that touches `shared_preferences`. Persists locale, profiles, stories, the generation queue, and the stored schema version; validates on load; `replaceState` swaps the whole snapshot during a backup restore while preserving the device's parent PIN, and rolls every replaced key back if any write fails midway. |
+| `local_repository.dart` | The only code that touches `shared_preferences`. Persists locale, profiles, stories, the generation queue, the stored schema version, the AI connection settings, and the bridge pairing token; validates on load; `replaceState` swaps the whole snapshot during a backup restore while preserving the device's parent PIN and its pairing, and rolls every replaced key back if any write fails midway. |
 
 ### Backup — `core/backup/`
 
@@ -141,10 +156,11 @@ Rules that every change must respect:
 
 | File | Responsibility |
 | --- | --- |
-| `story_creation_page.dart` | Guided request form: hero selection, Girl/Boy confirmation, theme, moral, language, length, and illustration style, with a persistent notice that generation is currently the offline demo. |
-| `story_controller.dart` | Owns the generation transaction: validates the request, enqueues a durable job, runs the generator, and persists the finished draft atomically — a failed generation writes no story. Deleted profiles and stories surface as `UnknownEntityException`. |
+| `story_creation_page.dart` | Guided request form: hero selection, Girl/Boy confirmation, theme, moral, language, length, and illustration style, with a persistent notice naming the generator this request will actually use and a progress panel that follows the paired PC stage by stage. |
+| `story_controller.dart` | Owns the generation transaction: validates the request, enqueues a durable job, waits for the saved generator selection so a Local AI family is never quietly handed the demo, runs the generator, and persists the finished draft atomically — a failed generation writes no story. Cancelling the request that is currently running also stops it on the PC. Deleted profiles and stories surface as `UnknownEntityException`. |
 | `generation_queue_controller.dart` | Persists the generation queue independently of app state so interrupted or failed requests survive restarts and can be retried or cancelled. Commands for a job that no longer exists raise `UnknownEntityException`. |
-| `generation_center_page.dart` | Parent-only generation center: honest capability report (demo ready; Ollama and ComfyUI not connected yet) plus retry/cancel controls for queued jobs. |
+| `generation_center_page.dart` | Parent-only generation center: honest report of the selected generator and its readiness, the localized stage of a job running on the PC, and retry/cancel controls. Cancel stays enabled while a job runs, because it is the parent's only way to stop a story the PC already started. |
+| `generation_progress_controller.dart` | Holds the current `LocalAiProgress` above the generator boundary so the creation screen and the generation center can show a localized stage. Null whenever nothing is running, and always null for the demo generator. |
 
 ### Parent review — `features/review/`
 
@@ -173,7 +189,9 @@ Rules that every change must respect:
 
 | File | Responsibility |
 | --- | --- |
-| `settings_page.dart` | Language selection, backup, parent PIN, and the deliberate delete-all-family-data action. |
+| `settings_page.dart` | Language selection, AI connection, backup, parent PIN, and the deliberate delete-all-family-data action. |
+| `ai_connection_controller.dart` | Owns generator-mode and bridge-address persistence, the health probe, the pairing ceremony, and forgetting a paired device. Holds the token inside its state exactly as `ParentAccessState` holds the PIN verifier. Also hosts the injectable HTTP client provider every bridge call travels through. |
+| `ai_connection_card.dart` | The parent-gated AI connection card: Demo/Local AI selector, validated bridge address, a connection test showing the three localized statuses, and the pairing modal that asks for the 6-digit code shown on the PC. The token is never rendered. |
 | `settings_controller.dart` | Locale persistence and the delete-everything transaction. |
 | `backup_controller.dart` | Orchestrates export (state → encrypt → save file) and restore (pick file → decrypt → preview counts → replace state → refresh queue). |
 | `backup_settings_card.dart` | Backup UI: password dialogs with confirmation, restore preview, and distinct localized error messages per failure type, including a backup written by a newer app version. |
@@ -193,6 +211,7 @@ Rules that every change must respect:
 | `encryption_password_dialog.dart` | The password prompt shared by encrypted backups and single-story files, with per-file localized wording, optional confirmation field, the shared minimum length, and controllers that discard the secret with the modal. |
 | `reading_text_style.dart` | Resolves story prose typography from one child's reading comfort by scaling the theme body size and requesting the easy-reading family only for Latin script. Shared by the reader and the review preview. |
 | `reading_badge_view.dart` | The bounded Material icon and localized name of one reading badge, shared by My Kingdom and the reader's congratulation message. |
+| `local_ai_messages.dart` | One localized sentence per typed bridge failure and per generation stage, shared by the creation screen, the generation center, and the AI connection card. The bridge's own English text is never shown. |
 
 ## Localization — `lib/l10n/`
 
@@ -226,6 +245,11 @@ Rules that every change must respect:
 | `test/features/settings/parent_access_controller_test.dart` | Five wrong PINs start a cooldown that escalates and survives a restart, the correct PIN unlocks once it elapses, Change PIN requires the current PIN, and backgrounding re-locks the session. |
 | `test/features/story_creation/generation_queue_controller_test.dart` | A request interrupted mid-run reopens as a durable queued job after restart. |
 | `test/features/story_creation/story_controller_test.dart` | Retrying, cancelling, favouriting, or generating for deleted content fails as a catchable `Exception` instead of crashing the screen. |
+| `test/support/fake_bridge_http_client.dart` | The only boundary the local AI tests replace: a scripted `http.BaseClient` that records requests, plus builders for the bridge's JSON answers, typed error envelopes, and completed story payloads. |
+| `test/core/ai_connection/bridge_client_test.dart` | Address validation, health decoding, UTF-8 request bodies with the bearer token, a refusal to call an authenticated endpoint while unpaired, every typed bridge error code mapped to its typed failure, unreachable told apart from timed out, an unusable answer refused, and the two-step pairing exchange. |
+| `test/core/generation/local_ai_story_generator_test.dart` | A completed job becomes one complete book with page order, language, prose, and scene text intact plus the bridge story and illustration ids; Girl/Boy and all three page counts reach the request; queued, writing, and checking stages are reported; failed, unreachable, unauthenticated, timed-out, and never-finishing jobs raise typed failures; cancelling calls the PC and reports cancellation; a payload with the wrong page count or language is refused. |
+| `test/features/settings/ai_connection_controller_test.dart` | A new device starts on the demo and the loopback address, the mode persists across a restart and switches the active generator, pairing stores the token without ever printing it, a wrong code leaves the device unpaired, forgetting removes only the token, an unusable address is refused, and the health probe reports all three dependencies. |
+| `test/features/story_creation/local_ai_generation_test.dart` | Through the real queue and storage: a completed PC story is saved once as a draft, a failed job stays retryable with an empty library, an unreachable PC, a refused token, and a silent PC all leave the library untouched, and cancelling a running request stops the PC and clears the queue. |
 | `test/shared/parent_access_gate_test.dart` | A configured PIN hides settings, a wrong PIN keeps them hidden, the right PIN opens them, and repeated wrong PINs refuse input with the remaining wait. |
 | `test/core/narration/sentence_splitter_test.dart` | Pages split the way they are read aloud: English terminators, the Arabic `؟`, ellipses and terminator runs, line breaks, a single-sentence page, blank pages, and offsets that still point at the original characters. |
 | `test/features/reader/narration_controller_test.dart` | Sentences are spoken in order, pause freezes the position while resume repeats that sentence, stop clears the queue, an unrequested page turn stops narration while rest-of-story follows the queue onto the next page, an injected sleep timer stops narration at expiry, and the selected speed reaches the boundary. |
@@ -254,7 +278,7 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | `bridge/lib/src/pairing/` | In-memory pairing ceremony: rate-limited 6-digit codes shown only on the PC console, hashed at rest, expiring after 2 minutes, invalidated after 5 wrong attempts. |
 | `bridge/lib/src/probes/` | Health probes for Ollama (version + configured model present), ComfyUI, and the library, behind an injectable HTTP client with bounded timeouts. |
 | `bridge/lib/src/generation/` | Real story generation (Milestone 2a): validated request model, single-worker FIFO job queue with cancellation and typed failures, the Ollama client (UTF-8, enforced JSON schema, bounded timeout, abort on cancel), the prompt/schema builder, full structural validation of model output with retry on invalid output only, and the one-transaction library writer (profile upsert + story + pages + pending illustration rows). Prompts and story text are never logged. |
-| `bridge/lib/src/server/` | Shelf wiring: router, bearer-token auth middleware, typed JSON errors, bounded request bodies, and the health/pairing/devices handlers. |
+| `bridge/lib/src/server/` | Shelf wiring: router, bearer-token auth middleware, CORS consent (loopback origins always, LAN origins only via `allowedWebOrigins`), typed JSON errors, bounded request bodies, and the health/pairing/devices/generation handlers. |
 | `bridge/lib/src/common/` | Secrets (secure token generation, SHA-256 helpers, constant-time comparison), atomic file writes, and path joining. |
 | `bridge/test/` | Behavior tests through the real HTTP handler with mocked probe boundaries and temp-directory libraries: health shapes, idempotent initialization, the full pairing flow, auth rejection cases, and oversized-body rejection. |
 
@@ -271,7 +295,8 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | --- | --- |
 | Child profiles, birth dates, and photos | `core/models/child_profile.dart`, `features/profile/*` |
 | Per-child themes | `app/app_theme.dart`, `features/kingdom/my_kingdom_page.dart`, `features/profile/profile_controller.dart` |
-| Story creation (demo) | `features/story_creation/*`, `core/generation/*` |
+| Story creation (demo and local AI) | `features/story_creation/*`, `core/generation/*` |
+| PC bridge client and pairing | `core/ai_connection/*`, `features/settings/ai_connection_controller.dart`, `ai_connection_card.dart`, `shared/local_ai_messages.dart` |
 | Durable generation queue | `core/models/generation_job.dart`, `features/story_creation/generation_queue_controller.dart`, `generation_center_page.dart` |
 | Parent review of drafts | `core/models/story_models.dart` (`StoryReviewStatus`), `features/review/story_review_page.dart` |
 | Library, favorites, collections | `features/library/*`, `shared/story_card.dart` |
@@ -287,4 +312,4 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | Schema versioning and migrations | `core/models/app_state.dart`, `core/storage/local_repository.dart` |
 | Per-child story preferences and safety topics | `core/models/child_story_preferences.dart`, `features/kingdom/story_preferences_card.dart` |
 | Localization (en/ar/sv/so) | `lib/l10n/*` |
-| Local AI (future) | `docs/LOCAL_AI_INTEGRATION.md`, `core/generation/story_generator.dart` |
+| Local AI text generation | `docs/LOCAL_AI_INTEGRATION.md`, `core/generation/story_generator.dart`, `core/generation/local_ai_story_generator.dart`, `core/ai_connection/*`, `bridge/` |

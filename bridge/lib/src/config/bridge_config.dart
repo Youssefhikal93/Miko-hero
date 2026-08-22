@@ -15,6 +15,7 @@ class BridgeConfig {
     required this.ollamaModel,
     required this.generationTimeoutSeconds,
     required this.maxGenerationAttempts,
+    this.allowedWebOrigins = const <String>[],
   });
 
   /// Default loopback bind address: the bridge is private unless explicitly
@@ -81,6 +82,15 @@ class BridgeConfig {
   /// retries. Only invalid model output is retried.
   final int maxGenerationAttempts;
 
+  /// Additional web origins (scheme + host + optional port, no path) whose
+  /// browser pages may call the bridge, e.g. `http://192.168.1.20:8765`.
+  ///
+  /// Loopback origins (`localhost`, `127.0.0.1`, `[::1]` on any port) are
+  /// always allowed so a web app opened on the PC itself just works; every
+  /// other origin must be listed here explicitly. Never list a public
+  /// internet origin — the bridge is for the private home network only.
+  final List<String> allowedWebOrigins;
+
   /// [generationTimeoutSeconds] as a [Duration].
   Duration get generationTimeout => Duration(seconds: generationTimeoutSeconds);
 
@@ -95,6 +105,7 @@ class BridgeConfig {
       'ollamaModel': ollamaModel,
       'generationTimeoutSeconds': generationTimeoutSeconds,
       'maxGenerationAttempts': maxGenerationAttempts,
+      'allowedWebOrigins': allowedWebOrigins,
     };
   }
 
@@ -130,7 +141,42 @@ class BridgeConfig {
         maximum: maximumGenerationAttempts,
         fallback: defaultMaxGenerationAttempts,
       ),
+      allowedWebOrigins: _readOriginList(json, 'allowedWebOrigins'),
     );
+  }
+
+  /// Reads and validates the optional list of extra allowed web origins.
+  static List<String> _readOriginList(Map<String, Object?> json, String key) {
+    final Object? value = json[key];
+    if (value == null) {
+      return const <String>[];
+    }
+    if (value is! List<Object?>) {
+      throw FormatException('Field "$key" must be a list of origin strings.');
+    }
+    final origins = <String>[];
+    for (final entry in value) {
+      if (entry is! String || entry.trim().isEmpty) {
+        throw FormatException('Field "$key" must contain only origin strings.');
+      }
+      final origin = entry.trim();
+      final uri = Uri.tryParse(origin);
+      if (uri == null ||
+          (uri.scheme != 'http' && uri.scheme != 'https') ||
+          uri.host.isEmpty ||
+          uri.path.isNotEmpty && uri.path != '/' ||
+          uri.hasQuery ||
+          uri.hasFragment) {
+        throw FormatException(
+          'Field "$key" entry "$origin" must be a bare origin such as '
+          '"http://192.168.1.20:8765" with no path.',
+        );
+      }
+      origins.add(
+        origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin,
+      );
+    }
+    return List<String>.unmodifiable(origins);
   }
 
   /// Builds a fully-default configuration rooted at [workingDirectory].

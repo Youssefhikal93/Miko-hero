@@ -11,6 +11,7 @@ import 'package:iam_hero_bridge/src/probes/health_probes.dart';
 import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
 import 'package:iam_hero_bridge/src/server/auth_middleware.dart';
+import 'package:iam_hero_bridge/src/server/cors_middleware.dart';
 import 'package:iam_hero_bridge/src/server/devices_handler.dart';
 import 'package:iam_hero_bridge/src/server/generation_handlers.dart';
 import 'package:iam_hero_bridge/src/server/health_handler.dart';
@@ -26,9 +27,11 @@ import 'package:uuid/uuid.dart';
 /// Pipeline order (outermost first):
 /// 1. error boundary — converts [ApiError] and unexpected failures into
 ///    typed JSON errors without ever logging request content,
-/// 2. per-request timeout,
-/// 3. request body size limit,
-/// 4. routing: public endpoints (`/health`, `/pair/*`) bypass auth; every
+/// 2. CORS consent for browser pages (loopback origins plus the configured
+///    `allowedWebOrigins`),
+/// 3. per-request timeout,
+/// 4. request body size limit,
+/// 5. routing: public endpoints (`/health`, `/pair/*`) bypass auth; every
 ///    other endpoint sits behind [requireDeviceAuth].
 class AppServer {
   /// Creates a server for [config] over an initialized [library].
@@ -126,6 +129,9 @@ class AppServer {
 
     return const Pipeline()
         .addMiddleware(_errorBoundary)
+        .addMiddleware(
+          corsMiddleware(extraAllowedOrigins: config.allowedWebOrigins),
+        )
         .addMiddleware(requestTimeout())
         .addMiddleware(requestBodyLimit())
         .addHandler(api);

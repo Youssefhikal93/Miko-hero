@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/core/generation/story_generator.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
+import 'package:miko_hero/features/settings/ai_connection_controller.dart';
+import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 
 /// Supplies story generation and library commands to story feature widgets.
@@ -16,6 +19,14 @@ class StoryController {
   StoryController(this._ref);
 
   final Ref _ref;
+
+  /// Job currently being generated, so only that request cancels remote work.
+  String? _runningJobId;
+
+  /// The generator running right now, kept so cancellation reaches that
+  /// exact instance even if the parent changes the connection settings while
+  /// the PC is still writing.
+  CancellableStoryGenerator? _runningGenerator;
 
   /// Generates and persists a new book for a saved, gender-matching profile.
   Future<StoryBook> createStory(StoryRequest request) async {
@@ -34,8 +45,14 @@ class StoryController {
   }
 
   /// Removes one queued or failed request after explicit parent cancellation.
+  ///
+  /// A request already running on the paired PC is stopped there first, so
+  /// cancelling in the app never leaves the other machine writing a story
+  /// nobody will ever see.
   Future<void> cancelGeneration(String jobId) async {
     final queue = await _queueController();
+    queue.jobById(jobId);
+    if (jobId == _runningJobId) await _cancelRemoteGeneration();
     await queue.remove(jobId);
   }
 
@@ -111,11 +128,14 @@ class StoryController {
       await queue.remove(job.id);
       return completed;
     }
+    final generator = await _activeGenerator();
     await queue.markRunning(job.id);
+    _runningJobId = job.id;
+    _runningGenerator = generator is CancellableStoryGenerator
+        ? generator
+        : null;
     try {
-      final generated = await _ref
-          .read(storyGeneratorProvider)
-          .generate(job.request);
+      final generated = await generator.generate(job.request);
       final story = generated
           .withId(storyId)
           .withReviewStatus(StoryReviewStatus.draft);
@@ -130,6 +150,31 @@ class StoryController {
         // Preserve the generator failure; the running job requeues on restart.
       }
       Error.throwWithStackTrace(error, stackTrace);
+    } finally {
+      _runningJobId = null;
+      _runningGenerator = null;
+      _ref.read(generationProgressProvider.notifier).clear();
+    }
+  }
+
+  /// Resolves the generator the parent selected, once its settings are loaded.
+  ///
+  /// Awaiting the stored selection matters: reading the provider while it is
+  /// still loading would hand a Local AI family the offline demo instead.
+  Future<StoryGenerator> _activeGenerator() async {
+    await _ref.read(aiConnectionControllerProvider.future);
+    return _ref.read(storyGeneratorProvider);
+  }
+
+  /// Asks a remote generator to stop without blocking the local removal.
+  Future<void> _cancelRemoteGeneration() async {
+    final generator = _runningGenerator;
+    if (generator == null) return;
+    try {
+      await generator.cancelActiveGeneration();
+    } on Exception {
+      // The saved request is removed either way; an unreachable PC simply
+      // stops being polled, and the bridge never persists a partial story.
     }
   }
 

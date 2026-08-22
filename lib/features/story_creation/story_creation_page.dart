@@ -8,11 +8,14 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
+import 'package:miko_hero/features/settings/ai_connection_controller.dart';
+import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
+import 'package:miko_hero/shared/local_ai_messages.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Guided story request form backed by the explicit local demo generator.
@@ -111,10 +114,11 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   }
 
   @override
-  /// Renders validated inputs and an honest explanation of demo behavior.
+  /// Renders validated inputs and an honest explanation of the active generator.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
     final selectedProfile = _profileById(_selectedProfileId);
+    final usesLocalAi = _usesLocalAi;
     return ScreenLayout(
       maxWidth: 820,
       child: Form(
@@ -138,7 +142,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
               ),
             ],
             const SizedBox(height: 16),
-            _DemoNotice(text: text),
+            _GeneratorNotice(text: text, usesLocalAi: usesLocalAi),
             if (selectedProfile != null) ...<Widget>[
               const SizedBox(height: 16),
               _SavedPreferencesNotice(profile: selectedProfile),
@@ -154,10 +158,10 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
             const SizedBox(height: 16),
             _styleField(text),
             const SizedBox(height: 28),
-            _generateButton(text),
+            _generateButton(text, usesLocalAi: usesLocalAi),
             if (_generating) ...<Widget>[
               const SizedBox(height: 22),
-              _GenerationProgress(text: text),
+              const _GenerationProgress(),
             ],
           ],
         ),
@@ -225,7 +229,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
       await ref
           .read(profileControllerProvider)
           .selectProfile(profileId, gender);
-    } on Exception {
+    } on Exception catch (error) {
       if (!mounted) return;
       final persistedProfile = ref
           .read(appControllerProvider)
@@ -236,7 +240,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
             ? persistedProfile?.gender
             : null;
       });
-      _showError();
+      _showError(error);
     } finally {
       if (mounted) setState(() => _savingProfileSelection = false);
     }
@@ -323,7 +327,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   }
 
   /// Prevents duplicate generation and exposes progress inside the primary action.
-  Widget _generateButton(AppLocalizations text) {
+  Widget _generateButton(AppLocalizations text, {required bool usesLocalAi}) {
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
@@ -336,9 +340,17 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.auto_awesome_rounded),
-        label: Text(text.generateStory),
+        label: Text(
+          usesLocalAi ? text.generateLocalAiStory : text.generateStory,
+        ),
       ),
     );
+  }
+
+  /// Whether the parent selected the AI on the family PC for new stories.
+  bool get _usesLocalAi {
+    return ref.watch(aiConnectionControllerProvider).value?.usesLocalAi ??
+        false;
   }
 
   /// Validates the request, persists the demo book, and opens its reader.
@@ -359,10 +371,10 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
         SnackBar(content: Text(AppLocalizations.of(context).storyCreated)),
       );
       context.go('/review/${story.id}');
-    } on Exception {
+    } on Exception catch (error) {
       if (!mounted) return;
       setState(() => _generating = false);
-      _showError();
+      _showError(error);
     }
   }
 
@@ -404,10 +416,16 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   }
 
   /// Shows recoverable local-write or generation failure feedback.
-  void _showError() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context).somethingWentWrong)),
-    );
+  ///
+  /// A failure reported by the paired PC keeps its typed reason, so the parent
+  /// learns whether to start the bridge, pair again, or simply retry.
+  void _showError(Object error) {
+    final text = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(localAiFailureMessage(text, error))),
+      );
   }
 
   /// Returns the translated description of an exact story length.
@@ -469,15 +487,18 @@ class _SavedPreferencesNotice extends StatelessWidget {
   }
 }
 
-/// Persistent explanation that the current generator is an offline sample.
-class _DemoNotice extends StatelessWidget {
-  /// Creates the notice from localized copy.
-  const _DemoNotice({required this.text});
+/// Persistent explanation of which generator this request will actually use.
+class _GeneratorNotice extends StatelessWidget {
+  /// Creates the notice for the currently selected generator.
+  const _GeneratorNotice({required this.text, required this.usesLocalAi});
 
   final AppLocalizations text;
 
+  /// Whether the paired family PC writes this story instead of the sample.
+  final bool usesLocalAi;
+
   @override
-  /// Prevents placeholder generation from being mistaken for connected AI.
+  /// Keeps sample generation from ever being mistaken for connected AI.
   Widget build(BuildContext context) {
     return Card(
       color: const Color(0xFF2B2113),
@@ -487,7 +508,7 @@ class _DemoNotice extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Icon(
-              Icons.science_outlined,
+              usesLocalAi ? Icons.memory_rounded : Icons.science_outlined,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 12),
@@ -495,7 +516,9 @@ class _DemoNotice extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(text.demoModeNotice),
+                  Text(
+                    usesLocalAi ? text.localAiModeNotice : text.demoModeNotice,
+                  ),
                   const SizedBox(height: 10),
                   TextButton.icon(
                     onPressed: () => context.go('/generation'),
@@ -513,15 +536,15 @@ class _DemoNotice extends StatelessWidget {
 }
 
 /// Accessible progress panel displayed for the complete generation transaction.
-class _GenerationProgress extends StatelessWidget {
-  /// Creates progress copy from the current interface localization.
-  const _GenerationProgress({required this.text});
-
-  final AppLocalizations text;
+class _GenerationProgress extends ConsumerWidget {
+  /// Creates the panel; its detail line follows the paired PC when there is one.
+  const _GenerationProgress();
 
   @override
   /// Announces the active operation while preventing duplicate submission.
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = AppLocalizations.of(context);
+    final progress = ref.watch(generationProgressProvider);
     return Semantics(
       liveRegion: true,
       child: Card(
@@ -540,7 +563,11 @@ class _GenerationProgress extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 4),
-                    Text(text.generatingBody),
+                    Text(
+                      progress == null
+                          ? text.generatingBody
+                          : localAiProgressMessage(text, progress),
+                    ),
                   ],
                 ),
               ),

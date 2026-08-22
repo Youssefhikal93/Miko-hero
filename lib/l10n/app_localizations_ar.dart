@@ -213,7 +213,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get demoModeNotice =>
-      'لم يتم توصيل الذكاء الاصطناعي المحلي بعد. ينشئ الوضع التجريبي قصة نموذجية مميزة بوضوح لاختبار التطبيق كاملًا مجانًا.';
+      'ينشئ الوضع التجريبي قصة نموذجية مميزة بوضوح دون كمبيوتر ودون ذكاء اصطناعي. غيّر مولّد القصص إلى الذكاء الاصطناعي المحلي في الإعدادات للكتابة على كمبيوتر العائلة.';
 
   @override
   String get profileNeeded => 'أضف ملف بطل واحدًا على الأقل أولًا.';
@@ -323,7 +323,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'كتاب قصص عائلي خاص. ستتم إضافة الاتصال المحلي مع Ollama وComfyUI في مرحلة لاحقة.';
+      'كتاب قصص عائلي خاص. تُكتب القصص بنموذج Ollama محلي على كمبيوترك، وستأتي رسومات ComfyUI في مرحلة لاحقة.';
 
   @override
   String get english => 'الإنجليزية';
@@ -817,7 +817,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pcRequirementStatus =>
-      'يعمل العرض والجهاز مطفأ. بعد ربط الذكاء الاصطناعي المحلي لاحقاً، يجب تشغيل الكمبيوتر والنماذج لإنشاء قصص ذكاء اصطناعي جديدة؛ وتبقى الكتب المحفوظة متاحة دون اتصال.';
+      'يعمل العرض التجريبي والكمبيوتر مطفأ. تحتاج قصص الذكاء الاصطناعي المحلي إلى تشغيل الكمبيوتر وجسره ونموذجه؛ وتبقى الكتب المحفوظة متاحة دائماً دون اتصال.';
 
   @override
   String get generationQueued => 'في الانتظار ومحفوظ';
@@ -1178,4 +1178,192 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get storyFileNewerVersion =>
       'أُنشئ ملف القصة هذا بإصدار أحدث من التطبيق.';
+
+  @override
+  String get aiConnectionTitle => 'اتصال الذكاء الاصطناعي';
+
+  @override
+  String get aiConnectionBody =>
+      'اختر ما إذا كانت القصص الجديدة تأتي من النموذج التجريبي دون اتصال أم من الذكاء الاصطناعي العامل على كمبيوتر العائلة.';
+
+  @override
+  String get aiConnectionParentNotice =>
+      'هذه الإعدادات للوالدين فقط. لا يرى الأطفال عنوان الكمبيوتر ولا الاقتران أبداً.';
+
+  @override
+  String get storyGeneratorMode => 'مولّد القصص';
+
+  @override
+  String get demoGeneratorMode => 'تجريبي · نموذج دون اتصال';
+
+  @override
+  String get localAiGeneratorMode => 'ذكاء اصطناعي محلي على الكمبيوتر';
+
+  @override
+  String get storyGeneratorModeSaved => 'تم تحديث مولّد القصص';
+
+  @override
+  String get bridgeAddress => 'عنوان جسر الكمبيوتر';
+
+  @override
+  String get bridgeAddressHint => 'http://127.0.0.1:8765';
+
+  @override
+  String get bridgeAddressInvalid =>
+      'أدخل عنواناً كاملاً، مثل http://192.168.1.20:8765.';
+
+  @override
+  String get saveBridgeAddress => 'حفظ العنوان';
+
+  @override
+  String get bridgeAddressSaved => 'تم حفظ عنوان جسر الكمبيوتر';
+
+  @override
+  String get testBridgeConnection => 'اختبار الاتصال';
+
+  @override
+  String bridgeReachable(String version) {
+    return 'استجاب جسر الكمبيوتر. الإصدار $version.';
+  }
+
+  @override
+  String get bridgeStatusReady => 'جاهز';
+
+  @override
+  String get bridgeStatusUnavailable => 'غير متاح';
+
+  @override
+  String get bridgeLibraryStatus => 'مكتبة القصص على الكمبيوتر';
+
+  @override
+  String get pairWithPc => 'الاقتران بالكمبيوتر';
+
+  @override
+  String get pairDeviceTitle => 'اقتران هذا الجهاز';
+
+  @override
+  String get pairDeviceBody =>
+      'انظر إلى شاشة الكمبيوتر: تعرض رمزاً من ٦ أرقام لمدة دقيقتين. اكتب الرمز هنا مع اسم لهذا الجهاز.';
+
+  @override
+  String get pairingCode => 'الرمز المكوّن من ٦ أرقام على الكمبيوتر';
+
+  @override
+  String get pairingCodeInvalid => 'أدخل الأرقام الستة الظاهرة على الكمبيوتر.';
+
+  @override
+  String get pairedDeviceNameLabel => 'اسم هذا الجهاز';
+
+  @override
+  String get pairedDeviceNameHint => 'لوح العائلة';
+
+  @override
+  String pairedDeviceNameInvalid(int max) {
+    return 'أدخل اسماً لا يتجاوز $max حرفاً.';
+  }
+
+  @override
+  String get confirmPairing => 'اقتران الجهاز';
+
+  @override
+  String get devicePaired => 'تم اقتران الجهاز بالكمبيوتر';
+
+  @override
+  String devicePairedAs(String name) {
+    return 'مقترن بالكمبيوتر باسم $name';
+  }
+
+  @override
+  String get deviceNotPaired => 'هذا الجهاز غير مقترن بالكمبيوتر بعد.';
+
+  @override
+  String get forgetPairedDevice => 'نسيان هذا الجهاز';
+
+  @override
+  String get forgetPairedDeviceTitle => 'هل تريد نسيان هذا الاقتران؟';
+
+  @override
+  String get forgetPairedDeviceBody =>
+      'سيتوقف هذا الجهاز عن استخدام الكمبيوتر حتى يُقترن من جديد. احذفه من الكمبيوتر أيضاً إن لم ترغب ببقائه في قائمته.';
+
+  @override
+  String get pairedDeviceForgotten => 'تمت إزالة الاقتران من هذا الجهاز';
+
+  @override
+  String get openAiConnectionSettings => 'فتح إعدادات اتصال الذكاء الاصطناعي';
+
+  @override
+  String get localAiModeNotice =>
+      'يكتب القصص الذكاء الاصطناعي على كمبيوتر العائلة. يجب أن يكون الكمبيوتر وجسره ونموذجه قيد التشغيل.';
+
+  @override
+  String get generateLocalAiStory => 'إنشاء القصة على الكمبيوتر';
+
+  @override
+  String get localAiSubmitting => 'جارٍ إرسال الطلب إلى الكمبيوتر…';
+
+  @override
+  String get localAiQueued => 'في انتظار أن يبدأ الكمبيوتر.';
+
+  @override
+  String localAiQueuedPosition(int position) {
+    return 'في انتظار الكمبيوتر · الترتيب $position في الطابور.';
+  }
+
+  @override
+  String get localAiWriting => 'الكمبيوتر يكتب القصة…';
+
+  @override
+  String get localAiChecking => 'جارٍ فحص الصفحات المكتملة…';
+
+  @override
+  String get bridgeUnreachable =>
+      'لم يستجب الكمبيوتر. تأكد من تشغيل الجسر ومن صحة العنوان.';
+
+  @override
+  String get bridgeTimedOut => 'استغرق الكمبيوتر وقتاً طويلاً للرد.';
+
+  @override
+  String get bridgeNotPaired =>
+      'اقرن هذا الجهاز بالكمبيوتر قبل إنشاء قصة عليه.';
+
+  @override
+  String get bridgeUnauthorized => 'رفض الكمبيوتر هذا الجهاز. أعد الاقتران.';
+
+  @override
+  String get bridgeRateLimited =>
+      'طلبات اقتران كثيرة جداً. انتظر دقيقة ثم أعد المحاولة.';
+
+  @override
+  String get bridgePairingNotFound =>
+      'لم يعد هذا الاقتران قيد الانتظار. ابدأ اقتراناً جديداً.';
+
+  @override
+  String get bridgePairingExpired =>
+      'انتهت صلاحية الرمز. اطلب رمزاً جديداً من الكمبيوتر.';
+
+  @override
+  String get bridgeInvalidPairingCode =>
+      'الرمز غير صحيح. خمس محاولات خاطئة تلغي الاقتران.';
+
+  @override
+  String get bridgeInvalidRequest => 'رفض الكمبيوتر طلب القصة هذا.';
+
+  @override
+  String get bridgeJobNotFound => 'لم يعد الكمبيوتر يعرف طلب القصة هذا.';
+
+  @override
+  String get bridgeGenerationFailed =>
+      'تعذر على الكمبيوتر إكمال القصة. لم يُحفظ أي شيء.';
+
+  @override
+  String get bridgeGenerationCancelled =>
+      'تم إلغاء إنشاء القصة. لم يُحفظ أي شيء.';
+
+  @override
+  String get bridgeInvalidResponse =>
+      'رد الكمبيوتر بشيء لا يستطيع التطبيق قراءته.';
+
+  @override
+  String get bridgeProblem => 'أبلغ جسر الكمبيوتر عن مشكلة.';
 }

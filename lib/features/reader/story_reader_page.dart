@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
+import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -472,7 +473,8 @@ class _PageIllustration extends StatelessWidget {
   final bool bedtime;
 
   @override
-  /// Uses local photo bytes only and marks the surface as demo output.
+  /// Uses local photo bytes only; demo stories keep their DEMO chip while
+  /// bridge stories wait unlabeled for their Milestone 4 illustration.
   Widget build(BuildContext context) {
     final photo = profile?.photoBase64;
     return Container(
@@ -499,14 +501,15 @@ class _PageIllustration extends StatelessWidget {
                   : null,
             ),
           ),
-          PositionedDirectional(
-            top: 18,
-            start: 18,
-            child: Chip(
-              avatar: const Icon(Icons.science_outlined, size: 16),
-              label: Text(AppLocalizations.of(context).demoBadge),
+          if (!BridgeStoryProvenance.marksStory(story))
+            PositionedDirectional(
+              top: 18,
+              start: 18,
+              child: Chip(
+                avatar: const Icon(Icons.science_outlined, size: 16),
+                label: Text(AppLocalizations.of(context).demoBadge),
+              ),
             ),
-          ),
           PositionedDirectional(
             end: 18,
             bottom: 18,

@@ -44,6 +44,7 @@ printed. All machine-specific values live in this file; nothing is hardcoded.
 | `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories         |
 | `generationTimeoutSeconds` | `600`        | Budget for one generation call (30–3600)  |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
+| `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Loopback origins (`localhost`, `127.0.0.1`, any port) are always allowed; list LAN origins such as `http://192.168.1.20:8765` explicitly. Never list a public internet origin. |
 
 Example `bridge_config.json`:
 
@@ -56,7 +57,8 @@ Example `bridge_config.json`:
   "comfyUiBaseUrl": "http://127.0.0.1:8188",
   "ollamaModel": "gemma3:4b",
   "generationTimeoutSeconds": 600,
-  "maxGenerationAttempts": 3
+  "maxGenerationAttempts": 3,
+  "allowedWebOrigins": []
 }
 ```
 

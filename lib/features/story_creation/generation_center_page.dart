@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
+import 'package:miko_hero/features/settings/ai_connection_controller.dart';
+import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/local_ai_messages.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Parent-only readiness summary and durable generation queue controls.
@@ -38,7 +41,7 @@ class _GenerationCenterPageState extends ConsumerState<GenerationCenterPage> {
             subtitle: text.generationCenterBody,
           ),
           const SizedBox(height: 20),
-          const _AiReadinessCard(),
+          const _ActiveGeneratorCard(),
           const SizedBox(height: 20),
           Text(
             text.generationQueueTitle,
@@ -70,12 +73,16 @@ class _GenerationCenterPageState extends ConsumerState<GenerationCenterPage> {
         ),
       );
     }
+    final progress = ref.watch(generationProgressProvider);
     return Column(
       children: jobs
           .map(
             (job) => _GenerationJobCard(
               job: job,
               isBusy: _activeJobId == job.id,
+              progressMessage: _activeJobId == job.id && progress != null
+                  ? localAiProgressMessage(text, progress)
+                  : null,
               onRetry: () => _retry(job),
               onCancel: () => _cancel(job),
             ),
@@ -93,9 +100,9 @@ class _GenerationCenterPageState extends ConsumerState<GenerationCenterPage> {
           .read(storyControllerProvider)
           .retryGeneration(job.id);
       if (mounted) context.go('/review/${story.id}');
-    } on Exception {
+    } on Exception catch (error) {
       if (!mounted) return;
-      _showError();
+      _showError(error);
       setState(() => _activeJobId = null);
     }
   }
@@ -123,48 +130,65 @@ class _GenerationCenterPageState extends ConsumerState<GenerationCenterPage> {
     if (confirmed != true || !mounted) return;
     try {
       await ref.read(storyControllerProvider).cancelGeneration(job.id);
-    } on Exception {
-      if (mounted) _showError();
+    } on Exception catch (error) {
+      if (mounted) _showError(error);
     }
   }
 
-  /// Shows safe recovery feedback without exposing request or family content.
-  void _showError() {
+  /// Shows one localized failure without exposing request or family content.
+  ///
+  /// A failure reported by the PC keeps its typed reason, so the parent reads
+  /// what actually went wrong instead of one generic sentence.
+  void _showError(Object error) {
     final text = AppLocalizations.of(context);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(text.somethingWentWrong)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(localAiFailureMessage(text, error))),
+      );
   }
 }
 
-/// Honest current capability report for demo, Ollama, ComfyUI, and PC use.
-class _AiReadinessCard extends StatelessWidget {
-  /// Creates the static readiness card from implemented integration state.
-  const _AiReadinessCard();
+/// Honest report of the generator the parent selected and its readiness.
+class _ActiveGeneratorCard extends ConsumerWidget {
+  /// Creates the readiness card from the stored AI connection settings.
+  const _ActiveGeneratorCard();
 
   @override
-  /// Distinguishes the available demo from unimplemented local AI adapters.
-  Widget build(BuildContext context) {
+  /// States which generator will run and whether the PC is usable for it.
+  Widget build(BuildContext context, WidgetRef ref) {
     final text = AppLocalizations.of(context);
+    final connection = ref.watch(aiConnectionControllerProvider).value;
+    final usesLocalAi = connection?.usesLocalAi ?? false;
+    final isPaired = connection?.isPaired ?? false;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _ReadinessRow(
-              icon: Icons.offline_bolt_rounded,
-              title: text.demoGeneratorStatus,
-              status: text.readyOffline,
-              isReady: true,
+              icon: usesLocalAi
+                  ? Icons.memory_rounded
+                  : Icons.offline_bolt_rounded,
+              title: text.storyGeneratorMode,
+              status: usesLocalAi
+                  ? text.localAiGeneratorMode
+                  : text.demoGeneratorMode,
+              isReady: !usesLocalAi || isPaired,
             ),
             const Divider(),
-            _ReadinessRow(
-              icon: Icons.text_fields_rounded,
-              title: text.ollamaStatus,
-              status: text.notConnectedYet,
-              isReady: false,
-            ),
-            const Divider(),
+            if (usesLocalAi) ...<Widget>[
+              _ReadinessRow(
+                icon: Icons.link_rounded,
+                title: text.aiConnectionTitle,
+                status: isPaired
+                    ? text.bridgeStatusReady
+                    : text.notConnectedYet,
+                isReady: isPaired,
+              ),
+              const Divider(),
+            ],
             _ReadinessRow(
               icon: Icons.image_rounded,
               title: text.comfyUiStatus,
@@ -173,6 +197,12 @@ class _AiReadinessCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(text.pcRequirementStatus),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => context.go('/settings'),
+              icon: const Icon(Icons.hub_rounded),
+              label: Text(text.openAiConnectionSettings),
+            ),
           ],
         ),
       ),
@@ -214,12 +244,14 @@ class _GenerationJobCard extends StatelessWidget {
   const _GenerationJobCard({
     required this.job,
     required this.isBusy,
+    required this.progressMessage,
     required this.onRetry,
     required this.onCancel,
   });
 
   final GenerationJob job;
   final bool isBusy;
+  final String? progressMessage;
   final VoidCallback onRetry;
   final VoidCallback onCancel;
 
@@ -245,6 +277,14 @@ class _GenerationJobCard extends StatelessWidget {
                   ),
                   Text(job.request.theme),
                   Text(_statusName(text, job.status)),
+                  if (progressMessage != null)
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        progressMessage!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -261,7 +301,9 @@ class _GenerationJobCard extends StatelessWidget {
                   : const Icon(Icons.refresh_rounded),
             ),
             IconButton(
-              onPressed: isBusy ? null : onCancel,
+              // Deliberately still enabled while this job is running: it is
+              // the parent's only way to stop a story the PC already started.
+              onPressed: onCancel,
               tooltip: text.removeFromQueue,
               icon: const Icon(Icons.close_rounded),
             ),

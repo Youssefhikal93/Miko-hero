@@ -216,7 +216,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get demoModeNotice =>
-      'Lokal AI är inte ansluten ännu. Demoläget skapar en tydligt markerad exempelberättelse så att hela appflödet kan testas gratis.';
+      'Demoläget skapar en tydligt markerad exempelberättelse helt utan dator och utan AI. Byt berättelsegenerator till Lokal AI i inställningarna för att skriva på familjens dator.';
 
   @override
   String get profileNeeded => 'Lägg först till minst en hjälteprofil.';
@@ -329,7 +329,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'En privat familjebilderbok. Lokala anslutningar till Ollama och ComfyUI läggs till i en senare fas.';
+      'En privat familjebilderbok. Berättelserna skrivs av en lokal Ollama-modell på din egen dator; ComfyUI-illustrationer kommer i en senare fas.';
 
   @override
   String get english => 'Engelska';
@@ -833,7 +833,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get pcRequirementStatus =>
-      'Demon fungerar när datorn är avstängd. När lokal AI ansluts senare måste datorn och modellerna vara igång för nya AI-berättelser; sparade böcker öppnas fortfarande offline.';
+      'Demon fungerar när datorn är avstängd. Lokala AI-berättelser kräver att datorn, dess brygga och dess modell är igång; sparade böcker öppnas alltid offline.';
 
   @override
   String get generationQueued => 'I kö och sparad';
@@ -1205,4 +1205,196 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get storyFileNewerVersion =>
       'Den här berättelsefilen skapades av en nyare version av appen.';
+
+  @override
+  String get aiConnectionTitle => 'AI-anslutning';
+
+  @override
+  String get aiConnectionBody =>
+      'Välj om nya berättelser kommer från exempelgeneratorn offline eller från AI:n som körs på familjens egen dator.';
+
+  @override
+  String get aiConnectionParentNotice =>
+      'De här kontrollerna är bara för föräldrar. Barn ser aldrig datorns adress eller kopplingen.';
+
+  @override
+  String get storyGeneratorMode => 'Berättelsegenerator';
+
+  @override
+  String get demoGeneratorMode => 'Demo · exempel offline';
+
+  @override
+  String get localAiGeneratorMode => 'Lokal AI på datorn';
+
+  @override
+  String get storyGeneratorModeSaved => 'Berättelsegeneratorn uppdaterad';
+
+  @override
+  String get bridgeAddress => 'Datorns bryggadress';
+
+  @override
+  String get bridgeAddressHint => 'http://127.0.0.1:8765';
+
+  @override
+  String get bridgeAddressInvalid =>
+      'Ange en fullständig adress, till exempel http://192.168.1.20:8765.';
+
+  @override
+  String get saveBridgeAddress => 'Spara adress';
+
+  @override
+  String get bridgeAddressSaved => 'Bryggadressen sparad';
+
+  @override
+  String get testBridgeConnection => 'Testa anslutningen';
+
+  @override
+  String bridgeReachable(String version) {
+    return 'Datorns brygga svarade. Version $version.';
+  }
+
+  @override
+  String get bridgeStatusReady => 'Klar';
+
+  @override
+  String get bridgeStatusUnavailable => 'Inte tillgänglig';
+
+  @override
+  String get bridgeLibraryStatus => 'Berättelsebibliotek på datorn';
+
+  @override
+  String get pairWithPc => 'Koppla till datorn';
+
+  @override
+  String get pairDeviceTitle => 'Koppla den här enheten';
+
+  @override
+  String get pairDeviceBody =>
+      'Titta på datorskärmen: den visar en sexsiffrig kod i två minuter. Skriv koden här tillsammans med ett namn på den här enheten.';
+
+  @override
+  String get pairingCode => 'Sexsiffrig kod från datorn';
+
+  @override
+  String get pairingCodeInvalid => 'Ange de sex siffrorna som visas på datorn.';
+
+  @override
+  String get pairedDeviceNameLabel => 'Namn på den här enheten';
+
+  @override
+  String get pairedDeviceNameHint => 'Familjens surfplatta';
+
+  @override
+  String pairedDeviceNameInvalid(int max) {
+    return 'Ange ett namn på högst $max tecken.';
+  }
+
+  @override
+  String get confirmPairing => 'Koppla enheten';
+
+  @override
+  String get devicePaired => 'Enheten är kopplad till datorn';
+
+  @override
+  String devicePairedAs(String name) {
+    return 'Kopplad till datorn som $name';
+  }
+
+  @override
+  String get deviceNotPaired =>
+      'Den här enheten är inte kopplad till datorn ännu.';
+
+  @override
+  String get forgetPairedDevice => 'Glöm den här enheten';
+
+  @override
+  String get forgetPairedDeviceTitle => 'Glömma kopplingen?';
+
+  @override
+  String get forgetPairedDeviceBody =>
+      'Enheten slutar använda datorn tills den kopplas igen. Ta bort den på datorn också om den inte ska stå kvar i listan där.';
+
+  @override
+  String get pairedDeviceForgotten =>
+      'Kopplingen borttagen från den här enheten';
+
+  @override
+  String get openAiConnectionSettings => 'Öppna AI-anslutningen';
+
+  @override
+  String get localAiModeNotice =>
+      'Berättelserna skrivs av AI:n på familjens dator. Datorn, dess brygga och dess modell måste vara igång.';
+
+  @override
+  String get generateLocalAiStory => 'Skapa berättelse på datorn';
+
+  @override
+  String get localAiSubmitting => 'Skickar förfrågan till datorn…';
+
+  @override
+  String get localAiQueued => 'Väntar på att datorn ska börja.';
+
+  @override
+  String localAiQueuedPosition(int position) {
+    return 'Väntar på datorn · plats $position i kön.';
+  }
+
+  @override
+  String get localAiWriting => 'Datorn skriver berättelsen…';
+
+  @override
+  String get localAiChecking => 'Kontrollerar de färdiga sidorna…';
+
+  @override
+  String get bridgeUnreachable =>
+      'Datorn svarade inte. Kontrollera att bryggan körs och att adressen stämmer.';
+
+  @override
+  String get bridgeTimedOut => 'Datorn tog för lång tid på sig att svara.';
+
+  @override
+  String get bridgeNotPaired =>
+      'Koppla den här enheten till datorn innan du skapar en berättelse där.';
+
+  @override
+  String get bridgeUnauthorized =>
+      'Datorn nekade den här enheten. Koppla den igen.';
+
+  @override
+  String get bridgeRateLimited =>
+      'För många kopplingsförsök. Vänta en minut och försök igen.';
+
+  @override
+  String get bridgePairingNotFound =>
+      'Den kopplingen väntar inte längre. Starta en ny.';
+
+  @override
+  String get bridgePairingExpired => 'Koden har gått ut. Be datorn om en ny.';
+
+  @override
+  String get bridgeInvalidPairingCode =>
+      'Koden stämmer inte. Fem fel koder avbryter kopplingen.';
+
+  @override
+  String get bridgeInvalidRequest =>
+      'Datorn nekade den här berättelseförfrågan.';
+
+  @override
+  String get bridgeJobNotFound =>
+      'Datorn känner inte längre till den här förfrågan.';
+
+  @override
+  String get bridgeGenerationFailed =>
+      'Datorn kunde inte slutföra berättelsen. Ingenting sparades.';
+
+  @override
+  String get bridgeGenerationCancelled =>
+      'Berättelsen avbröts. Ingenting sparades.';
+
+  @override
+  String get bridgeInvalidResponse =>
+      'Datorn svarade med något appen inte kan läsa.';
+
+  @override
+  String get bridgeProblem => 'Datorns brygga rapporterade ett problem.';
 }

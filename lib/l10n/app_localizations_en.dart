@@ -215,7 +215,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoModeNotice =>
-      'Local AI is not connected yet. Demo mode creates a clearly marked sample story so the complete app flow can be tested for free.';
+      'Demo mode creates a clearly marked sample story with no PC and no AI. Switch the story generator to Local AI in settings to write on your family PC.';
 
   @override
   String get profileNeeded => 'Add at least one hero profile first.';
@@ -330,7 +330,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutBody =>
-      'A private family storybook. Local Ollama and ComfyUI connections will be added in a later phase.';
+      'A private family storybook. Stories are written by a local Ollama model on your own PC; ComfyUI illustrations follow in a later phase.';
 
   @override
   String get english => 'English';
@@ -827,7 +827,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pcRequirementStatus =>
-      'The demo works with the PC off. After local AI is connected later, the PC and its models must be running for new AI stories; saved books still open offline.';
+      'The demo works with the PC switched off. Local AI stories need the PC, its bridge, and its model running; saved books always open offline.';
 
   @override
   String get generationQueued => 'Queued and saved';
@@ -1193,4 +1193,192 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storyFileNewerVersion =>
       'This story file was created by a newer version of the app.';
+
+  @override
+  String get aiConnectionTitle => 'AI connection';
+
+  @override
+  String get aiConnectionBody =>
+      'Choose whether new stories come from the offline sample or from the AI running on your own family PC.';
+
+  @override
+  String get aiConnectionParentNotice =>
+      'These controls are for parents only. Children never see the PC address or the pairing.';
+
+  @override
+  String get storyGeneratorMode => 'Story generator';
+
+  @override
+  String get demoGeneratorMode => 'Demo · offline sample';
+
+  @override
+  String get localAiGeneratorMode => 'Local AI on the PC';
+
+  @override
+  String get storyGeneratorModeSaved => 'Story generator updated';
+
+  @override
+  String get bridgeAddress => 'PC bridge address';
+
+  @override
+  String get bridgeAddressHint => 'http://127.0.0.1:8765';
+
+  @override
+  String get bridgeAddressInvalid =>
+      'Enter a full address, for example http://192.168.1.20:8765.';
+
+  @override
+  String get saveBridgeAddress => 'Save address';
+
+  @override
+  String get bridgeAddressSaved => 'PC bridge address saved';
+
+  @override
+  String get testBridgeConnection => 'Test connection';
+
+  @override
+  String bridgeReachable(String version) {
+    return 'The PC bridge answered. Version $version.';
+  }
+
+  @override
+  String get bridgeStatusReady => 'Ready';
+
+  @override
+  String get bridgeStatusUnavailable => 'Not available';
+
+  @override
+  String get bridgeLibraryStatus => 'PC story library';
+
+  @override
+  String get pairWithPc => 'Pair with PC';
+
+  @override
+  String get pairDeviceTitle => 'Pair this device';
+
+  @override
+  String get pairDeviceBody =>
+      'Look at the PC screen: it shows a 6-digit code for two minutes. Type that code here together with a name for this device.';
+
+  @override
+  String get pairingCode => '6-digit code from the PC';
+
+  @override
+  String get pairingCodeInvalid => 'Enter the 6 digits shown on the PC.';
+
+  @override
+  String get pairedDeviceNameLabel => 'Name for this device';
+
+  @override
+  String get pairedDeviceNameHint => 'Family tablet';
+
+  @override
+  String pairedDeviceNameInvalid(int max) {
+    return 'Enter a name of up to $max characters.';
+  }
+
+  @override
+  String get confirmPairing => 'Pair device';
+
+  @override
+  String get devicePaired => 'Device paired with the PC';
+
+  @override
+  String devicePairedAs(String name) {
+    return 'Paired with the PC as $name';
+  }
+
+  @override
+  String get deviceNotPaired => 'This device is not paired with the PC yet.';
+
+  @override
+  String get forgetPairedDevice => 'Forget this device';
+
+  @override
+  String get forgetPairedDeviceTitle => 'Forget this pairing?';
+
+  @override
+  String get forgetPairedDeviceBody =>
+      'This device stops using the PC until it is paired again. Remove it on the PC as well if it should not stay listed there.';
+
+  @override
+  String get pairedDeviceForgotten => 'Pairing removed from this device';
+
+  @override
+  String get openAiConnectionSettings => 'Open AI connection settings';
+
+  @override
+  String get localAiModeNotice =>
+      'Stories are written by the AI on your family PC. The PC, its bridge, and its model must be running.';
+
+  @override
+  String get generateLocalAiStory => 'Generate story on the PC';
+
+  @override
+  String get localAiSubmitting => 'Sending the request to the PC…';
+
+  @override
+  String get localAiQueued => 'Waiting for the PC to start.';
+
+  @override
+  String localAiQueuedPosition(int position) {
+    return 'Waiting on the PC · $position in line.';
+  }
+
+  @override
+  String get localAiWriting => 'The PC is writing the story…';
+
+  @override
+  String get localAiChecking => 'Checking the finished pages…';
+
+  @override
+  String get bridgeUnreachable =>
+      'The PC did not answer. Check that the bridge is running and that the address is correct.';
+
+  @override
+  String get bridgeTimedOut => 'The PC took too long to answer.';
+
+  @override
+  String get bridgeNotPaired =>
+      'Pair this device with the PC before generating a story there.';
+
+  @override
+  String get bridgeUnauthorized => 'The PC refused this device. Pair it again.';
+
+  @override
+  String get bridgeRateLimited =>
+      'Too many pairing requests. Wait a minute and try again.';
+
+  @override
+  String get bridgePairingNotFound =>
+      'That pairing is no longer waiting. Start a new one.';
+
+  @override
+  String get bridgePairingExpired =>
+      'The code expired. Ask the PC for a new one.';
+
+  @override
+  String get bridgeInvalidPairingCode =>
+      'That code is not correct. Five wrong codes cancel the pairing.';
+
+  @override
+  String get bridgeInvalidRequest => 'The PC refused this story request.';
+
+  @override
+  String get bridgeJobNotFound => 'The PC no longer knows this story request.';
+
+  @override
+  String get bridgeGenerationFailed =>
+      'The PC could not finish the story. Nothing was saved.';
+
+  @override
+  String get bridgeGenerationCancelled =>
+      'Story generation was cancelled. Nothing was saved.';
+
+  @override
+  String get bridgeInvalidResponse =>
+      'The PC answered with something this app cannot read.';
+
+  @override
+  String get bridgeProblem => 'The PC bridge reported a problem.';
 }

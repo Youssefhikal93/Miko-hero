@@ -1,24 +1,70 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:miko_hero/core/ai_connection/bridge_client.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
+import 'package:miko_hero/core/generation/local_ai_story_generator.dart';
 import 'package:miko_hero/core/generation/story_generator.dart';
 import 'package:miko_hero/core/models/app_state.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/device_narration_service.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
+import 'package:miko_hero/features/settings/ai_connection_controller.dart';
+import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 
 /// Opens the platform preference store once per provider container.
 final localRepositoryProvider = FutureProvider<LocalRepository>((ref) {
   return LocalRepository.open();
 });
 
-/// Supplies the explicitly labelled local demo generator until AI is connected.
+/// Supplies how often a job running on the PC is polled.
+///
+/// Injectable so a test can drive the complete polling flow without waiting
+/// out the real interval.
+final localAiPollIntervalProvider = Provider<Duration>((ref) {
+  return defaultLocalAiPollInterval;
+});
+
+/// Supplies the generator the parent selected in the AI connection settings.
+///
+/// The offline demo stays a deliberate, manually selected choice: it is used
+/// while the settings are still loading and whenever Demo is the saved mode,
+/// never as a silent fallback for a local AI call that failed.
 final storyGeneratorProvider = Provider<StoryGenerator>((ref) {
-  return DemoStoryGenerator(
-    latency: const Duration(milliseconds: 650),
+  final connection = ref.watch(aiConnectionControllerProvider).value;
+  if (connection == null || !connection.usesLocalAi) {
+    return DemoStoryGenerator(
+      latency: const Duration(milliseconds: 650),
+      currentTime: DateTime.now,
+    );
+  }
+  return LocalAiStoryGenerator(
+    client: BridgeClient(
+      httpClient: ref.watch(bridgeHttpClientProvider),
+      baseUrl: connection.settings.baseUrl,
+      deviceToken: connection.credential?.deviceToken,
+    ),
+    resolveAgeYears: (request) => _heroAgeYears(ref, request),
     currentTime: DateTime.now,
+    pollInterval: ref.watch(localAiPollIntervalProvider),
+    onProgress: (progress) {
+      ref.read(generationProgressProvider.notifier).report(progress);
+    },
   );
 });
+
+/// Resolves the hero's age today, which the bridge requires with each request.
+///
+/// A request whose profile was deleted between queueing and generation keeps
+/// the default reading age; the story controller refuses it moments later.
+int _heroAgeYears(Ref ref, StoryRequest request) {
+  final profile = ref
+      .read(appControllerProvider)
+      .value
+      ?.profileById(request.profileId);
+  return profile?.age ?? defaultChildProfileAgeYears;
+}
 
 /// Supplies free narration through the current device's installed voices.
 final narrationServiceProvider = Provider<NarrationService>((ref) {
