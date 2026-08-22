@@ -1,0 +1,91 @@
+# Builds, verifies, and deploys the Iam-hero web app on every push to main.
+#
+# The build-and-test job always runs: analyzer, the full test suite (app and
+# bridge), and a web release build whose artifact is kept for 7 days.
+#
+# The deploy job publishes that build to Vercel, but only when the repository
+# has the three Vercel secrets configured (Settings > Secrets and variables >
+# Actions): VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID. Until then it is
+# skipped, so this workflow is safe to land before the hosting account exists.
+#
+# Privacy note: the deployed site is static files only. Profiles, photos, and
+# stories live in each browser's local storage; nothing is uploaded to the
+# hosting service, and the PC bridge stays on the private home network.
+
+name: Web build and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: web-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: App tests
+        run: flutter test
+
+      - name: Bridge tests
+        working-directory: bridge
+        run: |
+          dart pub get
+          dart analyze
+          dart test
+
+      - name: Build web release
+        run: flutter build web --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-release
+          path: build/web
+          retention-days: 7
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check deploy secrets
+        id: gate
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel secrets not configured; skipping deploy."
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          name: web-release
+          path: build/web
+
+      - name: Deploy to Vercel
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        working-directory: build/web
+        run: |
+          npm install --global vercel@latest
+          vercel deploy --prod --yes --token "$VERCEL_TOKEN"
