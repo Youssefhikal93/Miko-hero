@@ -1,12 +1,16 @@
 import 'dart:io';
 
 import 'package:iam_hero_bridge/src/backup/library_backup_service.dart';
+import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
 import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
+import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
+import 'package:iam_hero_bridge/src/illustration/illustration_queue.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
+import 'package:iam_hero_bridge/src/library/profile_photo_store.dart';
 import 'package:iam_hero_bridge/src/library/story_deleter.dart';
 import 'package:iam_hero_bridge/src/pairing/pairing_service.dart';
 import 'package:iam_hero_bridge/src/probes/health_probes.dart';
@@ -18,9 +22,12 @@ import 'package:iam_hero_bridge/src/server/cors_middleware.dart';
 import 'package:iam_hero_bridge/src/server/devices_handler.dart';
 import 'package:iam_hero_bridge/src/server/generation_handlers.dart';
 import 'package:iam_hero_bridge/src/server/health_handler.dart';
+import 'package:iam_hero_bridge/src/server/illustration_handlers.dart';
 import 'package:iam_hero_bridge/src/server/pairing_handlers.dart';
+import 'package:iam_hero_bridge/src/server/profile_photo_handlers.dart';
 import 'package:iam_hero_bridge/src/server/request_limits.dart';
 import 'package:iam_hero_bridge/src/server/sync_handlers.dart';
+import 'package:iam_hero_bridge/src/sync/illustration_file_reader.dart';
 import 'package:iam_hero_bridge/src/sync/sync_reader.dart';
 import 'package:iam_hero_bridge/src/sync/sync_state_store.dart';
 import 'package:shelf/shelf.dart';
@@ -39,32 +46,53 @@ import 'package:uuid/uuid.dart';
 /// 4. request body size limit,
 /// 5. routing: public endpoints (`/health`, `/pair/*`) bypass auth; every
 ///    other endpoint sits behind [requireDeviceAuth] — story generation,
-///    synchronization, deletion and master-library backup included.
+///    illustration rendering, reference photos, synchronization, deletion
+///    and master-library backup included.
+///
+/// The two generation queues share one [GpuGate], created here, because the
+/// machine has one GPU: a story and an illustration must never render at the
+/// same moment.
 class AppServer {
   /// Creates a server for [config] over an initialized [library].
   ///
-  /// [probeHttpClient], [ollamaClient], [uuid], [clock] and [notifyCode] are
-  /// injection seams for tests; [notifyCode] receives the console line
-  /// containing a freshly issued pairing code, and [logEvent] receives
-  /// content-free generation progress lines.
+  /// [probeHttpClient], [ollamaClient], [comfyUiClient], [uuid], [clock],
+  /// [notifyCode] and [illustrationPollInterval] are injection seams for
+  /// tests; [notifyCode] receives the console line containing a freshly
+  /// issued pairing code, and [logEvent] receives content-free generation
+  /// and rendering progress lines.
   AppServer({
     required this.config,
     required this.library,
     this._probeHttpClient = const IoProbeHttpClient(),
     OllamaStoryClient ollamaClient = const IoOllamaStoryClient(),
+    ComfyUiClient comfyUiClient = const IoComfyUiClient(),
     Uuid uuid = const Uuid(),
     DateTime Function()? clock,
     void Function(String message)? notifyCode,
     GenerationLogSink? logEvent,
+    Duration? illustrationPollInterval,
   }) : deviceStore = DeviceStore(library: library, uuid: uuid),
-       pairingService = PairingService(uuid: uuid, clock: clock),
-       generationQueue = StoryGenerationQueue(
-         config: config,
-         writer: StoryLibraryWriter(library: library, uuid: uuid),
-         client: ollamaClient,
-         uuid: uuid,
-         log: logEvent,
-       ) {
+       pairingService = PairingService(uuid: uuid, clock: clock) {
+    final gpuGate = GpuGate();
+    generationQueue = StoryGenerationQueue(
+      config: config,
+      writer: StoryLibraryWriter(library: library, uuid: uuid),
+      client: ollamaClient,
+      uuid: uuid,
+      gate: gpuGate,
+      clock: clock,
+      log: logEvent,
+    );
+    illustrationQueue = IllustrationQueue(
+      config: config,
+      library: library,
+      client: comfyUiClient,
+      gate: gpuGate,
+      uuid: uuid,
+      clock: clock,
+      log: logEvent,
+      pollInterval: illustrationPollInterval,
+    );
     _healthHandler = HealthHandler(
       probes: <HealthProbe>[
         OllamaProbe(
@@ -83,10 +111,15 @@ class AppServer {
     );
     _devicesHandler = DevicesHandler(deviceStore: deviceStore);
     _generationHandlers = GenerationHandlers(queue: generationQueue);
+    _illustrationHandlers = IllustrationHandlers(queue: illustrationQueue);
+    _profilePhotoHandlers = ProfilePhotoHandlers(
+      store: ProfilePhotoStore(library: library),
+    );
     _syncHandlers = SyncHandlers(
       reader: SyncReader(library: library),
       stateStore: SyncStateStore(library: library),
       deleter: StoryDeleter(library: library, uuid: uuid),
+      illustrationFiles: IllustrationFileReader(library: library),
     );
     _backupHandlers = BackupHandlers(
       service: LibraryBackupService(library: library),
@@ -106,13 +139,21 @@ class AppServer {
   final PairingService pairingService;
 
   /// Single-worker story generation queue behind the `/stories` endpoints.
-  final StoryGenerationQueue generationQueue;
+  late final StoryGenerationQueue generationQueue;
+
+  /// Single-worker illustration queue behind the `/illustrations` endpoints.
+  ///
+  /// Shares its [GpuGate] with [generationQueue], so the two never render at
+  /// the same time.
+  late final IllustrationQueue illustrationQueue;
 
   final ProbeHttpClient _probeHttpClient;
   late final HealthHandler _healthHandler;
   late final PairingHandlers _pairingHandlers;
   late final DevicesHandler _devicesHandler;
   late final GenerationHandlers _generationHandlers;
+  late final IllustrationHandlers _illustrationHandlers;
+  late final ProfilePhotoHandlers _profilePhotoHandlers;
   late final SyncHandlers _syncHandlers;
   late final BackupHandlers _backupHandlers;
 
@@ -137,9 +178,33 @@ class AppServer {
                   '/stories/jobs/<jobId>/cancel',
                   _generationHandlers.cancelJob,
                 )
+                ..post(
+                  '/stories/<storyId>/illustrate',
+                  _illustrationHandlers.createJob,
+                )
+                ..get(
+                  '/illustrations/jobs/<jobId>',
+                  _illustrationHandlers.readJob,
+                )
+                ..post(
+                  '/illustrations/jobs/<jobId>/cancel',
+                  _illustrationHandlers.cancelJob,
+                )
+                ..put(
+                  '/profiles/<profileId>/photo',
+                  _profilePhotoHandlers.putPhoto,
+                )
+                ..delete(
+                  '/profiles/<profileId>/photo',
+                  _profilePhotoHandlers.deletePhoto,
+                )
                 ..post('/stories/<storyId>/delete', _syncHandlers.deleteStory)
                 ..get('/sync/manifest', _syncHandlers.readManifest)
                 ..get('/sync/stories/<storyId>', _syncHandlers.downloadStory)
+                ..get(
+                  '/sync/illustrations/<illustrationId>',
+                  _syncHandlers.downloadIllustration,
+                )
                 ..post('/sync/complete', _syncHandlers.completeSync)
                 ..post('/library/backup', _backupHandlers.createBackup)
                 ..post('/library/restore', _backupHandlers.restoreBackup))

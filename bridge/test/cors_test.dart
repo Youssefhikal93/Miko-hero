@@ -40,6 +40,7 @@ Future<Handler> _handlerWithOrigins(List<String> extraOrigins) async {
       ollamaModel: defaults.ollamaModel,
       generationTimeoutSeconds: defaults.generationTimeoutSeconds,
       maxGenerationAttempts: defaults.maxGenerationAttempts,
+      illustrationTimeoutSeconds: defaults.illustrationTimeoutSeconds,
       allowedWebOrigins: extraOrigins,
     ),
     library: library,

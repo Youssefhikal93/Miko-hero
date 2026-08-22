@@ -4,10 +4,9 @@ Private, **local-only** HTTP bridge service for the "Iam - hero" children's
 storybook app. It runs on the family PC, owns the master library (SQLite +
 folders), pairs companion mobile devices with short-lived pairing codes and
 256-bit bearer tokens, reports the health of its local dependencies, generates
-stories with a local Ollama model, synchronizes them to every paired device,
-deletes them everywhere on request, and writes password-encrypted backups of
-the whole library. Illustration generation (ComfyUI) follows in a later
-milestone.
+stories with a local Ollama model, illustrates them with a local ComfyUI
+install, synchronizes both to every paired device, deletes them everywhere on
+request, and writes password-encrypted backups of the whole library.
 
 > ## ⚠️ Never expose this service to the internet
 >
@@ -22,8 +21,15 @@ milestone.
 
 - [Dart SDK](https://dart.dev) 3.12 or newer (`sdk: ^3.12.2`)
 - Optional: a local [Ollama](https://ollama.com) server with the configured
-  model pulled, and a local ComfyUI install — both are probed for `/health`
-  only; the bridge works without them.
+  model pulled. Without it `/health` reports `ollama` unavailable and story
+  generation fails with a typed error; everything else keeps working.
+- Optional: a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
+  install for illustrations. It needs the SD 1.5 checkpoint
+  `v1-5-pruned-emaonly-fp16.safetensors` and, for face likeness, the
+  **IPAdapter-plus** custom nodes with `ip-adapter-plus-face_sd15.safetensors`
+  in the `ipadapter` folder and the CLIP vision encoder
+  `CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors`. Without ComfyUI the bridge
+  runs fine and illustration jobs fail with `comfyui_unavailable`.
 
 ## Configuration
 
@@ -46,6 +52,7 @@ printed. All machine-specific values live in this file; nothing is hardcoded.
 | `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories         |
 | `generationTimeoutSeconds` | `600`        | Budget for one generation call (30–3600)  |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
+| `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800)   |
 | `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Loopback origins (`localhost`, `127.0.0.1`, any port) are always allowed; list LAN origins such as `http://192.168.1.20:8765` explicitly. Never list a public internet origin. |
 
 Example `bridge_config.json`:
@@ -60,6 +67,7 @@ Example `bridge_config.json`:
   "ollamaModel": "gemma3:4b",
   "generationTimeoutSeconds": 600,
   "maxGenerationAttempts": 3,
+  "illustrationTimeoutSeconds": 300,
   "allowedWebOrigins": []
 }
 ```
@@ -223,8 +231,8 @@ the whole book:
 
 The generation request itself is never echoed back: it holds the child's
 name. Illustration rows exist from the first save with status `pending`
-and a deterministic path; the image files arrive with the ComfyUI
-milestone.
+and a deterministic path; the image files arrive when the story is sent
+through `POST /stories/<storyId>/illustrate`.
 
 ### `POST /stories/jobs/<jobId>/cancel` — requires auth
 
@@ -237,6 +245,134 @@ Idempotent; answers `200` with the status the job ended in:
 A queued job leaves the line immediately. The running job has its in-flight
 HTTP request to Ollama aborted and is never persisted — cancelling always
 means "no story", never "half a story".
+
+### `PUT /profiles/<profileId>/photo` — requires auth
+
+Stores the child's reference photo, which is what makes the hero look like
+the same child on every page. The body is **the image itself**, not JSON:
+
+```text
+PUT /profiles/profile-1/photo
+Authorization: Bearer <deviceToken>
+Content-Type: image/jpeg
+
+<raw bytes>
+```
+
+`Content-Type` must be `image/jpeg` or `image/png` (`image/jpg` is accepted
+as a spelling of the former), and the bytes must actually start with that
+format's magic bytes — a declared type is a claim, the bytes are the
+evidence. Answers `200`:
+
+```json
+{
+  "profileId": "profile-1",
+  "relativePath": "photos/profile-1.png",
+  "contentType": "image/png",
+  "sizeBytes": 148213
+}
+```
+
+The file is written atomically to `photos/<profileId>.<ext>`, replacing any
+previous photo (including one stored in the other format — a profile never
+has two), and the profile row's `updated_at_utc` moves inside a transaction
+so the next sync manifest shows the change.
+
+Typed failures: `400 unsupported_image_type` (wrong or missing
+`Content-Type`), `400 invalid_image` (bytes that are not that format, or an
+empty body), `413 photo_too_large` (over 2 MB), `404 profile_not_found`.
+
+**The bytes never leave the library.** They are not logged, not echoed in a
+response, not named in an error message, and not sent to any paired device —
+only to the local ComfyUI, and only while a page is being rendered.
+
+### `DELETE /profiles/<profileId>/photo` — requires auth
+
+Removes the photo. Idempotent — a profile that has none answers `200` with
+`"removed": false` — and `404 profile_not_found` for an unknown profile.
+
+```json
+{ "profileId": "profile-1", "removed": true }
+```
+
+### `POST /stories/<storyId>/illustrate` — requires auth
+
+Queues rendering of every page of the story that does not have an image yet:
+`pending` and `failed` rows both count, `completed` ones are skipped. The
+body is optional and carries the two things the library does not remember
+about a story but a picture needs:
+
+```json
+{ "illustrationStyle": "watercolor", "genderContext": "girl" }
+```
+
+Both are optional. An absent `illustrationStyle` falls back to
+`pictureBook`; an absent `genderContext` simply leaves the hero described as
+a child. A present-but-invalid value is `400 invalid_field`. On success:
+
+```json
+{ "jobId": "…", "pageCount": 6, "queuePosition": 1 }
+```
+
+`pageCount` is how many pages **this job** will render, not how long the
+story is: after a run where one page failed, a second call answers
+`"pageCount": 1`. An unknown story answers `404 story_not_found`.
+
+### `GET /illustrations/jobs/<jobId>` — requires auth
+
+Polls one illustration job. Unknown ids — and jobs created by another device
+— answer `404 job_not_found`, exactly like story jobs.
+
+```json
+{
+  "jobId": "…",
+  "storyId": "…",
+  "status": "rendering",
+  "progress": "Rendering page 3 of 6.",
+  "pageCount": 6,
+  "completedPageCount": 2,
+  "failedPageCount": 0,
+  "createdAtUtc": "2026-08-22T10:00:00.000Z",
+  "updatedAtUtc": "2026-08-22T10:04:12.000Z"
+}
+```
+
+`queuePosition` is present only while `status` is `queued`. A failed job
+carries `"error": {"code": "…", "message": "…"}`. Nothing in this payload is
+story content: no scene descriptions, no prompts, no file paths.
+
+### `POST /illustrations/jobs/<jobId>/cancel` — requires auth
+
+Idempotent; answers `200` with the status the job ended in:
+
+```json
+{ "jobId": "…", "status": "cancelled" }
+```
+
+A queued job leaves the line immediately. The running job **stops after the
+page it is currently rendering**: that page is finished and stored, and no
+page after it is started. Throwing away a minute of GPU work that is nearly
+done would help nobody.
+
+### `GET /sync/illustrations/<illustrationId>` — requires auth
+
+The one endpoint that answers with bytes instead of JSON: the rendered page
+as `image/png`, with a strong `ETag` (the SHA-256 of the file contents) and
+`Cache-Control: private, no-cache`. Send the stored tag back as
+`If-None-Match` to get `304 Not Modified` instead of the image again.
+
+A content hash rather than size-and-mtime, deliberately: a re-render writes
+the same path with a new timestamp, and re-downloading a byte-identical
+image on every sync is exactly what the tag exists to prevent.
+
+Two response headers carry the page's identity so a device does not have to
+join it back to the manifest: `x-illustration-story-id` and
+`x-illustration-page-number`.
+
+Errors stay typed JSON: `404 illustration_not_found` for an unknown id, and
+`409 illustration_not_ready` when the row is not `completed` — which is a
+different thing from a missing story and must not be treated as one. A row
+that says `completed` while its file is gone reads as `409` too.
 
 ### `GET /sync/manifest` — requires auth
 
@@ -271,8 +407,9 @@ only: titles and timestamps travel here, prose and files never do.
 ```
 
 `lastSyncedAtUtc` is this device's own watermark and is `null` until it has
-reported one successful sync. Illustration status is `pending` for every slot
-until the ComfyUI milestone.
+reported one successful sync. Each illustration's `status` is `pending`,
+`completed` or `failed`; only a `completed` one can be downloaded from
+`GET /sync/illustrations/<id>`.
 
 ### `GET /sync/stories/<storyId>` — requires auth
 
@@ -383,13 +520,18 @@ Typed failures: `backup_password_too_short`, `backup_invalid_file_name`,
 1. The device calls `GET /sync/manifest`.
 2. It compares each story's `updatedAtUtc` against the copy it holds and calls
    `GET /sync/stories/<id>` only for the ones that are new or newer.
-3. It applies every entry in `deletions` to its own copy.
-4. It calls `POST /sync/complete` with the manifest's `generatedAtUtc`.
+3. For every illustration the manifest reports as `completed` and the device
+   does not already hold, it calls `GET /sync/illustrations/<id>` — sending
+   the `ETag` it stored last time as `If-None-Match`, so an unchanged image
+   costs a `304` instead of a download. A page finishing rendering moves its
+   story's `updatedAtUtc`, which is how the manifest advertises new images.
+4. It applies every entry in `deletions` to its own copy.
+5. It calls `POST /sync/complete` with the manifest's `generatedAtUtc`.
 
 There is deliberately no change feed. At this scale — ten-odd profiles and
 hundreds of stories — one manifest of metadata plus timestamps is smaller and
 far harder to get wrong than a cursor a device could lose or replay. The
-watermark stored by step 4 is the manifest's own generation time, not the time
+watermark stored by step 5 is the manifest's own generation time, not the time
 the report arrived, so anything written while the device was downloading is
 simply picked up by the next sync.
 
@@ -555,6 +697,103 @@ Job ids, statuses, attempt counters, timings and typed error codes — and
 nothing else. Prompts, story text, titles, child names and model output are
 never written to the console or to any log.
 
+## Illustrations
+
+### One GPU, one job — story or picture, never both
+
+The machine has one 4 GB card. Story generation loads a language model onto
+it; illustration rendering loads a diffusion checkpoint onto it. Two workers
+that each fit alone will together exhaust the card and fail in a way neither
+queue can explain, so **the two queues share one lock**: while a story is
+being written no page renders, and while a page renders no story is written.
+
+The two queues stay separate — they have different job shapes, statuses and
+failure modes — and share only that lock. The illustration queue takes it per
+**page** rather than per job, so a story queued behind a ten-page book waits
+for one page instead of ten. The story queue takes it for a whole job,
+because a half-generated story is not a thing worth yielding for.
+
+Within each queue the rule is the familiar one: a single worker drains a FIFO
+line, everyone else waits with a reported position, and jobs live in memory
+only.
+
+### The render itself
+
+Per page, in order: build the node graph, submit it to `POST /prompt`, poll
+`GET /history/<promptId>` until `status.completed`, download the image from
+`GET /view`, check it really is a PNG, write it atomically to
+`illustrations/<storyId>/<pageIndex>.png`, and flip the row to `completed`.
+
+The graph is SD 1.5 at 512x512 with a fixed negative prompt that guards
+against scary, adult, deformed and text-covered output on every single
+render — not a per-request option, because this is a children's book
+generator. Each of `pictureBook`, `watercolor` and `colorful3d` contributes
+its own prompt prefix. The sampler seed is derived from the illustration id,
+so **re-rendering a page reproduces it**: a parent who asks for the same
+picture again gets the same picture, not a lottery ticket.
+
+If the profile has a reference photo, the checkpoint's model output is routed
+through the IPAdapter-plus-**face** chain — load the photo, encode it with
+CLIP vision, apply the adapter at weight 0.65 — before it reaches the
+sampler. The photo is uploaded to ComfyUI once per job, not once per page.
+Without a photo the graph is plain text-to-image and the hero simply will not
+resemble anyone in particular.
+
+### What face likeness actually means here
+
+**Recognizably similar, not photographic.** A 4 GB SD 1.5 setup with an
+IPAdapter face model reproduces a child's general look — hair, colouring,
+face shape, the overall impression — well enough that a family recognizes who
+the story is about. It is not a photograph of the child and will not survive
+close comparison with one: features drift between pages, and a specific
+detail such as glasses or a birthmark may or may not appear. The adapter
+weight is deliberately below full strength, because at full weight the photo
+drags every page towards its own pose and lighting and the illustration stops
+looking drawn. If you expected a likeness that could be mistaken for the
+child, this setup will disappoint you; if you expected the child to be
+recognizable in a picture book, it delivers that.
+
+### Job lifecycle
+
+```text
+queued ──▶ rendering ──▶ completed
+              │
+              └──▶ failed / cancelled
+```
+
+- **queued** — accepted, waiting for the worker; reports `queuePosition`.
+- **rendering** — pages are going through ComfyUI one at a time; `progress`
+  reads `Rendering page 3 of 6.`
+- **completed** — every page was attempted and at least one image landed.
+  **A completed job may still have failed pages**: the counts, not the
+  status, say how the book turned out.
+- **failed** — no image at all. Either ComfyUI was unreachable when the job
+  started, or every single page failed.
+- **cancelled** — stopped after the page that was in flight.
+
+A page that fails marks **its own row** `failed` and the job carries on with
+the remaining pages: a six-page book is never re-rendered from scratch
+because page five timed out. Calling `POST /stories/<id>/illustrate` again
+picks up exactly the pages that are still outstanding.
+
+One exception, deliberately: when ComfyUI is not reachable at all, the job
+fails immediately and **no row is touched**. Flipping six pages to `failed`
+because the renderer was not running is not information, it is noise.
+
+Each finished page is one small transaction — the row's status plus the
+story's `updated_at_utc` — so a row can never claim an image the manifest
+does not advertise, and the pages that did finish stay permanently done.
+
+Typed failure codes: `comfyui_unavailable`, `comfyui_timeout`,
+`comfyui_failed`, `invalid_image_output`, `image_write_failed`,
+`library_write_failed`, `cancelled`, `internal_error`.
+
+### What illustration logs
+
+Job ids, story ids, page indexes, counts, timings, typed error codes, and
+whether a reference photo was used — and nothing else. Scene descriptions,
+prompts, file paths and image bytes never reach the console or a log.
+
 ## Pairing flow (human-in-the-loop)
 
 1. On the phone, tap *Pair with PC* → the app calls `POST /pair/request`.
@@ -578,14 +817,23 @@ and wrong attempts are capped at five.
   five wrong entries. Request rate limit: 5 per minute.
 - **Bounded requests**: bodies larger than 25 MB are rejected with `413`;
   slow handlers time out with a typed error instead of hanging.
-- **Privacy by design**: request bodies, photo bytes, story content,
-  prompts, child names, model output, tokens, and pairing codes are never
-  logged. No third-party network calls — the only outbound traffic is
-  health probes and story generation against the configured local
-  Ollama/ComfyUI URLs.
+- **Privacy by design**: request bodies, photo bytes, story content, scene
+  descriptions, prompts, child names, model output, image bytes, file paths,
+  tokens, and pairing codes are never logged. No third-party network calls —
+  the only outbound traffic is health probes, story generation and
+  illustration rendering against the configured local Ollama/ComfyUI URLs.
 - **Bounded generation**: one job at a time, a configurable timeout per
   call (default 10 minutes), a capped number of attempts, and cancellation
   that aborts the in-flight request instead of orphaning it.
+- **Bounded rendering**: one page at a time behind the same one-GPU lock, a
+  configurable per-page timeout (default 5 minutes) that interrupts the
+  abandoned render so the card is freed, a 16 MB ceiling on a downloaded
+  image, and a PNG magic-byte check before anything is stored.
+- **Reference photos**: at most 2 MB, accepted only as JPEG or PNG, and only
+  when the bytes match the declared type. Stored under the profile id inside
+  `photos/`, so an id that could escape the folder is refused before the
+  database is even asked. The bytes are never logged, never echoed, and never
+  sent anywhere but the local ComfyUI.
 - **Master library**: all structured data in SQLite under `db/master.db`,
   writes wrapped in transactions; binary assets stay in folders referenced
   by stable ids and relative paths (never blobs), written atomically via
@@ -608,10 +856,16 @@ dart test                             # full suite, no services needed
 dart format --set-exit-if-changed .   # formatting gate
 ```
 
-Tests mock Ollama/ComfyUI at the HTTP-client boundary and always use
-temporary directories, so nothing real is ever touched. The production
-Ollama client is additionally exercised against a local stub HTTP server,
-which is how the UTF-8 encoding, timeout and abort behavior stay honest.
+Tests mock Ollama/ComfyUI at the client boundary and always use temporary
+directories, so nothing real is ever touched — no model is loaded and no
+render is started. The production Ollama client is additionally exercised
+against a local stub HTTP server, which is how the UTF-8 encoding, timeout
+and abort behavior stay honest.
+
+Illustration tests replace only `ComfyUiClient`: the queue, the one-GPU lock,
+the workflow builder, the atomic file writes and the row updates are all the
+real implementations, and the fake renderer returns a genuine PNG because the
+bridge checks magic bytes on everything it stores.
 
 Sync, deletion and backup tests mock nothing: they run the real SQLite
 database, the real file system inside a temporary library, and the real

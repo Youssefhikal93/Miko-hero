@@ -12,6 +12,7 @@ import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_draft.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
+import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/app_server.dart';
@@ -115,6 +116,140 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
   }
 }
 
+/// A fake [ComfyUiClient] scripted per test.
+///
+/// This is the only mocked boundary in the illustration tests: the queue, the
+/// workflow builder, the file writes and the database updates are all the
+/// real implementations. No ComfyUI process is ever started.
+class FakeComfyUiClient implements ComfyUiClient {
+  /// Creates a client.
+  ///
+  /// [reachable] decides what the health check answers. Submissions are
+  /// numbered from zero in call order; any number in [failingSubmissions]
+  /// comes back from history as a ComfyUI-side error, and [onSubmit] is
+  /// awaited inside `submitWorkflow` so a test can hold a render open.
+  FakeComfyUiClient({
+    this.reachable = true,
+    Uint8List? imageBytes,
+    this.failingSubmissions = const <int>{},
+    this.uploadFailure,
+    this.onSubmit,
+  }) : imageBytes = imageBytes ?? onePixelPngBytes();
+
+  /// What [isReachable] answers.
+  final bool reachable;
+
+  /// Bytes every [fetchImage] call returns.
+  final Uint8List imageBytes;
+
+  /// Zero-based submission numbers whose render reports an error.
+  final Set<int> failingSubmissions;
+
+  /// Thrown by [uploadReferenceImage] when set.
+  final Object? uploadFailure;
+
+  /// Awaited inside [submitWorkflow], before the prompt id is returned.
+  final Future<void> Function(int submissionIndex)? onSubmit;
+
+  /// Every workflow submitted, in call order.
+  final List<Map<String, Object?>> workflows = <Map<String, Object?>>[];
+
+  /// File names of every uploaded reference image, in call order.
+  final List<String> uploadedFileNames = <String>[];
+
+  /// How many times [interrupt] was called.
+  int interruptCount = 0;
+
+  @override
+  Future<bool> isReachable(ComfyUiEndpoint endpoint) async => reachable;
+
+  @override
+  Future<String> uploadReferenceImage(
+    ComfyUiEndpoint endpoint, {
+    required String fileName,
+    required String contentType,
+    required Uint8List bytes,
+  }) async {
+    final Object? failure = uploadFailure;
+    if (failure != null) {
+      throw failure;
+    }
+    uploadedFileNames.add(fileName);
+    return fileName;
+  }
+
+  @override
+  Future<String> submitWorkflow(
+    ComfyUiEndpoint endpoint, {
+    required Map<String, Object?> workflow,
+    required String clientId,
+  }) async {
+    final index = workflows.length;
+    workflows.add(workflow);
+    await onSubmit?.call(index);
+    return 'prompt-$index';
+  }
+
+  @override
+  Future<ComfyUiHistoryEntry> readHistory(
+    ComfyUiEndpoint endpoint, {
+    required String promptId,
+  }) async {
+    final index = int.parse(promptId.split('-').last);
+    if (failingSubmissions.contains(index)) {
+      return const ComfyUiHistoryEntry(
+        known: true,
+        completed: false,
+        failed: true,
+        images: <ComfyUiImageReference>[],
+      );
+    }
+    return ComfyUiHistoryEntry(
+      known: true,
+      completed: true,
+      failed: false,
+      images: <ComfyUiImageReference>[
+        ComfyUiImageReference(
+          fileName: '$promptId.png',
+          subfolder: '',
+          type: 'output',
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<Uint8List> fetchImage(
+    ComfyUiEndpoint endpoint, {
+    required ComfyUiImageReference image,
+  }) async => imageBytes;
+
+  @override
+  Future<void> interrupt(ComfyUiEndpoint endpoint) async => interruptCount++;
+}
+
+/// A real, minimal 1x1 PNG.
+///
+/// The bridge checks PNG magic bytes on everything it stores, so the fake
+/// renderer has to hand back something that genuinely is a PNG.
+Uint8List onePixelPngBytes() {
+  return base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAC'
+    'hwGA60e6kgAAAABJRU5ErkJggg==',
+  );
+}
+
+/// A minimal JFIF-headed JPEG: start-of-image, APP0 segment, end-of-image.
+Uint8List minimalJpegBytes() {
+  return Uint8List.fromList(<int>[
+    0xFF, 0xD8, // SOI
+    0xFF, 0xE0, 0x00, 0x10, // APP0, length 16
+    0x4A, 0x46, 0x49, 0x46, 0x00, // "JFIF\0"
+    0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
+    0xFF, 0xD9, // EOI
+  ]);
+}
+
 /// Wraps a model answer in the non-streaming `/api/generate` envelope.
 OllamaGenerateResponse ollamaEnvelope(String payload, {int statusCode = 200}) {
   return OllamaGenerateResponse(
@@ -149,9 +284,11 @@ class TestServer {
   /// Request pipeline; invoke directly with shelf [Request]s.
   final Handler handler;
 
-  /// Stops any unfinished generation job and closes the database.
+  /// Stops any unfinished generation or illustration job and closes the
+  /// database.
   void close() {
     server.generationQueue.shutdown();
+    server.illustrationQueue.shutdown();
     library.close();
   }
 
@@ -198,8 +335,10 @@ Future<Directory> createTempRoot() async {
 Future<TestServer> createTestServer({
   ProbeHttpClient? probeHttpClient,
   OllamaStoryClient? ollamaClient,
+  ComfyUiClient? comfyUiClient,
   DateTime Function()? clock,
   void Function(String message)? notifyCode,
+  void Function(String message)? logEvent,
 }) async {
   final root = await createTempRoot();
   final library = MasterLibrary(
@@ -216,8 +355,13 @@ Future<TestServer> createTestServer({
         FakeOllamaStoryClient.failing(
           const SocketException('No Ollama in this test.'),
         ),
+    comfyUiClient: comfyUiClient ?? FakeComfyUiClient(reachable: false),
     clock: clock,
     notifyCode: notifyCode,
+    logEvent: logEvent,
+    // Nothing in the suite waits on a real render, so the poll loop must
+    // never cost a test a wall-clock second.
+    illustrationPollInterval: const Duration(milliseconds: 1),
   );
   return TestServer(root: root, library: library, server: server);
 }
@@ -248,6 +392,62 @@ Future<(int, Map<String, Object?>)> callJson(
     fail('Expected a JSON object response but got: $raw');
   }
   return (response.statusCode, decoded);
+}
+
+/// Sends [method] [path] through [handler] and returns the raw response.
+///
+/// Used where the answer is not JSON — the illustration download — and where
+/// the request body is raw bytes, as a reference photo upload is.
+Future<Response> callRaw(
+  Handler handler,
+  String method,
+  String path, {
+  Map<String, String>? headers,
+  Object? body,
+}) async {
+  return handler(
+    Request(
+      method,
+      Uri.parse('http://bridge.test$path'),
+      headers: headers,
+      body: body,
+    ),
+  );
+}
+
+/// Decodes a JSON object response body, failing when it is not one.
+Future<Map<String, Object?>> readJsonBody(Response response) async {
+  final raw = await response.readAsString();
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(raw);
+  } on FormatException {
+    fail('Expected a JSON response but got: $raw');
+  }
+  if (decoded is! Map<String, Object?>) {
+    fail('Expected a JSON object response but got: $raw');
+  }
+  return decoded;
+}
+
+/// Reads the status of every illustration of [storyId], in page order.
+List<String> illustrationStatuses(MasterLibrary library, String storyId) {
+  final rows = library.database.select(
+    'SELECT i.status AS status FROM illustrations i '
+    'JOIN story_pages p ON p.id = i.story_page_id '
+    'WHERE p.story_id = ? ORDER BY p.page_index ASC',
+    <Object?>[storyId],
+  );
+  return rows.map((row) => row['status']! as String).toList(growable: false);
+}
+
+/// Reads the `updated_at_utc` of [storyId] as a UTC timestamp.
+DateTime storyUpdatedAt(MasterLibrary library, String storyId) {
+  final rows = library.database.select(
+    'SELECT updated_at_utc FROM stories WHERE id = ?',
+    <Object?>[storyId],
+  );
+  return DateTime.parse(rows.single['updated_at_utc']! as String).toUtc();
 }
 
 /// Extracts `error.code` from a typed error envelope, failing if absent.

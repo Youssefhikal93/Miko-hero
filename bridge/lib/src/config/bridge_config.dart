@@ -15,6 +15,7 @@ class BridgeConfig {
     required this.ollamaModel,
     required this.generationTimeoutSeconds,
     required this.maxGenerationAttempts,
+    required this.illustrationTimeoutSeconds,
     this.allowedWebOrigins = const <String>[],
   });
 
@@ -53,6 +54,19 @@ class BridgeConfig {
   /// Largest accepted number of attempts per generation job.
   static const int maximumGenerationAttempts = 5;
 
+  /// Default wall-clock budget for rendering one illustration: 5 minutes.
+  ///
+  /// One 512x512 SD 1.5 image on a 4 GB card is a matter of seconds once the
+  /// checkpoint is resident, but the first render of a session also pays for
+  /// loading it, so the budget is generous — and always bounded.
+  static const int defaultIllustrationTimeoutSeconds = 300;
+
+  /// Smallest accepted illustration timeout, in seconds.
+  static const int minimumIllustrationTimeoutSeconds = 60;
+
+  /// Largest accepted illustration timeout, in seconds (30 minutes).
+  static const int maximumIllustrationTimeoutSeconds = 1800;
+
   /// Network interface address the HTTP server binds to, e.g. `127.0.0.1`
   /// or a LAN address such as `192.168.1.20`.
   final String bindAddress;
@@ -82,6 +96,12 @@ class BridgeConfig {
   /// retries. Only invalid model output is retried.
   final int maxGenerationAttempts;
 
+  /// Wall-clock budget for rendering one illustration, in seconds.
+  ///
+  /// Covers the whole ComfyUI round trip for a single page: submitting the
+  /// workflow, waiting for the render, and downloading the image.
+  final int illustrationTimeoutSeconds;
+
   /// Additional web origins (scheme + host + optional port, no path) whose
   /// browser pages may call the bridge, e.g. `http://192.168.1.20:8765`.
   ///
@@ -94,6 +114,10 @@ class BridgeConfig {
   /// [generationTimeoutSeconds] as a [Duration].
   Duration get generationTimeout => Duration(seconds: generationTimeoutSeconds);
 
+  /// [illustrationTimeoutSeconds] as a [Duration].
+  Duration get illustrationTimeout =>
+      Duration(seconds: illustrationTimeoutSeconds);
+
   /// Serializes the configuration into the JSON map persisted on disk.
   Map<String, Object> toJson() {
     return <String, Object>{
@@ -105,6 +129,7 @@ class BridgeConfig {
       'ollamaModel': ollamaModel,
       'generationTimeoutSeconds': generationTimeoutSeconds,
       'maxGenerationAttempts': maxGenerationAttempts,
+      'illustrationTimeoutSeconds': illustrationTimeoutSeconds,
       'allowedWebOrigins': allowedWebOrigins,
     };
   }
@@ -140,6 +165,13 @@ class BridgeConfig {
         minimum: 1,
         maximum: maximumGenerationAttempts,
         fallback: defaultMaxGenerationAttempts,
+      ),
+      illustrationTimeoutSeconds: _readBoundedInt(
+        json,
+        'illustrationTimeoutSeconds',
+        minimum: minimumIllustrationTimeoutSeconds,
+        maximum: maximumIllustrationTimeoutSeconds,
+        fallback: defaultIllustrationTimeoutSeconds,
       ),
       allowedWebOrigins: _readOriginList(json, 'allowedWebOrigins'),
     );
@@ -190,6 +222,7 @@ class BridgeConfig {
       ollamaModel: defaultOllamaModel,
       generationTimeoutSeconds: defaultGenerationTimeoutSeconds,
       maxGenerationAttempts: defaultMaxGenerationAttempts,
+      illustrationTimeoutSeconds: defaultIllustrationTimeoutSeconds,
     );
   }
 

@@ -54,8 +54,9 @@ Middleware corsMiddleware({required List<String> extraAllowedOrigins}) {
           204,
           headers: <String, String>{
             ...allowHeaders(origin),
-            'access-control-allow-methods': 'GET, POST, OPTIONS',
-            'access-control-allow-headers': 'authorization, content-type',
+            'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'access-control-allow-headers':
+                'authorization, content-type, if-none-match',
             'access-control-max-age': '86400',
           },
         );

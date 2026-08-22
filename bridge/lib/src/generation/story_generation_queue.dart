@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generated_story.dart';
@@ -31,16 +32,19 @@ class StoryGenerationQueue {
   /// Creates a queue.
   ///
   /// [client] is the Ollama seam replaced by tests, [writer] performs the
-  /// transactional library write, and [log] receives content-free progress
-  /// lines.
+  /// transactional library write, [gate] is the shared one-GPU lock (pass
+  /// the same instance as the illustration queue), and [log] receives
+  /// content-free progress lines.
   StoryGenerationQueue({
     required this._config,
     required this._writer,
     this._client = const IoOllamaStoryClient(),
     this._uuid = const Uuid(),
+    GpuGate? gate,
     DateTime Function()? clock,
     GenerationLogSink? log,
-  }) : _clock = clock ?? DateTime.now,
+  }) : _gate = gate ?? GpuGate(),
+       _clock = clock ?? DateTime.now,
        _log = log ?? _ignoreLog;
 
   /// Runtime configuration: Ollama URL, model, timeout and attempt budget.
@@ -51,6 +55,13 @@ class StoryGenerationQueue {
 
   /// The mocked-in-tests Ollama boundary.
   final OllamaStoryClient _client;
+
+  /// Shared lock over the machine's single GPU.
+  ///
+  /// Held for the whole run of a job, so an illustration job queued while a
+  /// story is being written waits for the story instead of fighting it for
+  /// the same 4 GB of VRAM.
+  final GpuGate _gate;
 
   final Uuid _uuid;
   final DateTime Function() _clock;
@@ -193,6 +204,15 @@ class StoryGenerationQueue {
   }
 
   Future<void> _runJob(String jobId) async {
+    final GpuLease lease = await _gate.acquire();
+    try {
+      await _runJobOnGpu(jobId);
+    } finally {
+      lease.release();
+    }
+  }
+
+  Future<void> _runJobOnGpu(String jobId) async {
     final start = _clock().toUtc();
     final token = _tokens[jobId] ?? CancellationToken();
     final request = _jobs[jobId]!.request;

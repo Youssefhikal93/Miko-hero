@@ -79,6 +79,7 @@ Future<void> main(List<String> args) async {
   }
   print('Shutting down.');
   server.generationQueue.shutdown();
+  server.illustrationQueue.shutdown();
   await httpServer.close(force: true);
   library.close();
 }

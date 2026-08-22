@@ -44,6 +44,24 @@ abstract final class ApiErrorCode {
   /// No story with this id exists in the master library.
   static const String storyNotFound = 'story_not_found';
 
+  /// No profile with this id exists in the master library.
+  static const String profileNotFound = 'profile_not_found';
+
+  /// The uploaded reference photo declared a type the bridge does not accept.
+  static const String unsupportedImageType = 'unsupported_image_type';
+
+  /// The uploaded bytes are not the image type they were declared as.
+  static const String invalidImage = 'invalid_image';
+
+  /// The uploaded reference photo exceeds the per-photo size limit.
+  static const String photoTooLarge = 'photo_too_large';
+
+  /// No illustration with this id exists in the master library.
+  static const String illustrationNotFound = 'illustration_not_found';
+
+  /// The illustration exists but has no rendered image file yet.
+  static const String illustrationNotReady = 'illustration_not_ready';
+
   /// Unexpected server-side failure.
   static const String internalError = 'internal_error';
 }
