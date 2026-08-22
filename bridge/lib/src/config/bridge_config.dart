@@ -13,6 +13,8 @@ class BridgeConfig {
     required this.ollamaBaseUrl,
     required this.comfyUiBaseUrl,
     required this.ollamaModel,
+    required this.generationTimeoutSeconds,
+    required this.maxGenerationAttempts,
   });
 
   /// Default loopback bind address: the bridge is private unless explicitly
@@ -30,6 +32,25 @@ class BridgeConfig {
 
   /// Default Ollama model used for story generation.
   static const String defaultOllamaModel = 'gemma3:4b';
+
+  /// Default wall-clock budget for one story generation call: 10 minutes.
+  ///
+  /// A small local GPU needs minutes for a ten-page story, so this is
+  /// generous on purpose — but always bounded.
+  static const int defaultGenerationTimeoutSeconds = 600;
+
+  /// Default number of generation attempts per job (one try plus two
+  /// retries) before the job fails.
+  static const int defaultMaxGenerationAttempts = 3;
+
+  /// Smallest accepted generation timeout, in seconds.
+  static const int minimumGenerationTimeoutSeconds = 30;
+
+  /// Largest accepted generation timeout, in seconds (one hour).
+  static const int maximumGenerationTimeoutSeconds = 3600;
+
+  /// Largest accepted number of attempts per generation job.
+  static const int maximumGenerationAttempts = 5;
 
   /// Network interface address the HTTP server binds to, e.g. `127.0.0.1`
   /// or a LAN address such as `192.168.1.20`.
@@ -51,6 +72,18 @@ class BridgeConfig {
   /// Ollama model tag used for story generation, e.g. `gemma3:4b`.
   final String ollamaModel;
 
+  /// Wall-clock budget for one story generation call, in seconds.
+  final int generationTimeoutSeconds;
+
+  /// Attempts allowed per generation job before it fails.
+  ///
+  /// Counts the first try, so the default of 3 means one try plus two
+  /// retries. Only invalid model output is retried.
+  final int maxGenerationAttempts;
+
+  /// [generationTimeoutSeconds] as a [Duration].
+  Duration get generationTimeout => Duration(seconds: generationTimeoutSeconds);
+
   /// Serializes the configuration into the JSON map persisted on disk.
   Map<String, Object> toJson() {
     return <String, Object>{
@@ -60,6 +93,8 @@ class BridgeConfig {
       'ollamaBaseUrl': ollamaBaseUrl,
       'comfyUiBaseUrl': comfyUiBaseUrl,
       'ollamaModel': ollamaModel,
+      'generationTimeoutSeconds': generationTimeoutSeconds,
+      'maxGenerationAttempts': maxGenerationAttempts,
     };
   }
 
@@ -81,6 +116,20 @@ class BridgeConfig {
           _readHttpUrl(json, 'comfyUiBaseUrl') ?? defaultComfyUiBaseUrl,
       ollamaModel:
           _readNonEmptyString(json, 'ollamaModel') ?? defaultOllamaModel,
+      generationTimeoutSeconds: _readBoundedInt(
+        json,
+        'generationTimeoutSeconds',
+        minimum: minimumGenerationTimeoutSeconds,
+        maximum: maximumGenerationTimeoutSeconds,
+        fallback: defaultGenerationTimeoutSeconds,
+      ),
+      maxGenerationAttempts: _readBoundedInt(
+        json,
+        'maxGenerationAttempts',
+        minimum: 1,
+        maximum: maximumGenerationAttempts,
+        fallback: defaultMaxGenerationAttempts,
+      ),
     );
   }
 
@@ -93,6 +142,8 @@ class BridgeConfig {
       ollamaBaseUrl: defaultOllamaBaseUrl,
       comfyUiBaseUrl: defaultComfyUiBaseUrl,
       ollamaModel: defaultOllamaModel,
+      generationTimeoutSeconds: defaultGenerationTimeoutSeconds,
+      maxGenerationAttempts: defaultMaxGenerationAttempts,
     );
   }
 
@@ -131,6 +182,26 @@ class BridgeConfig {
     if (value is! int || value < 1 || value > 65535) {
       throw FormatException(
         'Bridge config field "port" must be an integer between 1 and 65535.',
+      );
+    }
+    return value;
+  }
+
+  static int _readBoundedInt(
+    Map<String, Object?> json,
+    String key, {
+    required int minimum,
+    required int maximum,
+    required int fallback,
+  }) {
+    final value = json[key];
+    if (value == null) {
+      return fallback;
+    }
+    if (value is! int || value < minimum || value > maximum) {
+      throw FormatException(
+        'Bridge config field "$key" must be an integer between $minimum '
+        'and $maximum.',
       );
     }
     return value;

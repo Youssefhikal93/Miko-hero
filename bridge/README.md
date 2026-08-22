@@ -3,9 +3,9 @@
 Private, **local-only** HTTP bridge service for the "Iam - hero" children's
 storybook app. It runs on the family PC, owns the master library (SQLite +
 folders), pairs companion mobile devices with short-lived pairing codes and
-256-bit bearer tokens, and reports the health of its local dependencies.
-In later milestones it will also orchestrate story generation (Ollama) and
-illustration generation (ComfyUI).
+256-bit bearer tokens, reports the health of its local dependencies, and generates stories with a
+local Ollama model. Illustration generation (ComfyUI) follows in a later
+milestone.
 
 > ## ⚠️ Never expose this service to the internet
 >
@@ -42,6 +42,8 @@ printed. All machine-specific values live in this file; nothing is hardcoded.
 | `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API          |
 | `comfyUiBaseUrl`| `http://127.0.0.1:8188` | Base URL of the local ComfyUI API         |
 | `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories         |
+| `generationTimeoutSeconds` | `600`        | Budget for one generation call (30–3600)  |
+| `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
 
 Example `bridge_config.json`:
 
@@ -52,7 +54,9 @@ Example `bridge_config.json`:
   "libraryPath": "D:/FamilyData/iam_hero_library",
   "ollamaBaseUrl": "http://127.0.0.1:11434",
   "comfyUiBaseUrl": "http://127.0.0.1:8188",
-  "ollamaModel": "gemma3:4b"
+  "ollamaModel": "gemma3:4b",
+  "generationTimeoutSeconds": 600,
+  "maxGenerationAttempts": 3
 }
 ```
 
@@ -139,6 +143,149 @@ Requires `Authorization: Bearer <deviceToken>`. Lists paired devices
 Every endpoint except `/health`, `/pair/request`, and `/pair/confirm`
 requires a valid bearer token; anything else gets `401 unauthorized`.
 
+### `POST /stories/generate` — requires auth
+
+Queues one story generation job. Body:
+
+```json
+{
+  "profileId": "profile-1",
+  "heroName": "Nour",
+  "ageYears": 6,
+  "genderContext": "girl",
+  "languageCode": "ar",
+  "theme": "A lantern festival by the sea",
+  "moral": "Sharing a small light makes it bigger",
+  "pageCount": 6,
+  "illustrationStyle": "pictureBook"
+}
+```
+
+Every field is required. `genderContext` is `girl` or `boy` (the app's
+unspecified state never reaches here), `languageCode` is `ar`, `en`, `sv`
+or `so`, `pageCount` is `6`, `8` or `10`, and `illustrationStyle` is
+`pictureBook`, `watercolor` or `colorful3d`. Anything else is rejected with
+`400 invalid_field` before a job exists. On success:
+
+```json
+{ "jobId": "…", "queuePosition": 1 }
+```
+
+Status `202 Accepted`: nothing has been generated yet. Position `1` means
+the job is next (or already starting); `2` means one job is ahead of it.
+
+### `GET /stories/jobs/<jobId>` — requires auth
+
+Polls one job. Unknown ids — and jobs created by another device — answer
+`404 job_not_found`, so ids cannot be probed.
+
+```json
+{
+  "jobId": "…",
+  "status": "generating",
+  "progress": "Writing the story (attempt 1 of 3).",
+  "createdAtUtc": "2026-08-22T10:00:00.000Z",
+  "updatedAtUtc": "2026-08-22T10:00:04.000Z"
+}
+```
+
+`queuePosition` is present only while `status` is `queued`. A failed job
+carries `"error": {"code": "…", "message": "…"}`; a completed one carries
+the whole book:
+
+```json
+{
+  "status": "completed",
+  "story": {
+    "id": "…",
+    "profileId": "profile-1",
+    "title": "…",
+    "languageCode": "ar",
+    "createdAtUtc": "2026-08-22T10:06:11.000Z",
+    "pages": [
+      {
+        "id": "…",
+        "pageNumber": 1,
+        "text": "…",
+        "illustrationScene": "…",
+        "illustrationId": "…",
+        "illustrationRelativePath": "illustrations/<storyId>/0.png",
+        "illustrationStatus": "pending"
+      }
+    ]
+  }
+}
+```
+
+The generation request itself is never echoed back: it holds the child's
+name. Illustration rows exist from the first save with status `pending`
+and a deterministic path; the image files arrive with the ComfyUI
+milestone.
+
+### `POST /stories/jobs/<jobId>/cancel` — requires auth
+
+Idempotent; answers `200` with the status the job ended in:
+
+```json
+{ "jobId": "…", "status": "cancelled" }
+```
+
+A queued job leaves the line immediately. The running job has its in-flight
+HTTP request to Ollama aborted and is never persisted — cancelling always
+means "no story", never "half a story".
+
+## Story generation
+
+### One at a time, always
+
+The PC has one small GPU (4 GB VRAM), so a ten-page story can take several
+minutes. Concurrency is not a tuning knob: a single worker drains the queue
+in FIFO order and every other job waits with a reported position. Jobs live
+in memory only — the durable, restartable queue is the app's, and a bridge
+restart deliberately clears in-flight work.
+
+### Job lifecycle
+
+```text
+queued ──▶ generating ──▶ validating ──▶ completed
+             │                │
+             └────────────────┴──▶ failed / cancelled
+```
+
+- **queued** — accepted, waiting for the worker; reports `queuePosition`.
+- **generating** — `POST /api/generate` is in flight against the configured
+  model with `"stream": false` and a JSON schema in `format`. The body is
+  sent as explicit UTF-8 bytes with `Content-Type: application/json;
+  charset=utf-8`, because Arabic corrupts otherwise.
+- **validating** — the answer must be a JSON object with a non-empty title,
+  exactly the requested number of pages, page numbers running 1..N in
+  order, and non-empty text plus an English illustration scene on every
+  page. Structured output is not trusted on its own: models observably drop
+  the title or return the wrong page count even with a schema.
+- **completed** — one transaction upserts the profile, inserts the story,
+  its pages and one `pending` illustration row per page. If that write
+  fails the job fails as `library_write_failed` and no rows remain.
+- **failed / cancelled** — no story, no partial rows, ever.
+
+### Retry policy
+
+A job gets `maxGenerationAttempts` attempts (default 3 = one try plus two
+retries). **Only invalid model output is retried** — the whole generation
+runs again from the prompt. A missing Ollama, a timeout, or a failed
+library write fails the job immediately: retrying a ten-minute timeout
+three times would just make the parent wait half an hour for the same
+answer.
+
+Typed failure codes: `invalid_request`, `ollama_unavailable`,
+`ollama_timeout`, `invalid_model_output`, `library_write_failed`,
+`cancelled`, `internal_error`.
+
+### What generation logs
+
+Job ids, statuses, attempt counters, timings and typed error codes — and
+nothing else. Prompts, story text, titles, child names and model output are
+never written to the console or to any log.
+
 ## Pairing flow (human-in-the-loop)
 
 1. On the phone, tap *Pair with PC* → the app calls `POST /pair/request`.
@@ -163,9 +310,13 @@ and wrong attempts are capped at five.
 - **Bounded requests**: bodies larger than 25 MB are rejected with `413`;
   slow handlers time out with a typed error instead of hanging.
 - **Privacy by design**: request bodies, photo bytes, story content,
-  tokens, and pairing codes are never logged. No third-party network calls
-  — the only outbound traffic is health probes to the configured local
+  prompts, child names, model output, tokens, and pairing codes are never
+  logged. No third-party network calls — the only outbound traffic is
+  health probes and story generation against the configured local
   Ollama/ComfyUI URLs.
+- **Bounded generation**: one job at a time, a configurable timeout per
+  call (default 10 minutes), a capped number of attempts, and cancellation
+  that aborts the in-flight request instead of orphaning it.
 - **Master library**: all structured data in SQLite under `db/master.db`,
   writes wrapped in transactions; binary assets stay in folders referenced
   by stable ids and relative paths (never blobs), written atomically via
@@ -181,4 +332,6 @@ dart format --set-exit-if-changed .   # formatting gate
 ```
 
 Tests mock Ollama/ComfyUI at the HTTP-client boundary and always use
-temporary directories, so nothing real is ever touched.
+temporary directories, so nothing real is ever touched. The production
+Ollama client is additionally exercised against a local stub HTTP server,
+which is how the UTF-8 encoding, timeout and abort behavior stay honest.

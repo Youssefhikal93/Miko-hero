@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
+import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
+import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
+import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/pairing/pairing_service.dart';
@@ -9,6 +12,7 @@ import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
 import 'package:iam_hero_bridge/src/server/auth_middleware.dart';
 import 'package:iam_hero_bridge/src/server/devices_handler.dart';
+import 'package:iam_hero_bridge/src/server/generation_handlers.dart';
 import 'package:iam_hero_bridge/src/server/health_handler.dart';
 import 'package:iam_hero_bridge/src/server/pairing_handlers.dart';
 import 'package:iam_hero_bridge/src/server/request_limits.dart';
@@ -29,18 +33,28 @@ import 'package:uuid/uuid.dart';
 class AppServer {
   /// Creates a server for [config] over an initialized [library].
   ///
-  /// [probeHttpClient], [uuid], [clock] and [notifyCode] are injection seams
-  /// for tests; [notifyCode] receives the console line containing a freshly
-  /// issued pairing code.
+  /// [probeHttpClient], [ollamaClient], [uuid], [clock] and [notifyCode] are
+  /// injection seams for tests; [notifyCode] receives the console line
+  /// containing a freshly issued pairing code, and [logEvent] receives
+  /// content-free generation progress lines.
   AppServer({
     required this.config,
     required this.library,
     this._probeHttpClient = const IoProbeHttpClient(),
+    OllamaStoryClient ollamaClient = const IoOllamaStoryClient(),
     Uuid uuid = const Uuid(),
     DateTime Function()? clock,
     void Function(String message)? notifyCode,
+    GenerationLogSink? logEvent,
   }) : deviceStore = DeviceStore(library: library, uuid: uuid),
-       pairingService = PairingService(uuid: uuid, clock: clock) {
+       pairingService = PairingService(uuid: uuid, clock: clock),
+       generationQueue = StoryGenerationQueue(
+         config: config,
+         writer: StoryLibraryWriter(library: library, uuid: uuid),
+         client: ollamaClient,
+         uuid: uuid,
+         log: logEvent,
+       ) {
     _healthHandler = HealthHandler(
       probes: <HealthProbe>[
         OllamaProbe(
@@ -58,6 +72,7 @@ class AppServer {
       notifyCode: notifyCode,
     );
     _devicesHandler = DevicesHandler(deviceStore: deviceStore);
+    _generationHandlers = GenerationHandlers(queue: generationQueue);
   }
 
   /// Runtime configuration this server was built from.
@@ -72,10 +87,14 @@ class AppServer {
   /// Pairing service shared by both pairing endpoints.
   final PairingService pairingService;
 
+  /// Single-worker story generation queue behind the `/stories` endpoints.
+  final StoryGenerationQueue generationQueue;
+
   final ProbeHttpClient _probeHttpClient;
   late final HealthHandler _healthHandler;
   late final PairingHandlers _pairingHandlers;
   late final DevicesHandler _devicesHandler;
+  late final GenerationHandlers _generationHandlers;
 
   /// Builds the fully wired request handler without binding a socket.
   ///
@@ -90,9 +109,15 @@ class AppServer {
     final Handler protectedApi = const Pipeline()
         .addMiddleware(requireDeviceAuth(deviceStore: deviceStore))
         .addHandler(
-          (Router(
-            notFoundHandler: _typedNotFound,
-          )..get('/devices', _devicesHandler.listDevices)).call,
+          (Router(notFoundHandler: _typedNotFound)
+                ..get('/devices', _devicesHandler.listDevices)
+                ..post('/stories/generate', _generationHandlers.createJob)
+                ..get('/stories/jobs/<jobId>', _generationHandlers.readJob)
+                ..post(
+                  '/stories/jobs/<jobId>/cancel',
+                  _generationHandlers.cancelJob,
+                ))
+              .call,
         );
 
     final Handler api = Cascade(

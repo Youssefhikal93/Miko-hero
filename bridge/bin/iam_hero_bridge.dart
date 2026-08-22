@@ -39,7 +39,12 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final server = AppServer(config: config, library: library, notifyCode: print);
+  final server = AppServer(
+    config: config,
+    library: library,
+    notifyCode: print,
+    logEvent: print,
+  );
   final HttpServer httpServer;
   try {
     httpServer = await server.start();
@@ -73,6 +78,7 @@ Future<void> main(List<String> args) async {
     await subscription.cancel();
   }
   print('Shutting down.');
+  server.generationQueue.shutdown();
   await httpServer.close(force: true);
   library.close();
 }

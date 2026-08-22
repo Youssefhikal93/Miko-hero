@@ -4,6 +4,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
+import 'package:iam_hero_bridge/src/generation/cancellation.dart';
+import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/app_server.dart';
@@ -59,6 +61,69 @@ class FakeProbeHttpClient implements ProbeHttpClient {
   }
 }
 
+/// Scripted behaviour of one fake Ollama call.
+typedef FakeOllamaResponder =
+    Future<OllamaGenerateResponse> Function(
+      OllamaGenerateRequest request,
+      CancellationToken cancellation,
+    );
+
+/// A fake [OllamaStoryClient] scripted per test.
+///
+/// This is the only mocked boundary in the generation tests: everything
+/// between the HTTP endpoint and this client is the real implementation.
+class FakeOllamaStoryClient implements OllamaStoryClient {
+  /// Creates a client driven by [responder].
+  FakeOllamaStoryClient(this.responder);
+
+  /// Answers every call with [payload] inside an Ollama envelope.
+  factory FakeOllamaStoryClient.answering(String payload) {
+    return FakeOllamaStoryClient(
+      (OllamaGenerateRequest request, CancellationToken cancellation) async =>
+          ollamaEnvelope(payload),
+    );
+  }
+
+  /// Fails every call by throwing [error], like a broken transport.
+  factory FakeOllamaStoryClient.failing(Object error) {
+    return FakeOllamaStoryClient(
+      (OllamaGenerateRequest request, CancellationToken cancellation) async =>
+          throw error,
+    );
+  }
+
+  /// Behaviour invoked for every call.
+  final FakeOllamaResponder responder;
+
+  /// Requests seen by this client, in call order (for assertions).
+  final List<OllamaGenerateRequest> requests = <OllamaGenerateRequest>[];
+
+  @override
+  Future<OllamaGenerateResponse> generate(
+    OllamaGenerateRequest request, {
+    required CancellationToken cancellation,
+  }) {
+    requests.add(request);
+    return responder(request, cancellation);
+  }
+}
+
+/// Wraps a model answer in the non-streaming `/api/generate` envelope.
+OllamaGenerateResponse ollamaEnvelope(String payload, {int statusCode = 200}) {
+  return OllamaGenerateResponse(
+    statusCode: statusCode,
+    bodyBytes: Uint8List.fromList(
+      utf8.encode(
+        jsonEncode(<String, Object?>{
+          'model': 'gemma3:4b',
+          'response': payload,
+          'done': true,
+        }),
+      ),
+    ),
+  );
+}
+
 /// One test server plus everything needed to drive it without sockets.
 class TestServer {
   /// Creates a server over an initialized library rooted inside [root].
@@ -77,8 +142,31 @@ class TestServer {
   /// Request pipeline; invoke directly with shelf [Request]s.
   final Handler handler;
 
-  /// Closes the database connection.
-  void close() => library.close();
+  /// Stops any unfinished generation job and closes the database.
+  void close() {
+    server.generationQueue.shutdown();
+    library.close();
+  }
+
+  /// Number of rows currently stored in [table].
+  int countRows(String table) {
+    final rows = library.database.select(
+      'SELECT COUNT(*) AS total FROM $table',
+    );
+    return rows.first['total']! as int;
+  }
+
+  /// Asserts that no story, page, illustration or profile was written.
+  void expectEmptyLibrary() {
+    for (final table in <String>[
+      'profiles',
+      'stories',
+      'story_pages',
+      'illustrations',
+    ]) {
+      expect(countRows(table), 0, reason: '$table must stay empty');
+    }
+  }
 }
 
 /// Builds a default configuration whose library lives inside [directory].
@@ -102,6 +190,7 @@ Future<Directory> createTempRoot() async {
 /// Creates a [TestServer] over a fresh temp library and registers cleanup.
 Future<TestServer> createTestServer({
   ProbeHttpClient? probeHttpClient,
+  OllamaStoryClient? ollamaClient,
   DateTime Function()? clock,
   void Function(String message)? notifyCode,
 }) async {
@@ -115,6 +204,11 @@ Future<TestServer> createTestServer({
     config: testConfig(root),
     library: library,
     probeHttpClient: probeHttpClient ?? FakeProbeHttpClient(),
+    ollamaClient:
+        ollamaClient ??
+        FakeOllamaStoryClient.failing(
+          const SocketException('No Ollama in this test.'),
+        ),
     clock: clock,
     notifyCode: notifyCode,
   );
@@ -176,4 +270,30 @@ Future<(String, String)> issuePairing(
     r'^Pairing code: (\d{6}) ',
   ).firstMatch(printedCodes.last)!.group(1)!;
   return (body['pairingId'] as String, code);
+}
+
+/// Runs a full pairing ceremony and returns the device's bearer token.
+Future<String> pairDevice(
+  TestServer testServer,
+  List<String> printedCodes, {
+  String deviceName = 'Family tablet',
+}) async {
+  final (pairingId, code) = await issuePairing(testServer, printedCodes);
+  final (status, body) = await callJson(
+    testServer.handler,
+    'POST',
+    '/pair/confirm',
+    body: jsonEncode(<String, Object?>{
+      'pairingId': pairingId,
+      'code': code,
+      'deviceName': deviceName,
+    }),
+  );
+  expect(status, 200, reason: 'body was $body');
+  return body['deviceToken']! as String;
+}
+
+/// Authorization header carrying [token].
+Map<String, String> authHeaders(String token) {
+  return <String, String>{'authorization': 'Bearer $token'};
 }

@@ -38,6 +38,9 @@ abstract final class ApiErrorCode {
   /// A required body field is missing or malformed.
   static const String invalidField = 'invalid_field';
 
+  /// No generation job with this id belongs to the calling device.
+  static const String jobNotFound = 'job_not_found';
+
   /// Unexpected server-side failure.
   static const String internalError = 'internal_error';
 }
