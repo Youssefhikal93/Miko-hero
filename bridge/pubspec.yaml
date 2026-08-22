@@ -1,0 +1,20 @@
+name: iam_hero_bridge
+description: >-
+  Private, local-only PC bridge service for the "Iam - hero" children's story
+  app. Orchestrates the master library and later Ollama and ComfyUI.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  crypto: ^3.0.6
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+  sqlite3: ^2.4.0
+  uuid: ^4.5.1
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.2

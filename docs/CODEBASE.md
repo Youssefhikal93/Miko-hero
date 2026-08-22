@@ -238,6 +238,25 @@ Rules that every change must respect:
 | `test/features/reader/story_reader_comfort_test.dart` | The reader scales prose by the saved text size, uses the easy font for English but never for Arabic, mirrors both in the review preview, ships that font in the asset bundle, and bedtime mode warms the page, dims the prose, and picks the ten-minute sleep timer unless the parent already chose one. |
 | `test/features/kingdom/reading_rewards_test.dart` | Badge thresholds, finishing a story counting once with the badge reported, no badge between thresholds, deletion dropping a story from the reward history, and the reader celebrating the first badge once while My Kingdom shows the count and the next milestone. |
 
+## Local PC bridge — `bridge/`
+
+A standalone Dart `shelf` service (its own package, not part of the Flutter
+app) that runs on the parent's PC and will connect the app to local Ollama,
+ComfyUI, and the master story library. Milestone 1 ships the skeleton:
+health/status probes, the SQLite master library, and secure device pairing.
+Full setup, endpoint, and security documentation lives in `bridge/README.md`.
+
+| Path | Responsibility |
+| --- | --- |
+| `bridge/bin/iam_hero_bridge.dart` | Entry point: loads config (creating defaults on first run), initializes the library, binds the server, and shuts down cleanly on SIGINT (SIGTERM too where the platform supports watching it). |
+| `bridge/lib/src/config/` | `bridge_config.dart` (typed, validated settings) and `bridge_config_loader.dart` (`--config` arg → env var → working-directory file; machine-specific paths live only in the gitignored `bridge_config.json`). |
+| `bridge/lib/src/library/` | `master_library.dart` (folder skeleton, SQLite in WAL mode, versioned schema migration), `device_store.dart` (paired devices; only SHA-256 token hashes stored, constant-time lookup), `db_transactions.dart` (BEGIN IMMEDIATE/COMMIT/ROLLBACK helper). |
+| `bridge/lib/src/pairing/` | In-memory pairing ceremony: rate-limited 6-digit codes shown only on the PC console, hashed at rest, expiring after 2 minutes, invalidated after 5 wrong attempts. |
+| `bridge/lib/src/probes/` | Health probes for Ollama (version + configured model present), ComfyUI, and the library, behind an injectable HTTP client with bounded timeouts. |
+| `bridge/lib/src/server/` | Shelf wiring: router, bearer-token auth middleware, typed JSON errors, bounded request bodies, and the health/pairing/devices handlers. |
+| `bridge/lib/src/common/` | Secrets (secure token generation, SHA-256 helpers, constant-time comparison), atomic file writes, and path joining. |
+| `bridge/test/` | Behavior tests through the real HTTP handler with mocked probe boundaries and temp-directory libraries: health shapes, idempotent initialization, the full pairing flow, auth rejection cases, and oversized-body rejection. |
+
 ## Documentation — `docs/`
 
 | File | Responsibility |

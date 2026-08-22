@@ -1,0 +1,7 @@
+# Local bridge configuration contains machine-specific paths and must never be
+# committed. See README.md to create your own.
+bridge_config.json
+
+# Dart build artifacts.
+.dart_tool/
+build/
