@@ -27,6 +27,11 @@ const int maxRetainedFinishedIllustrationJobs = 100;
 /// ten-page book waits for one page instead of ten; and a page that fails
 /// does not fail the book, it just marks its own row `failed` and lets the
 /// remaining pages carry on.
+///
+/// A job with a reference photo runs one extra render before its first page:
+/// the photo is redrawn as a storybook portrait, and that portrait — never the
+/// photo — is what the pages use as their face reference. It takes a lease of
+/// its own, on the same terms as a page.
 class IllustrationQueue {
   /// Creates a queue.
   ///
@@ -260,12 +265,42 @@ class IllustrationQueue {
       return;
     }
 
-    final String? referenceImageName = await _renderer.uploadReferencePhoto(
+    final String? photoImageName = await _renderer.uploadReferencePhoto(
       plan.targets.profileId,
     );
+    String? referenceImageName;
+    if (photoImageName != null) {
+      if (token.isCancelled) {
+        _settleCancelled(jobId, start);
+        return;
+      }
+      // Stage one, once per job: redraw the photo as a storybook portrait so
+      // the face adapter reads a drawing rather than a photograph. It is a
+      // full render on the same card, so it takes the same one-GPU lease a
+      // page takes — a story must never be generated alongside it.
+      _transition(
+        jobId,
+        status: IllustrationJobStatus.rendering,
+        // Named for what the parent sees, not for the pass: the wait is real
+        // and reporting "waiting for the renderer" through it would be a lie.
+        progress: 'Drawing the hero.',
+      );
+      final GpuLease lease = await _gate.acquire();
+      try {
+        referenceImageName = await _renderer.renderStylizedReference(
+          storyId: plan.targets.storyId,
+          photoImageName: photoImageName,
+          style: plan.style,
+          gender: plan.gender,
+        );
+      } finally {
+        lease.release();
+      }
+    }
     _log(
       'illustration job $jobId rendering pages=${pages.length} '
-      'reference=${referenceImageName == null ? 'no' : 'yes'}',
+      'photo=${photoImageName == null ? 'no' : 'yes'} '
+      'reference=${referenceImageName == null ? 'no' : 'stylized'}',
     );
 
     var completed = 0;

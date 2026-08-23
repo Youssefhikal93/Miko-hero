@@ -732,12 +732,34 @@ its own prompt prefix. The sampler seed is derived from the illustration id,
 so **re-rendering a page reproduces it**: a parent who asks for the same
 picture again gets the same picture, not a lottery ticket.
 
-If the profile has a reference photo, the checkpoint's model output is routed
-through the IPAdapter-plus-**face** chain — load the photo, encode it with
-CLIP vision, apply the adapter at weight 0.65 — before it reaches the
-sampler. The photo is uploaded to ComfyUI once per job, not once per page.
-Without a photo the graph is plain text-to-image and the hero simply will not
-resemble anyone in particular.
+If the profile has a reference photo, the render is **two-stage**, and the
+first stage runs once per job — one extra render on top of the pages:
+
+1. **Stylize the reference.** The photo is uploaded to ComfyUI once, scaled to
+   512x512 and redrawn as a cheerful storybook portrait: an img2img pass at
+   denoise 0.62, in the book's own style prefix, with a negative prompt that
+   adds `photo, photorealistic, dslr, skin pores` and friends in front of the
+   usual guards. Its seed is derived from `reference:<storyId>`, so a re-run
+   reproduces the same portrait and a re-rendered page still matches the pages
+   that already landed. The denoise is the whole tradeoff in one number: lower
+   keeps more of the real child and more of the photograph, higher cartoonifies
+   harder and starts inventing a different child.
+2. **Render the pages.** Exactly as above, except the checkpoint's model output
+   is routed through the IPAdapter-plus-**face** chain — load the *stylized
+   portrait*, encode it with CLIP vision, apply the adapter at weight 0.65 —
+   before it reaches the sampler. The pages themselves are unchanged, including
+   their negative prompt: a page must stay free to be whatever its style
+   demands instead of arguing with its reference.
+
+Stage one takes the same one-GPU lease a page takes, so no story is ever
+generated alongside it. If it fails for any reason the job renders the pages
+with **no reference at all** — never with the raw photo, which is the output
+this pass exists to avoid. The portrait is derived from the child's photo and
+is treated as private content: it stays inside ComfyUI's folders, exactly as
+the photo already does, and is never written into the library or logged.
+
+Without a photo the graph is plain text-to-image, there is no stage one, and
+the hero simply will not resemble anyone in particular.
 
 ### What face likeness actually means here
 
@@ -752,6 +774,19 @@ drags every page towards its own pose and lighting and the illustration stops
 looking drawn. If you expected a likeness that could be mistaken for the
 child, this setup will disappoint you; if you expected the child to be
 recognizable in a picture book, it delivers that.
+
+**The photo is never used directly.** It is first redrawn as a smiling
+storybook portrait, and only that portrait is shown to the face adapter. This
+is not a nicety: a photographic reference carries its own lighting, texture and
+expression into every page, and the pages come out as distorted photorealistic
+images of the child — a photo of a crying child produced a book of crying
+children. Redrawing it first means the book inherits the face and nothing else.
+
+For the best likeness, give the profile a **clear, front-facing, well-lit
+photo** where the face fills a good part of the frame. The portrait pass sees
+one centre-cropped 512x512 square, so a sharp head-and-shoulders shot has far
+more to work with than a distant, dim or side-on one. The expression does not
+matter — the hero smiles either way.
 
 ### Job lifecycle
 

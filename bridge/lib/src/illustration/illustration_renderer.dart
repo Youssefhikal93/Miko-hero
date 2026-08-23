@@ -118,9 +118,67 @@ class IllustrationRenderer {
       referenceImageName: referenceImageName,
     );
 
-    final String promptId;
+    final String promptId = await _submit(workflow);
+    final ComfyUiImageReference image = await _awaitRender(promptId, deadline);
+    final Uint8List bytes = await _downloadImage(image);
+    await _storeImage(target: target, storyId: storyId, bytes: bytes);
+  }
+
+  /// Redraws the uploaded photo [photoImageName] as a storybook portrait and
+  /// returns the name ComfyUI stored the result under.
+  ///
+  /// This is stage one of a book: one extra render per job that turns the
+  /// child's photograph into a drawn reference, which stage two then feeds to
+  /// the face adapter for every page. It costs a page's worth of time and it
+  /// buys the difference between a book of distorted photorealistic faces and
+  /// a book of illustrations.
+  ///
+  /// Returns `null` when the pass could not be completed, for any reason —
+  /// same philosophy as [uploadReferencePhoto], and the caller must then
+  /// render the pages with **no** reference at all rather than falling back to
+  /// the raw photo: photo-as-reference is the output this whole pass exists to
+  /// avoid. The cause is dropped on purpose, as it can carry a file path.
+  ///
+  /// The portrait is derived from the child's photo and is private content: it
+  /// stays inside ComfyUI, is never written into the library, and neither it
+  /// nor its name is ever logged.
+  Future<String?> renderStylizedReference({
+    required String storyId,
+    required String photoImageName,
+    required StoryIllustrationStyle style,
+    required StoryGenderContext? gender,
+  }) async {
+    // The stylization pass gets the same wall-clock budget as a page: it is
+    // the same checkpoint, the same size and the same step count.
+    final deadline = _clock().toUtc().add(_config.illustrationTimeout);
     try {
-      promptId = await _client.submitWorkflow(
+      final promptId = await _submit(
+        buildReferenceStylizeWorkflow(
+          storyId: storyId,
+          photoImageName: photoImageName,
+          style: style,
+          gender: gender,
+        ),
+      );
+      final ComfyUiImageReference image = await _awaitRender(
+        promptId,
+        deadline,
+      );
+      final Uint8List bytes = await _downloadImage(image);
+      return await _client.uploadReferenceImage(
+        _transfer,
+        fileName: referencePortraitFileName(storyId),
+        contentType: 'image/png',
+        bytes: bytes,
+      );
+    } on Exception catch (_) {
+      return null;
+    }
+  }
+
+  Future<String> _submit(Map<String, Object?> workflow) async {
+    try {
+      return await _client.submitWorkflow(
         _control,
         workflow: workflow,
         clientId: comfyUiClientId,
@@ -141,10 +199,6 @@ class IllustrationRenderer {
         'The local ComfyUI server could not be reached.',
       );
     }
-
-    final ComfyUiImageReference image = await _awaitRender(promptId, deadline);
-    final Uint8List bytes = await _downloadImage(image);
-    await _storeImage(target: target, storyId: storyId, bytes: bytes);
   }
 
   Future<ComfyUiImageReference> _awaitRender(

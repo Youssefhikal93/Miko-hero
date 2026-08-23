@@ -73,6 +73,12 @@ String _libraryPath(TestServer testServer, String relativePath) {
   );
 }
 
+/// Inputs of one node of a submitted workflow.
+Map<String, Object?> _inputs(Map<String, Object?> workflow, String nodeId) {
+  final node = workflow[nodeId]! as Map<String, Object?>;
+  return node['inputs']! as Map<String, Object?>;
+}
+
 /// A schema-valid two-page model answer, for the serialization test.
 String _storyPayload() {
   return jsonEncode(<String, Object?>{
@@ -151,9 +157,18 @@ void main() {
       reason: 'a job status never carries scene text',
     );
     expect(comfy.workflows, hasLength(3));
+    expect(
+      comfy.uploadedFileNames,
+      isEmpty,
+      reason: 'no photo means nothing is uploaded and nothing is stylized',
+    );
+    for (final workflow in comfy.workflows) {
+      expect(workflow.containsKey(referenceSaveImageNodeId), isFalse);
+      expect(workflow.containsKey(ipAdapterApplyNodeId), isFalse);
+    }
   });
 
-  test('a stored reference photo puts the face chain in every page', () async {
+  test('a photo is stylized once and every page uses that portrait', () async {
     final printedCodes = <String>[];
     final comfy = FakeComfyUiClient();
     final testServer = await createTestServer(
@@ -183,29 +198,113 @@ void main() {
         'genderContext': 'boy',
       },
     );
-    await testServer.server.illustrationQueue.whenSettled(
+    final settled = await testServer.server.illustrationQueue.whenSettled(
       queued['jobId']! as String,
     );
+    expect(settled.status, IllustrationJobStatus.completed);
+    expect(settled.completedPageCount, 2);
 
+    final portraitName = referencePortraitFileName(story.id);
     expect(
       comfy.uploadedFileNames,
-      <String>['profile-1.jpg'],
-      reason: 'the photo is uploaded once for the whole job',
+      <String>['profile-1.jpg', portraitName],
+      reason: 'the photo goes up once, the portrait comes back up once',
     );
-    for (final workflow in comfy.workflows) {
+    expect(
+      comfy.workflows,
+      hasLength(3),
+      reason: 'one stylization pass in front of the two pages',
+    );
+
+    final stylize = comfy.workflows.first;
+    expect(
+      _inputs(stylize, referenceSamplerNodeId)['denoise'],
+      illustrationReferenceDenoise,
+    );
+    expect(
+      _inputs(stylize, referencePhotoNodeId)['image'],
+      'profile-1.jpg',
+      reason: 'stage one is the only pass that ever sees the raw photo',
+    );
+    final portraitPrompt =
+        _inputs(stylize, referencePositivePromptNodeId)['text']! as String;
+    expect(portraitPrompt, contains('watercolor'));
+    expect(portraitPrompt, contains('a young boy'));
+
+    for (final workflow in comfy.workflows.skip(1)) {
       expect(workflow.containsKey(ipAdapterApplyNodeId), isTrue);
-      final loader = workflow[referenceImageNodeId]! as Map<String, Object?>;
       expect(
-        (loader['inputs']! as Map<String, Object?>)['image'],
-        'profile-1.jpg',
+        _inputs(workflow, referenceImageNodeId)['image'],
+        portraitName,
+        reason: 'pages reference the drawn portrait, never the photograph',
       );
-      final prompt = workflow[positivePromptNodeId]! as Map<String, Object?>;
-      final text =
-          (prompt['inputs']! as Map<String, Object?>)['text']! as String;
+      final text = _inputs(workflow, positivePromptNodeId)['text']! as String;
       expect(text, contains('watercolor'));
       expect(text, contains('a young boy'));
     }
   });
+
+  test(
+    'a failed stylization drops the reference instead of the photo',
+    () async {
+      final printedCodes = <String>[];
+      // Submission zero is the stylization pass, and it is the one that fails.
+      final comfy = FakeComfyUiClient(failingSubmissions: const <int>{0});
+      final testServer = await createTestServer(
+        comfyUiClient: comfy,
+        notifyCode: printedCodes.add,
+      );
+      addTearDown(testServer.close);
+      final token = await pairDevice(testServer, printedCodes);
+      final story = seedStory(testServer.library, pageCount: 2);
+      await callRaw(
+        testServer.handler,
+        'PUT',
+        '/profiles/profile-1/photo',
+        headers: <String, String>{
+          ...authHeaders(token),
+          HttpHeaders.contentTypeHeader: 'image/jpeg',
+        },
+        body: minimalJpegBytes(),
+      );
+
+      final queued = await startIllustrationJob(testServer, token, story.id);
+      final settled = await testServer.server.illustrationQueue.whenSettled(
+        queued['jobId']! as String,
+      );
+
+      expect(
+        settled.status,
+        IllustrationJobStatus.completed,
+        reason: 'a lost portrait costs likeness, not the book',
+      );
+      expect(settled.completedPageCount, 2);
+      expect(settled.failedPageCount, 0);
+      expect(illustrationStatuses(testServer.library, story.id), <String>[
+        'completed',
+        'completed',
+      ]);
+      expect(
+        comfy.uploadedFileNames,
+        <String>['profile-1.jpg'],
+        reason: 'nothing was stylized, so nothing was uploaded back',
+      );
+      for (final workflow in comfy.workflows.skip(1)) {
+        for (final nodeId in <String>[
+          referenceImageNodeId,
+          ipAdapterModelNodeId,
+          clipVisionNodeId,
+          ipAdapterApplyNodeId,
+        ]) {
+          expect(
+            workflow.containsKey(nodeId),
+            isFalse,
+            reason: 'the raw photo must never become the page reference',
+          );
+        }
+      }
+    },
+  );
 
   test('one failing page fails its row and the others still land', () async {
     final printedCodes = <String>[];
