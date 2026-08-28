@@ -70,6 +70,28 @@ class IllustrationRenderer {
   /// Whether the local ComfyUI answers at all.
   Future<bool> isComfyUiReachable() => _client.isReachable(_control);
 
+  /// Whether the configured face-detail pass can actually run here.
+  ///
+  /// Answers `true` when the pass is off — there is nothing to check — and
+  /// otherwise asks ComfyUI whether it knows both Impact-Pack nodes the pass
+  /// needs. The job engine calls this once, before the first render, so a
+  /// missing extension fails the job with one typed error rather than
+  /// failing every page or leaving the parent with half a book.
+  Future<bool> isFaceDetailAvailable() async {
+    if (!_config.illustration.faceDetail.enabled) {
+      return true;
+    }
+    for (final classType in const <String>[
+      illustrationFaceDetailerClassType,
+      illustrationFaceDetectorClassType,
+    ]) {
+      if (!await _client.supportsNodeType(_control, classType)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// Uploads the reference photo of [profileId], if there is one.
   ///
   /// Returns the name ComfyUI stored it under, or `null` when the child has
@@ -116,6 +138,7 @@ class IllustrationRenderer {
       style: style,
       gender: gender,
       referenceImageName: referenceImageName,
+      settings: _config.illustration,
     );
 
     final String promptId = await _submit(workflow);
@@ -158,6 +181,7 @@ class IllustrationRenderer {
           photoImageName: photoImageName,
           style: style,
           gender: gender,
+          settings: _config.illustration,
         ),
       );
       final ComfyUiImageReference image = await _awaitRender(

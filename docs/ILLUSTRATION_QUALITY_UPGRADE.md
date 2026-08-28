@@ -1,209 +1,121 @@
-# Illustration quality upgrade — instructions for the AI-PC agent
+# Illustration quality upgrade — steps for the AI PC
 
-This document is a self-contained work order. It is written to be handed to a
-coding agent running **on the AI PC** (the machine that runs Ollama, ComfyUI,
-and the Iam-hero bridge). Follow it top to bottom. Ask the owner before
-deviating from anything marked **decision**.
+This document is a self-contained work order for an agent (or a person) on
+the **AI PC** — the machine that runs Ollama, ComfyUI, and the Iam-hero
+bridge. Everything that could be done in code is **already implemented and
+pushed**; what remains is downloading free model files, editing the bridge's
+settings file, and verifying a real render. No programming is required here.
 
-## Why this exists
+## What the code already does (for context)
 
-The bridge currently renders every illustration with the **raw Stable
-Diffusion 1.5 base checkpoint at 512×512** — see
-`bridge/lib/src/illustration/illustration_workflow.dart`. The pipeline design
-around it is good (two-stage photo stylization, face adapter, deterministic
-seeds), but the base model produces crude art, 512px looks blurry on modern
-screens, and small faces in wide scenes come out distorted. The owner confirmed
-all three complaints, confirmed the GPU has **~4 GB VRAM**, and approved
-downloading free model files.
+The bridge's rendering pipeline is now fully configurable through an
+`illustration` section in `bridge_config.json` (every key documented with its
+default in `bridge/README.md`). It supports, in this order:
 
-The fix has two halves: **(A) code changes** in this repository and **(B) model
-downloads + configuration** on this PC. Do A first, then B, then verify.
+1. Any **SD 1.5 checkpoint** (`checkpoint`) — no longer hardwired to the raw
+   base model.
+2. A chain of up to 8 **style LoRAs** (`loras`, each `{name, strength}`),
+   applied to pages and to the stylized reference portrait alike.
+3. An **upscale pass** (`upscale`) — RealESRGAN 4× then resize down to
+   `targetSize` (default 1024) — pages only, off by default.
+4. An optional **face-detail pass** (`faceDetail`) via the ComfyUI Impact
+   Pack — off by default; the bridge checks ComfyUI for the node before any
+   render and fails with a clear `missing_custom_node` error if the pack is
+   not installed, without touching any page.
 
-## Non-negotiable constraints (from the project owner)
+An unchanged `bridge_config.json` behaves exactly as before this change. The
+guard rails (child-safety negative prompt, size caps, localhost/LAN only) are
+not configurable and must stay that way.
 
-- Everything stays 100% free and local. No paid APIs, no cloud, no uploads of
-  photos, prompts, stories, or illustrations to any third-party service.
-  (Downloading open model files from Hugging Face / Civitai / GitHub is fine.)
-- Do not hardcode machine paths, IPs, tokens, or child data in the repo.
-- Preserve every existing feature, migration, and test (the suite must stay
-  green: `flutter test` at the repo root and `dart test` inside `bridge/`).
-- `flutter analyze` (repo root, after `dart pub get` in `bridge/`) must report
-  zero issues. Note: analyzing before resolving bridge deps yields ~1400 fake
-  errors — run `dart pub get` in `bridge/` first.
-- Every authored public API gets a `///` doc comment in the existing style
-  (`public_member_api_docs` is enforced).
-- An **unchanged `bridge_config.json` must behave exactly as today** — every
-  new setting defaults to the current compiled-in value or to "off".
-- Do not commit model files (`.safetensors`, `.pth`, `.ckpt`) or
-  `bridge_config.json` to git.
-- Read `docs/CODEBASE.md` and `bridge/README.md` before coding, and update
-  both when done.
+## Non-negotiables
 
-## Part A — code changes (in `bridge/`)
+- Everything stays free and local. Downloading open model files from
+  Civitai / Hugging Face / GitHub is fine; nothing private is ever uploaded.
+- Do not commit model files or `bridge_config.json` to git.
+- Do not weaken or remove the built-in negative prompt (child safety).
+- Do not expose the bridge or ComfyUI beyond localhost / the private LAN.
+- Ask the owner before deviating from anything marked **decision**.
 
-All rendering constants live in
-`bridge/lib/src/illustration/illustration_workflow.dart` today. The work:
+## Step 1 — pull the latest code and rebuild the bridge
 
-### A1. Make rendering configurable
-
-Extend `BridgeConfig` (`bridge/lib/src/config/bridge_config.dart`) with an
-`illustration` section. Every field optional; defaults = today's values:
-
-```jsonc
-{
-  "illustration": {
-    "checkpoint": "v1-5-pruned-emaonly-fp16.safetensors",
-    "imageSize": 512,
-    "samplerSteps": 24,
-    "cfgScale": 7.0,
-    "ipAdapterWeight": 0.65,
-    "referenceDenoise": 0.62,
-    "loras": [
-      { "name": "some-style-lora.safetensors", "strength": 0.8 }
-    ],
-    "upscale": {
-      "enabled": false,
-      "model": "RealESRGAN_x4plus_anime_6B.pth",
-      "targetSize": 1024
-    },
-    "faceDetail": {
-      "enabled": false,
-      "detector": "bbox/face_yolov8m.pt",
-      "denoise": 0.45
-    }
-  }
-}
+```
+git pull
+cd bridge && dart pub get
 ```
 
-Validate shapes and ranges the way the existing config code does (typed
-errors, no silent coercion): `imageSize` one of 512/576/640, `samplerSteps`
-1–60, `cfgScale` 1–15, LoRA strength 0–1.5, `targetSize` 512–2048. Reject
-unknown keys inside `illustration` (catches typos).
+Restart the bridge the way it is normally started on this PC (see
+`bridge/README.md`).
 
-### A2. LoRA chain
+## Step 2 — download the model files
 
-When `loras` is non-empty, insert one `LoraLoader` node per entry between the
-checkpoint loader and everything that consumes the model/CLIP outputs (both
-the page graph and the reference-stylization graph). Chain multiple LoRAs in
-order. Both `strength_model` and `strength_clip` = the entry's `strength`.
+Place each file in the stated **ComfyUI** folder (find the ComfyUI install
+first; the owner knows where it is).
 
-### A3. Upscale pass
+| File | Where to get it | Put it in | Size |
+| --- | --- | --- | --- |
+| `dreamshaper_8.safetensors` (SD 1.5 fine-tune — the main quality jump) | Civitai model "DreamShaper", version 8, or the Hugging Face mirror (Lykon/DreamShaper). Verify it is the **SD 1.5** version, not XL. | `ComfyUI/models/checkpoints/` | ~2.1 GB |
+| A children's-book style LoRA (**decision**: pick one with the owner) | Civitai → filter LoRA + base model **SD 1.5** → search "kids illustration" / "storybook" (the "COOL KIDS" kids-illustration LoRA is a well-known example). Check the license allows personal use. | `ComfyUI/models/loras/` | 50–200 MB |
+| `RealESRGAN_x4plus_anime_6B.pth` (sharpness) | Real-ESRGAN GitHub releases | `ComfyUI/models/upscale_models/` | ~18 MB |
+| ComfyUI-Impact-Pack (optional — face fixing) | Install via ComfyUI Manager (github.com/ltdrdata/ComfyUI-Impact-Pack); accept its `face_yolov8m.pt` detector during setup; restart ComfyUI | managed by ComfyUI Manager | small |
 
-When `upscale.enabled`, after `VAEDecode` in the **page** graph (not the
-reference portrait — it is only an adapter input), add:
+**Decision:** any other SD 1.5 fine-tune is equally valid as the checkpoint —
+use its exact filename in Step 3. Do **not** use SDXL/Flux models: they do not
+fit in this PC's 4 GB of VRAM alongside the face adapter.
 
-- `UpscaleModelLoader` (`model_name` = config value) →
-- `ImageUpscaleWithModel` →
-- `ImageScale` down to `targetSize` × `targetSize` (lanczos) — the ESRGAN
-  model multiplies by 4, so 512 → 2048 → resize to 1024.
+## Step 3 — edit `bridge_config.json`
 
-`SaveImage` then consumes the scaled result. These are built-in ComfyUI nodes;
-no custom-node install is needed for this step.
-
-### A4. Face-detail pass (optional, off by default)
-
-When `faceDetail.enabled`, insert the Impact-Pack `FaceDetailer` node between
-decode and save (after upscaling if enabled), wired to the same model/CLIP/VAE
-and both prompt encoders, `denoise` from config, detector from
-`UltralyticsDetectorProvider` (`model_name` = `faceDetail.detector`). This
-requires the ComfyUI-Impact-Pack custom nodes on the PC (Part B4) — the bridge
-must fail with a **clear typed error** if the pass is enabled but ComfyUI
-rejects the node, not hang or half-render.
-
-### A5. Respect the size cap
-
-`comfyui_client.dart` caps downloaded images at 16 MB — a 1024px PNG fits, but
-verify the cap against `targetSize` at config-load time and refuse impossible
-combinations with a clear error.
-
-### A6. Tests and docs
-
-- Unit tests: config parsing (defaults, ranges, unknown-key rejection), graph
-  building with LoRAs / upscale / face-detail on and off (assert exact node
-  wiring, like the existing workflow tests), impossible-size rejection.
-- Update `bridge/README.md` (setup + every new config key with its default)
-  and `docs/CODEBASE.md` (changed files).
-- Gates before finishing: `dart pub get` + `dart analyze` + `dart test` in
-  `bridge/`; `flutter analyze` + `flutter test` at the root. All green, then
-  commit with a clear message and push to `main` **only if the owner has
-  authorized push on this machine** — otherwise leave committed locally and
-  tell the owner.
-
-## Part B — downloads and configuration (on this PC)
-
-Model files go into the **ComfyUI** folders, not this repo. Locate the ComfyUI
-installation first (the owner knows where it is; the bridge config points at
-its URL).
-
-### B1. Better checkpoint (~2.1 GB) — the main quality jump
-
-Download **DreamShaper 8** (SD 1.5 fine-tune, free):
-`dreamshaper_8.safetensors` from its Civitai page (model "DreamShaper",
-version 8) or its Hugging Face mirror (Lykon/DreamShaper). Verify it is the
-**SD 1.5** version, not XL. Place in `ComfyUI/models/checkpoints/`.
-
-**Decision:** if the owner prefers a different SD 1.5 checkpoint (e.g. a
-dedicated storybook or anime model), any SD 1.5 fine-tune works — just use its
-exact filename in the config.
-
-### B2. Storybook style LoRA (~50–200 MB, optional but recommended)
-
-On Civitai, filter LoRAs by base model **SD 1.5** and search for a children's
-book / kids illustration style (the "COOL KIDS" kids-illustration LoRA is a
-well-known example). Check the license allows personal use. Place the
-`.safetensors` file in `ComfyUI/models/loras/`. Start with strength 0.7–0.9.
-
-### B3. Upscaler (~18 MB)
-
-Download `RealESRGAN_x4plus_anime_6B.pth` from the Real-ESRGAN GitHub
-releases. Place in `ComfyUI/models/upscale_models/`.
-
-### B4. Face detailing (optional, needs custom nodes)
-
-Install **ComfyUI-Impact-Pack** (github.com/ltdrdata/ComfyUI-Impact-Pack) via
-ComfyUI Manager, plus its Ultralytics detector models (it offers
-`face_yolov8m.pt` during setup). Restart ComfyUI. Skip this step entirely if
-the owner wants to keep the PC setup minimal — the config default is off.
-
-### B5. Update `bridge_config.json`
-
-Add the `illustration` section (see A1) with the real filenames, e.g.:
+Add (or extend) the `illustration` section. Start with:
 
 ```jsonc
 "illustration": {
   "checkpoint": "dreamshaper_8.safetensors",
-  "loras": [{ "name": "<your-style-lora>.safetensors", "strength": 0.8 }],
-  "upscale": { "enabled": true, "model": "RealESRGAN_x4plus_anime_6B.pth", "targetSize": 1024 },
+  "loras": [
+    { "name": "<your-style-lora>.safetensors", "strength": 0.8 }
+  ],
+  "upscale": { "enabled": true, "targetSize": 1024 },
   "faceDetail": { "enabled": false }
 }
 ```
 
-Enable `faceDetail` only after B4. Restart the bridge.
+Enable `faceDetail` only after the Impact Pack is installed (Step 2, last
+row). Restart the bridge after saving. A typo in any filename or key is
+refused at startup with a clear message — fix and restart.
 
-## Part C — verification (end to end, on this PC)
+## Step 4 — verify end to end
 
-1. Bridge health endpoint reports ComfyUI reachable.
+1. The bridge health endpoint must report ComfyUI reachable.
 2. From a paired device (or the web app on this PC), generate a full story
-   with illustrations for a test profile **using a non-real photo** (any
+   with illustrations for a **test profile with a non-real photo** (any
    cartoon face image) first.
-3. Confirm: pages render in the chosen style, output files are ~1024×1024,
-   the hero looks consistent across pages, nothing frightening or deformed.
-4. Compare a few pages against the old settings (temporarily switch
-   `checkpoint` back to `v1-5-pruned-emaonly-fp16.safetensors` if the owner
-   wants a side-by-side) — then decide final settings together with the owner.
-5. VRAM check: watch GPU memory during a run; if ComfyUI OOMs at 1024 target,
-   drop `targetSize` to 768 — still a visible improvement over 512.
-6. Tuning knobs, in order of usefulness: LoRA strength (style), then
-   `ipAdapterWeight` 0.55–0.75 (likeness vs. drawn-ness), then
-   `referenceDenoise` 0.55–0.70 (how hard the photo is cartoonified).
+3. Confirm: pages come out in the chosen style, files are ~1024×1024, the
+   hero looks consistent across pages, nothing frightening or deformed.
+4. Optional side-by-side: temporarily set `checkpoint` back to
+   `v1-5-pruned-emaonly-fp16.safetensors`, render the same story again
+   (seeds are deterministic), and compare with the owner.
+5. Watch GPU memory during a run. If ComfyUI runs out of memory with
+   `targetSize` 1024, drop it to 768 — still far better than 512.
+6. If `faceDetail` was enabled: confirm the first render actually completes —
+   the FaceDetailer wiring follows the Impact Pack's documented inputs but
+   was never run against a real install; a `missing_custom_node` error means
+   the pack is absent or ComfyUI was not restarted.
+7. Only after the test profile looks right, render for the real profiles.
 
-## What NOT to do
+## Step 5 — tune (with the owner)
 
-- Do not switch to SDXL/Flux models — they do not fit in 4 GB alongside the
-  face adapter. (If this PC ever gets an 8 GB+ GPU, that becomes a config
-  change thanks to Part A.)
-- Do not remove or weaken `illustrationNegativePrompt` — it is the child-
-  safety guard and is deliberately not configurable.
-- Do not commit model files, `bridge_config.json`, or any generated
-  image/story into git.
-- Do not expose the bridge or ComfyUI beyond localhost / the private LAN.
+Knobs in `bridge_config.json`, in order of usefulness:
+
+1. `loras[].strength` (0–1.5): the style push. 0.7–0.9 is the sweet spot;
+   above ~1.2 the style overwhelms the checkpoint.
+2. `ipAdapterWeight` (default 0.65): likeness vs. drawn-ness. Raise toward
+   0.75 if the hero is not recognizable enough; lower toward 0.55 if pages
+   look too photographic.
+3. `referenceDenoise` (default 0.62): how strongly the child's photo is
+   redrawn into a cartoon portrait before it steers the pages. Raise if
+   pages inherit photo-like faces; lower if the hero stops resembling the
+   child.
+4. `samplerSteps` (default 24) and `cfgScale` (default 7): usually fine as
+   they are.
+
+Settings live on this PC only. When the owner is happy, note the final values
+somewhere safe (they are part of the "how my library looks" recipe and are
+not in git).

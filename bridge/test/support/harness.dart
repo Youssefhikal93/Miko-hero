@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:iam_hero_bridge/src/common/atomic_files.dart';
 import 'package:iam_hero_bridge/src/common/paths.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
+import 'package:iam_hero_bridge/src/config/illustration_settings.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generated_story.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
@@ -134,10 +135,15 @@ class FakeComfyUiClient implements ComfyUiClient {
     this.failingSubmissions = const <int>{},
     this.uploadFailure,
     this.onSubmit,
+    this.missingNodeTypes = const <String>{},
   }) : imageBytes = imageBytes ?? onePixelPngBytes();
 
   /// What [isReachable] answers.
   final bool reachable;
+
+  /// Node class types this fake ComfyUI does not know, which is how a test
+  /// stands in for an install without the Impact Pack.
+  final Set<String> missingNodeTypes;
 
   /// Bytes every [fetchImage] call returns.
   final Uint8List imageBytes;
@@ -160,8 +166,20 @@ class FakeComfyUiClient implements ComfyUiClient {
   /// How many times [interrupt] was called.
   int interruptCount = 0;
 
+  /// Class types this fake was asked about, in call order.
+  final List<String> probedNodeTypes = <String>[];
+
   @override
   Future<bool> isReachable(ComfyUiEndpoint endpoint) async => reachable;
+
+  @override
+  Future<bool> supportsNodeType(
+    ComfyUiEndpoint endpoint,
+    String classType,
+  ) async {
+    probedNodeTypes.add(classType);
+    return !missingNodeTypes.contains(classType);
+  }
 
   @override
   Future<String> uploadReferenceImage(
@@ -314,8 +332,17 @@ class TestServer {
 }
 
 /// Builds a default configuration whose library lives inside [directory].
-BridgeConfig testConfig(Directory directory) {
-  return BridgeConfig.defaults(workingDirectory: directory.path);
+///
+/// [illustration] lets a test render through a configured pipeline — LoRAs,
+/// upscaling, face detailing — without writing a configuration file.
+BridgeConfig testConfig(
+  Directory directory, {
+  IllustrationSettings illustration = IllustrationSettings.defaults,
+}) {
+  return BridgeConfig.defaults(
+    workingDirectory: directory.path,
+    illustration: illustration,
+  );
 }
 
 /// Creates a fresh temp directory that is removed when the test ends.
@@ -339,6 +366,7 @@ Future<TestServer> createTestServer({
   DateTime Function()? clock,
   void Function(String message)? notifyCode,
   void Function(String message)? logEvent,
+  IllustrationSettings illustration = IllustrationSettings.defaults,
 }) async {
   final root = await createTempRoot();
   final library = MasterLibrary(
@@ -347,7 +375,7 @@ Future<TestServer> createTestServer({
   await library.initialize();
   addTearDown(library.close);
   final server = AppServer(
-    config: testConfig(root),
+    config: testConfig(root, illustration: illustration),
     library: library,
     probeHttpClient: probeHttpClient ?? FakeProbeHttpClient(),
     ollamaClient:

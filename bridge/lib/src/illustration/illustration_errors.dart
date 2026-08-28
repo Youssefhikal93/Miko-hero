@@ -22,6 +22,13 @@ enum IllustrationFailureCode {
   /// The illustration row could not be updated after a successful render.
   libraryWriteFailed('library_write_failed'),
 
+  /// A configured pass needs a ComfyUI custom node this install lacks.
+  ///
+  /// Raised before anything renders, because the alternative is a book whose
+  /// every page fails one at a time for a reason only the PC's console can
+  /// explain — or, worse, half a book.
+  missingCustomNode('missing_custom_node'),
+
   /// The job was cancelled before every page was rendered.
   cancelled('cancelled'),
 

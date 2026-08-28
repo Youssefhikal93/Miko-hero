@@ -1,12 +1,6 @@
 import 'package:iam_hero_bridge/src/common/secrets.dart';
+import 'package:iam_hero_bridge/src/config/illustration_settings.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
-
-/// Stable Diffusion 1.5 checkpoint every illustration is rendered with.
-///
-/// SD 1.5 is not a style choice, it is the only family that fits: 4 GB of
-/// VRAM cannot hold an SDXL checkpoint plus a face adapter.
-const String illustrationCheckpointName =
-    'v1-5-pruned-emaonly-fp16.safetensors';
 
 /// IPAdapter-plus **face** model used when the child has a reference photo.
 const String illustrationIpAdapterName =
@@ -16,31 +10,29 @@ const String illustrationIpAdapterName =
 const String illustrationClipVisionName =
     'CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors';
 
-/// Square edge of every rendered illustration, in pixels.
-///
-/// SD 1.5 was trained at 512x512 and a 4 GB card has no headroom above it.
-const int illustrationImageSize = 512;
-
-/// Sampling steps per image: enough for clean line work, few enough to keep
-/// a ten-page book inside a bedtime-sized wait.
-const int illustrationSamplerSteps = 24;
-
-/// Classifier-free guidance scale.
-const double illustrationCfgScale = 7.0;
-
 /// Sampler and scheduler pair used for every render.
 const String illustrationSamplerName = 'dpmpp_2m';
 
 /// Noise schedule paired with [illustrationSamplerName].
 const String illustrationScheduler = 'karras';
 
-/// How strongly the reference face steers the image.
+/// Resampling filter the upscale pass is brought back down with.
 ///
-/// Deliberately below 1.0: at full weight the adapter drags every page
-/// towards the photo's pose and lighting and the illustration stops looking
-/// drawn. Around two thirds keeps the face recognizable while the picture
-/// stays a picture-book picture.
-const double illustrationIpAdapterWeight = 0.65;
+/// The ESRGAN models multiply by a fixed factor of four, so a 512 render
+/// lands at 2048 and has to be resized to the configured target. Lanczos is
+/// the filter that keeps the recovered detail instead of blurring it away
+/// again on the way down.
+const String illustrationUpscaleScaleMethod = 'lanczos';
+
+/// ComfyUI class type of the Impact-Pack face detailer.
+///
+/// Named as a constant because the bridge also asks ComfyUI whether it knows
+/// this node before it enables the pass; a typo would turn "not installed"
+/// into a mystery instead of a clear error.
+const String illustrationFaceDetailerClassType = 'FaceDetailer';
+
+/// ComfyUI class type of the Impact-Pack detector loader.
+const String illustrationFaceDetectorClassType = 'UltralyticsDetectorProvider';
 
 /// Prefix of the file name ComfyUI saves each render under.
 const String illustrationOutputPrefix = 'iam_hero_page';
@@ -52,18 +44,7 @@ const String illustrationOutputPrefix = 'iam_hero_page';
 /// to see it, and it must never end up written into the library.
 const String illustrationReferenceOutputPrefix = 'iam_hero_ref';
 
-/// How much of the reference photo the stylization pass repaints.
-///
-/// This is the whole tradeoff of stage one in one number. Lower values keep
-/// more of the real child — and more of the photograph: its lighting, its
-/// texture, its expression, which is exactly what dragged pages towards
-/// distorted photorealism when the raw photo was used as the reference.
-/// Higher values cartoonify harder and start inventing a different child.
-/// 0.62 is the value that was validated on real photos: unmistakably drawn,
-/// still recognizably the same face.
-const double illustrationReferenceDenoise = 0.62;
-
-/// Resampling filter used to bring the photo to [illustrationImageSize].
+/// Resampling filter used to bring the photo to the render size.
 ///
 /// Lanczos keeps the eyes and mouth crisp through the downscale; a softer
 /// filter hands the sampler a blurred face and gets a blurred face back.
@@ -224,67 +205,96 @@ int illustrationReferenceSeed(String storyId) {
   return int.parse(digest.substring(0, 12), radix: 16);
 }
 
+/// Deterministic seed of the face-detail pass of one page.
+///
+/// Namespaced like [illustrationReferenceSeed] and for the same reason: the
+/// detailer runs a second, differently shaped diffusion over the face, and
+/// two passes of one page should not be handed the same roll. Re-rendering
+/// the page still reproduces both.
+int illustrationFaceDetailSeed(String illustrationId) {
+  final digest = sha256Hex('face:$illustrationId');
+  return int.parse(digest.substring(0, 12), radix: 16);
+}
+
 /// Builds the complete ComfyUI node graph for one page.
 ///
 /// Without [referenceImageName] this is a plain SD 1.5 text-to-image graph.
-/// With one, the checkpoint's model output is routed through the
-/// IPAdapter-plus-face chain — load the photo, encode it with CLIP vision,
-/// apply the face adapter — before it reaches the sampler, which is what
-/// makes the hero look like the same child on every page.
+/// With one, the model output is routed through the IPAdapter-plus-face
+/// chain — load the portrait, encode it with CLIP vision, apply the face
+/// adapter — before it reaches the sampler, which is what makes the hero look
+/// like the same child on every page.
+///
+/// [settings] is what the PC's configuration file said; its defaults are the
+/// values the bridge shipped with, so an untouched file builds exactly the
+/// graph it always built. Three optional stages hang off it: a LoRA chain
+/// between the checkpoint and everything that reads a model or a CLIP, an
+/// upscale pass after the decode, and an Impact-Pack face-detail pass after
+/// that. The order is deliberate — detailing a face after the enlargement
+/// means the detailer works at the size the page will actually be read at.
 Map<String, Object?> buildIllustrationWorkflow({
   required String illustrationId,
   required String sceneDescription,
   required StoryIllustrationStyle style,
   required StoryGenderContext? gender,
   String? referenceImageName,
+  IllustrationSettings settings = IllustrationSettings.defaults,
 }) {
   final hasReference =
       referenceImageName != null && referenceImageName.trim().isNotEmpty;
   final workflow = <String, Object?>{
     checkpointNodeId: _node('CheckpointLoaderSimple', <String, Object?>{
-      'ckpt_name': illustrationCheckpointName,
-    }),
-    positivePromptNodeId: _node('CLIPTextEncode', <String, Object?>{
-      'text': buildIllustrationPrompt(
-        sceneDescription: sceneDescription,
-        style: style,
-        gender: gender,
-      ),
-      'clip': <Object?>[checkpointNodeId, 1],
-    }),
-    negativePromptNodeId: _node('CLIPTextEncode', <String, Object?>{
-      'text': illustrationNegativePrompt,
-      'clip': <Object?>[checkpointNodeId, 1],
-    }),
-    latentNodeId: _node('EmptyLatentImage', <String, Object?>{
-      'width': illustrationImageSize,
-      'height': illustrationImageSize,
-      'batch_size': 1,
-    }),
-    samplerNodeId: _node('KSampler', <String, Object?>{
-      'seed': illustrationSeed(illustrationId),
-      'steps': illustrationSamplerSteps,
-      'cfg': illustrationCfgScale,
-      'sampler_name': illustrationSamplerName,
-      'scheduler': illustrationScheduler,
-      'denoise': 1.0,
-      'model': <Object?>[
-        hasReference ? ipAdapterApplyNodeId : checkpointNodeId,
-        0,
-      ],
-      'positive': <Object?>[positivePromptNodeId, 0],
-      'negative': <Object?>[negativePromptNodeId, 0],
-      'latent_image': <Object?>[latentNodeId, 0],
-    }),
-    decodeNodeId: _node('VAEDecode', <String, Object?>{
-      'samples': <Object?>[samplerNodeId, 0],
-      'vae': <Object?>[checkpointNodeId, 2],
-    }),
-    saveImageNodeId: _node('SaveImage', <String, Object?>{
-      'filename_prefix': illustrationOutputPrefix,
-      'images': <Object?>[decodeNodeId, 0],
+      'ckpt_name': settings.checkpoint,
     }),
   };
+  // Everything that consumes a model or a CLIP reads the end of the chain,
+  // not the checkpoint: a LoRA that only half the graph sees is a LoRA that
+  // styles the picture while the prompt is still encoded without it.
+  final String source = _appendLoraChain(
+    workflow,
+    checkpointId: checkpointNodeId,
+    loras: settings.loras,
+    nodeIdOf: illustrationLoraNodeId,
+  );
+  final List<Object?> pageModel = <Object?>[
+    hasReference ? ipAdapterApplyNodeId : source,
+    0,
+  ];
+
+  workflow[positivePromptNodeId] = _node('CLIPTextEncode', <String, Object?>{
+    'text': buildIllustrationPrompt(
+      sceneDescription: sceneDescription,
+      style: style,
+      gender: gender,
+    ),
+    'clip': <Object?>[source, 1],
+  });
+  workflow[negativePromptNodeId] = _node('CLIPTextEncode', <String, Object?>{
+    'text': illustrationNegativePrompt,
+    'clip': <Object?>[source, 1],
+  });
+  workflow[latentNodeId] = _node('EmptyLatentImage', <String, Object?>{
+    'width': settings.imageSize,
+    'height': settings.imageSize,
+    'batch_size': 1,
+  });
+  workflow[samplerNodeId] = _node('KSampler', <String, Object?>{
+    'seed': illustrationSeed(illustrationId),
+    'steps': settings.samplerSteps,
+    'cfg': settings.cfgScale,
+    'sampler_name': illustrationSamplerName,
+    'scheduler': illustrationScheduler,
+    'denoise': 1.0,
+    'model': pageModel,
+    'positive': <Object?>[positivePromptNodeId, 0],
+    'negative': <Object?>[negativePromptNodeId, 0],
+    'latent_image': <Object?>[latentNodeId, 0],
+  });
+  workflow[decodeNodeId] = _node('VAEDecode', <String, Object?>{
+    'samples': <Object?>[samplerNodeId, 0],
+    // A LoRA loader has no VAE output, so the decoder always reads the
+    // checkpoint's third slot however long the chain in front of it is.
+    'vae': <Object?>[checkpointNodeId, 2],
+  });
 
   if (hasReference) {
     workflow[referenceImageNodeId] = _node('LoadImage', <String, Object?>{
@@ -301,20 +311,155 @@ Map<String, Object?> buildIllustrationWorkflow({
     workflow[ipAdapterApplyNodeId] = _node(
       'IPAdapterAdvanced',
       <String, Object?>{
-        'weight': illustrationIpAdapterWeight,
+        'weight': settings.ipAdapterWeight,
         'weight_type': 'linear',
         'combine_embeds': 'concat',
         'start_at': 0.0,
         'end_at': 1.0,
         'embeds_scaling': 'V only',
-        'model': <Object?>[checkpointNodeId, 0],
+        'model': <Object?>[source, 0],
         'ipadapter': <Object?>[ipAdapterModelNodeId, 0],
         'image': <Object?>[referenceImageNodeId, 0],
         'clip_vision': <Object?>[clipVisionNodeId, 0],
       },
     );
   }
+
+  var image = decodeNodeId;
+  if (settings.upscale.enabled) {
+    workflow[upscaleModelNodeId] = _node(
+      'UpscaleModelLoader',
+      <String, Object?>{'model_name': settings.upscale.model},
+    );
+    workflow[upscaleImageNodeId] = _node(
+      'ImageUpscaleWithModel',
+      <String, Object?>{
+        'upscale_model': <Object?>[upscaleModelNodeId, 0],
+        'image': <Object?>[image, 0],
+      },
+    );
+    workflow[upscaleResizeNodeId] = _node('ImageScale', <String, Object?>{
+      'upscale_method': illustrationUpscaleScaleMethod,
+      'width': settings.upscale.targetSize,
+      'height': settings.upscale.targetSize,
+      // The page is already square, so there is nothing to crop away.
+      'crop': 'disabled',
+      'image': <Object?>[upscaleImageNodeId, 0],
+    });
+    image = upscaleResizeNodeId;
+  }
+
+  if (settings.faceDetail.enabled) {
+    workflow[faceDetectorNodeId] = _node(
+      illustrationFaceDetectorClassType,
+      <String, Object?>{'model_name': settings.faceDetail.detector},
+    );
+    workflow[faceDetailerNodeId] = _node(
+      illustrationFaceDetailerClassType,
+      _faceDetailerInputs(
+        illustrationId: illustrationId,
+        settings: settings,
+        image: image,
+        model: pageModel,
+        clip: <Object?>[source, 1],
+      ),
+    );
+    image = faceDetailerNodeId;
+  }
+
+  workflow[saveImageNodeId] = _node('SaveImage', <String, Object?>{
+    'filename_prefix': illustrationOutputPrefix,
+    'images': <Object?>[image, 0],
+  });
   return workflow;
+}
+
+/// Inputs of the Impact-Pack `FaceDetailer` node of one page.
+///
+/// The detailer re-diffuses each detected face on its own, so it needs the
+/// whole rendering context again: the same model the page was sampled with
+/// (adapter chain included, or the refined face would stop looking like the
+/// child), the same CLIP, the same VAE, and both prompt encoders — including
+/// the negative one, because the child-safety guard applies to a re-rendered
+/// face exactly as it applies to the page.
+///
+/// The remaining values are the node's own documented defaults, spelled out
+/// rather than omitted: ComfyUI rejects a node whose required inputs are
+/// missing, and a graph that says what it asks for is a graph that can be
+/// read off the wire.
+Map<String, Object?> _faceDetailerInputs({
+  required String illustrationId,
+  required IllustrationSettings settings,
+  required String image,
+  required List<Object?> model,
+  required List<Object?> clip,
+}) {
+  return <String, Object?>{
+    'image': <Object?>[image, 0],
+    'model': model,
+    'clip': clip,
+    'vae': <Object?>[checkpointNodeId, 2],
+    'positive': <Object?>[positivePromptNodeId, 0],
+    'negative': <Object?>[negativePromptNodeId, 0],
+    'bbox_detector': <Object?>[faceDetectorNodeId, 0],
+    // A detected face is scaled to this before it is repainted, and never
+    // past the size the finished page is: the point is a face rendered at
+    // the resolution the page is read at, not a bigger one pasted in.
+    'guide_size': settings.imageSize.toDouble(),
+    'guide_size_for': true,
+    'max_size': settings.outputImageSize.toDouble(),
+    'seed': illustrationFaceDetailSeed(illustrationId),
+    'steps': settings.samplerSteps,
+    'cfg': settings.cfgScale,
+    'sampler_name': illustrationSamplerName,
+    'scheduler': illustrationScheduler,
+    'denoise': settings.faceDetail.denoise,
+    'feather': 5,
+    'noise_mask': true,
+    'force_inpaint': true,
+    'bbox_threshold': 0.5,
+    'bbox_dilation': 10,
+    'bbox_crop_factor': 3.0,
+    'sam_detection_hint': 'center-1',
+    'sam_dilation': 0,
+    'sam_threshold': 0.93,
+    'sam_bbox_expansion': 0,
+    'sam_mask_hint_threshold': 0.7,
+    'sam_mask_hint_use_negative': 'False',
+    'drop_size': 10,
+    'wildcard': '',
+    'cycle': 1,
+  };
+}
+
+/// Chains [loras] onto [checkpointId] and returns the id of the node that
+/// now produces the model (slot 0) and the CLIP (slot 1).
+///
+/// With an empty list that is the checkpoint itself, which is why an
+/// untouched configuration produces byte-for-byte the previous graph.
+String _appendLoraChain(
+  Map<String, Object?> workflow, {
+  required String checkpointId,
+  required List<IllustrationLora> loras,
+  required String Function(int index) nodeIdOf,
+}) {
+  var source = checkpointId;
+  for (var index = 0; index < loras.length; index++) {
+    final lora = loras[index];
+    final nodeId = nodeIdOf(index);
+    workflow[nodeId] = _node('LoraLoader', <String, Object?>{
+      'lora_name': lora.name,
+      // One number for both: a style LoRA whose CLIP side is weighted
+      // differently from its model side pulls the prompt and the picture
+      // apart, which is a knob nobody asked for.
+      'strength_model': lora.strength,
+      'strength_clip': lora.strength,
+      'model': <Object?>[source, 0],
+      'clip': <Object?>[source, 1],
+    });
+    source = nodeId;
+  }
+  return source;
 }
 
 /// Name the stylized portrait of [storyId] is stored under in ComfyUI.
@@ -341,25 +486,43 @@ String referencePortraitFileName(String storyId) => 'iam-hero-ref-$storyId.png';
 /// The portrait is derived from the child's photo and is therefore private
 /// content: it lives only inside ComfyUI's folders, exactly as the photo
 /// already does, and is never written to the library, logged or echoed.
+///
+/// [settings] contributes the checkpoint, the size, the sampler numbers and
+/// the LoRA chain, so the portrait comes out of the same model the pages do —
+/// a face drawn by a different model than the one that draws the book is a
+/// face the book cannot reproduce. It deliberately gets **neither** the
+/// upscale nor the face-detail pass: this image is never read by anyone, only
+/// by the face adapter, and both passes would spend GPU minutes and VRAM on
+/// pixels that are downsampled again the moment they are used.
 Map<String, Object?> buildReferenceStylizeWorkflow({
   required String storyId,
   required String photoImageName,
   required StoryIllustrationStyle style,
   required StoryGenderContext? gender,
+  IllustrationSettings settings = IllustrationSettings.defaults,
 }) {
-  return <String, Object?>{
+  final workflow = <String, Object?>{
     referenceCheckpointNodeId: _node(
       'CheckpointLoaderSimple',
-      <String, Object?>{'ckpt_name': illustrationCheckpointName},
+      <String, Object?>{'ckpt_name': settings.checkpoint},
     ),
+  };
+  final String source = _appendLoraChain(
+    workflow,
+    checkpointId: referenceCheckpointNodeId,
+    loras: settings.loras,
+    nodeIdOf: referenceLoraNodeId,
+  );
+
+  workflow.addAll(<String, Object?>{
     referencePhotoNodeId: _node('LoadImage', <String, Object?>{
       'image': photoImageName.trim(),
       'upload': 'image',
     }),
     referenceScaleNodeId: _node('ImageScale', <String, Object?>{
       'upscale_method': illustrationReferenceScaleMethod,
-      'width': illustrationImageSize,
-      'height': illustrationImageSize,
+      'width': settings.imageSize,
+      'height': settings.imageSize,
       'crop': illustrationReferenceCropMode,
       'image': <Object?>[referencePhotoNodeId, 0],
     }),
@@ -369,22 +532,22 @@ Map<String, Object?> buildReferenceStylizeWorkflow({
     }),
     referencePositivePromptNodeId: _node('CLIPTextEncode', <String, Object?>{
       'text': buildReferencePortraitPrompt(style: style, gender: gender),
-      'clip': <Object?>[referenceCheckpointNodeId, 1],
+      'clip': <Object?>[source, 1],
     }),
     referenceNegativePromptNodeId: _node('CLIPTextEncode', <String, Object?>{
       'text': illustrationReferenceNegativePrompt,
-      'clip': <Object?>[referenceCheckpointNodeId, 1],
+      'clip': <Object?>[source, 1],
     }),
     referenceSamplerNodeId: _node('KSampler', <String, Object?>{
       'seed': illustrationReferenceSeed(storyId),
-      'steps': illustrationSamplerSteps,
-      'cfg': illustrationCfgScale,
+      'steps': settings.samplerSteps,
+      'cfg': settings.cfgScale,
       'sampler_name': illustrationSamplerName,
       'scheduler': illustrationScheduler,
       // The one value that differs from a page: a page paints from noise,
       // this pass paints over a photo.
-      'denoise': illustrationReferenceDenoise,
-      'model': <Object?>[referenceCheckpointNodeId, 0],
+      'denoise': settings.referenceDenoise,
+      'model': <Object?>[source, 0],
       'positive': <Object?>[referencePositivePromptNodeId, 0],
       'negative': <Object?>[referenceNegativePromptNodeId, 0],
       'latent_image': <Object?>[referenceEncodeNodeId, 0],
@@ -397,7 +560,8 @@ Map<String, Object?> buildReferenceStylizeWorkflow({
       'filename_prefix': illustrationReferenceOutputPrefix,
       'images': <Object?>[referenceDecodeNodeId, 0],
     }),
-  };
+  });
+  return workflow;
 }
 
 /// Node id of the SD 1.5 checkpoint loader.
@@ -433,6 +597,21 @@ const String clipVisionNodeId = '10';
 /// Node id of the face adapter application; present only with a photo.
 const String ipAdapterApplyNodeId = '11';
 
+/// Node id of the upscale model loader; present only when upscaling.
+const String upscaleModelNodeId = '12';
+
+/// Node id of the 4x model upscale; present only when upscaling.
+const String upscaleImageNodeId = '13';
+
+/// Node id of the resize back to the configured target size.
+const String upscaleResizeNodeId = '14';
+
+/// Node id of the Ultralytics detector loader; only with face detailing.
+const String faceDetectorNodeId = '15';
+
+/// Node id of the Impact-Pack face detailer; only with face detailing.
+const String faceDetailerNodeId = '16';
+
 // The stylization graph is submitted on its own, so its ids only have to be
 // unique within it. They are numbered away from the page ids anyway: a graph
 // captured in a test or read off the wire should be identifiable as one pass
@@ -464,6 +643,17 @@ const String referenceDecodeNodeId = '27';
 
 /// Node id of the portrait writer; its output is downloaded and re-uploaded.
 const String referenceSaveImageNodeId = '28';
+
+// LoRA chains are the only part of either graph whose node count is not
+// known in advance, so each gets a reserved band far from the fixed ids
+// above. `maximumIllustrationLoraCount` keeps a chain inside its band, which
+// is why the config refuses a ninth LoRA rather than silently colliding.
+
+/// Node id of the [index]th LoRA loader of the page graph.
+String illustrationLoraNodeId(int index) => '${100 + index}';
+
+/// Node id of the [index]th LoRA loader of the stylization graph.
+String referenceLoraNodeId(int index) => '${200 + index}';
 
 Map<String, Object?> _node(String classType, Map<String, Object?> inputs) {
   return <String, Object?>{'class_type': classType, 'inputs': inputs};

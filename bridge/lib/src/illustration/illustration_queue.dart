@@ -264,6 +264,24 @@ class IllustrationQueue {
       );
       return;
     }
+    if (!await _renderer.isFaceDetailAvailable()) {
+      // Same reasoning as an unreachable renderer, and the same treatment:
+      // the configuration is wrong, not the pages, so no row is touched and
+      // the parent gets one error naming what to install or turn off.
+      _fail(
+        jobId,
+        const IllustrationFailure(
+          code: IllustrationFailureCode.missingCustomNode,
+          message:
+              'Face detailing is switched on, but this ComfyUI does not have '
+              'the Impact Pack nodes it needs. Install ComfyUI-Impact-Pack '
+              'and its face detector model, or set '
+              '"illustration.faceDetail.enabled" to false.',
+        ),
+        start,
+      );
+      return;
+    }
 
     final String? photoImageName = await _renderer.uploadReferencePhoto(
       plan.targets.profileId,

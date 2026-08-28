@@ -24,12 +24,19 @@ request, and writes password-encrypted backups of the whole library.
   model pulled. Without it `/health` reports `ollama` unavailable and story
   generation fails with a typed error; everything else keeps working.
 - Optional: a local [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
-  install for illustrations. It needs the SD 1.5 checkpoint
-  `v1-5-pruned-emaonly-fp16.safetensors` and, for face likeness, the
-  **IPAdapter-plus** custom nodes with `ip-adapter-plus-face_sd15.safetensors`
-  in the `ipadapter` folder and the CLIP vision encoder
+  install for illustrations. It needs an SD 1.5 checkpoint — by default
+  `v1-5-pruned-emaonly-fp16.safetensors`, any fine-tune via
+  `illustration.checkpoint` — and, for face likeness, the **IPAdapter-plus**
+  custom nodes with `ip-adapter-plus-face_sd15.safetensors` in the
+  `ipadapter` folder and the CLIP vision encoder
   `CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors`. Without ComfyUI the bridge
   runs fine and illustration jobs fail with `comfyui_unavailable`.
+- Optional, only if the matching `illustration` settings are switched on:
+  LoRA files in `models/loras`, an upscale model such as
+  `RealESRGAN_x4plus_anime_6B.pth` in `models/upscale_models`, and the
+  [ComfyUI-Impact-Pack](https://github.com/ltdrdata/ComfyUI-Impact-Pack)
+  custom nodes plus a face detector for `faceDetail`. Everything here is off
+  by default; nothing has to be installed to render a book.
 
 ## Configuration
 
@@ -54,6 +61,7 @@ printed. All machine-specific values live in this file; nothing is hardcoded.
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
 | `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800)   |
 | `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Loopback origins (`localhost`, `127.0.0.1`, any port) are always allowed; list LAN origins such as `http://192.168.1.20:8765` explicitly. Never list a public internet origin. |
+| `illustration`  | see below               | How pages are rendered. Optional as a whole |
 
 Example `bridge_config.json`:
 
@@ -74,6 +82,52 @@ Example `bridge_config.json`:
 
 `bridge_config.json` is listed in this package's `.gitignore`; real configs
 with machine-specific paths must never be committed.
+
+### The `illustration` section
+
+Every key is optional and defaults to the value the bridge shipped with, so a
+configuration file written before this section existed — or one without it —
+renders exactly what it always rendered. **The section is strict**: an unknown
+key anywhere inside it is refused at startup with the field named, because a
+misspelled rendering setting that was silently ignored is a book that quietly
+came out wrong. So is a value outside its range; nothing is coerced.
+
+| Key | Default | Range | Meaning |
+| --- | --- | --- | --- |
+| `checkpoint` | `v1-5-pruned-emaonly-fp16.safetensors` | non-empty | SD 1.5 checkpoint in `models/checkpoints`. Any SD 1.5 fine-tune; **not** SDXL or Flux, which do not fit in 4 GB beside the face adapter |
+| `imageSize` | `512` | `512`, `576`, `640` | Square edge every page and portrait is sampled at |
+| `samplerSteps` | `24` | 1–60 | Sampling steps per image |
+| `cfgScale` | `7.0` | 1–15 | Classifier-free guidance |
+| `ipAdapterWeight` | `0.65` | 0–1.5 | How hard the reference face steers a page. 0.55–0.75 is the useful band: likeness against drawn-ness |
+| `referenceDenoise` | `0.62` | above 0, up to 1 | How hard the photo is cartoonified in stage one. Zero is refused — it would hand the adapter the photograph itself |
+| `loras` | `[]` | at most 8 entries | Ordered LoRA chain; each entry is `{"name": "…​.safetensors", "strength": 0.8}` with strength 0–1.5 |
+| `upscale.enabled` | `false` | | Whether pages are enlarged after decoding |
+| `upscale.model` | `RealESRGAN_x4plus_anime_6B.pth` | non-empty | Model in `models/upscale_models` |
+| `upscale.targetSize` | `1024` | 512–2048 | Square edge a page is saved at. ESRGAN multiplies by four, so 512 becomes 2048 and is resized to this |
+| `faceDetail.enabled` | `false` | | Whether faces are re-rendered after the page. **Needs ComfyUI-Impact-Pack** |
+| `faceDetail.detector` | `bbox/face_yolov8m.pt` | non-empty | Model name for `UltralyticsDetectorProvider` |
+| `faceDetail.denoise` | `0.45` | above 0, up to 1 | How much of a detected face is repainted |
+
+```jsonc
+"illustration": {
+  "checkpoint": "dreamshaper_8.safetensors",
+  "loras": [{ "name": "kids-illustration.safetensors", "strength": 0.8 }],
+  "upscale": { "enabled": true, "targetSize": 1024 },
+  "faceDetail": { "enabled": false }
+}
+```
+
+Two constraints are checked when the file is read, not when a page fails:
+
+- the finished page has to fit the **16 MB ceiling on a downloaded image**
+  (`maxComfyUiImageBytes`), so a size the bridge could never fetch is refused
+  at startup rather than after a book of failed renders;
+- `faceDetail.enabled` is verified against ComfyUI itself before the first
+  render of a job — see [Face detailing](#face-detailing).
+
+Tuning, in order of usefulness: LoRA strength (style), then `ipAdapterWeight`
+(likeness against drawn-ness), then `referenceDenoise`. If ComfyUI runs out of
+VRAM at `targetSize` 1024, 768 is still a visible improvement over 512.
 
 ## Start / stop
 
@@ -724,13 +778,48 @@ Per page, in order: build the node graph, submit it to `POST /prompt`, poll
 `GET /view`, check it really is a PNG, write it atomically to
 `illustrations/<storyId>/<pageIndex>.png`, and flip the row to `completed`.
 
-The graph is SD 1.5 at 512x512 with a fixed negative prompt that guards
-against scary, adult, deformed and text-covered output on every single
-render — not a per-request option, because this is a children's book
-generator. Each of `pictureBook`, `watercolor` and `colorful3d` contributes
-its own prompt prefix. The sampler seed is derived from the illustration id,
-so **re-rendering a page reproduces it**: a parent who asks for the same
-picture again gets the same picture, not a lottery ticket.
+The graph is SD 1.5 at the configured size — 512x512 out of the box — with a
+fixed negative prompt that guards against scary, adult, deformed and
+text-covered output on every single render. That guard is deliberately **not**
+configurable and not a per-request option, because this is a children's book
+generator; everything else about the graph is, through the `illustration`
+section. Each of `pictureBook`, `watercolor` and `colorful3d` contributes its
+own prompt prefix. The sampler seed is derived from the illustration id, so
+**re-rendering a page reproduces it**: a parent who asks for the same picture
+again gets the same picture, not a lottery ticket.
+
+Three optional stages hang off the configuration, all off by default:
+
+1. **LoRA chain** — one `LoraLoader` per configured entry, chained in file
+   order between the checkpoint and *everything* that reads a model or a
+   CLIP. Both graphs get it: a prompt encoded without the LoRA that paints
+   the picture fights the picture, and a portrait drawn by a different model
+   than the pages is a face the pages cannot reproduce.
+2. **Upscale** — after the decode: `UpscaleModelLoader` →
+   `ImageUpscaleWithModel` → an `ImageScale` down to `targetSize` (lanczos),
+   because the ESRGAN models multiply by a fixed four. Built-in nodes only.
+3. **Face detailing** — after the upscale, so faces are refined at the size
+   the page is actually read at. Needs the Impact Pack.
+
+The reference portrait gets the LoRA chain and **neither** the upscale nor the
+face-detail pass. It is an adapter input, not a picture: nobody ever looks at
+it, and both passes would spend GPU minutes on pixels that are downsampled
+again the moment they are used.
+
+### Face detailing
+
+`faceDetail` wires the Impact-Pack `FaceDetailer` between the page and the
+save, fed by an `UltralyticsDetectorProvider`, the same model the page was
+sampled with (adapter chain included, or the refined face stops looking like
+the child), the same CLIP and VAE, and **both** prompt encoders — the safety
+guard applies to a re-rendered face exactly as it applies to a page.
+
+Those nodes are not part of a stock ComfyUI. Rather than discovering that one
+rejected submission at a time, the bridge asks ComfyUI whether it knows both
+class types **once, before the first render of a job**, and fails the whole job
+with `missing_custom_node` and a message naming what to install or what to turn
+off. No row is touched, exactly as with an unreachable ComfyUI: the
+configuration is wrong, not the pages. There is no half-drawn book and no hang.
 
 If the profile has a reference photo, the render is **two-stage**, and the
 first stage runs once per job — one extra render on top of the pages:
@@ -821,7 +910,7 @@ does not advertise, and the pages that did finish stay permanently done.
 
 Typed failure codes: `comfyui_unavailable`, `comfyui_timeout`,
 `comfyui_failed`, `invalid_image_output`, `image_write_failed`,
-`library_write_failed`, `cancelled`, `internal_error`.
+`library_write_failed`, `missing_custom_node`, `cancelled`, `internal_error`.
 
 ### What illustration logs
 
@@ -900,7 +989,11 @@ and abort behavior stay honest.
 Illustration tests replace only `ComfyUiClient`: the queue, the one-GPU lock,
 the workflow builder, the atomic file writes and the row updates are all the
 real implementations, and the fake renderer returns a genuine PNG because the
-bridge checks magic bytes on everything it stores.
+bridge checks magic bytes on everything it stores. The fake also answers what
+node classes it "has", which is how the missing-Impact-Pack failure is proved
+without installing anything. The workflow tests assert exact node wiring —
+which node reads which slot of which other node — because that is what a
+rendering bug actually looks like.
 
 Sync, deletion and backup tests mock nothing: they run the real SQLite
 database, the real file system inside a temporary library, and the real

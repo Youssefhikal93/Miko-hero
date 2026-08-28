@@ -171,6 +171,14 @@ abstract class ComfyUiClient {
   /// queue tells "ComfyUI is off" apart from "this page did not render".
   Future<bool> isReachable(ComfyUiEndpoint endpoint);
 
+  /// Whether this ComfyUI install knows the node class [classType].
+  ///
+  /// Asked before a graph that needs a custom node is ever submitted, so an
+  /// uninstalled extension becomes one clear error instead of every page of
+  /// the book failing at submission time. Never throws: like [isReachable],
+  /// a server that cannot answer is a `false`.
+  Future<bool> supportsNodeType(ComfyUiEndpoint endpoint, String classType);
+
   /// Uploads [bytes] as an input image and returns the name ComfyUI stored
   /// it under, which is what a `LoadImage` node must reference.
   Future<String> uploadReferenceImage(
@@ -240,6 +248,34 @@ class IoComfyUiClient implements ComfyUiClient {
         maxResponseBytes: maxComfyUiJsonBytes,
       );
       return response.statusCode == HttpStatus.ok;
+    } on Exception catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> supportsNodeType(
+    ComfyUiEndpoint endpoint,
+    String classType,
+  ) async {
+    try {
+      // One node's schema rather than the whole `/object_info` catalogue,
+      // which is megabytes of every installed node on a busy install.
+      final response = await _send(
+        endpoint,
+        method: 'GET',
+        url: endpoint.resolve('/object_info/$classType'),
+        maxResponseBytes: maxComfyUiJsonBytes,
+      );
+      if (response.statusCode != HttpStatus.ok) {
+        return false;
+      }
+      final Object? decoded = jsonDecode(
+        utf8.decode(response.bodyBytes, allowMalformed: true),
+      );
+      // An unknown class answers `200 {}` on some builds and `404` on
+      // others, so the entry has to actually be there.
+      return decoded is Map<String, Object?> && decoded.containsKey(classType);
     } on Exception catch (_) {
       return false;
     }

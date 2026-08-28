@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:iam_hero_bridge/src/common/paths.dart';
+import 'package:iam_hero_bridge/src/config/illustration_settings.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generated_story.dart';
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
@@ -165,8 +166,125 @@ void main() {
     for (final workflow in comfy.workflows) {
       expect(workflow.containsKey(referenceSaveImageNodeId), isFalse);
       expect(workflow.containsKey(ipAdapterApplyNodeId), isFalse);
+      expect(workflow.containsKey(upscaleModelNodeId), isFalse);
+      expect(workflow.containsKey(faceDetailerNodeId), isFalse);
+    }
+    expect(
+      comfy.probedNodeTypes,
+      isEmpty,
+      reason: 'a default config needs no custom node, so none is asked about',
+    );
+  });
+
+  test('a configured pipeline reaches every page graph', () async {
+    final printedCodes = <String>[];
+    final comfy = FakeComfyUiClient();
+    final testServer = await createTestServer(
+      comfyUiClient: comfy,
+      notifyCode: printedCodes.add,
+      illustration: const IllustrationSettings(
+        checkpoint: 'dreamshaper_8.safetensors',
+        loras: <IllustrationLora>[
+          IllustrationLora(name: 'kids-book.safetensors', strength: 0.8),
+        ],
+        upscale: IllustrationUpscaleSettings(enabled: true, targetSize: 1024),
+        faceDetail: IllustrationFaceDetailSettings(enabled: true),
+      ),
+    );
+    addTearDown(testServer.close);
+    final token = await pairDevice(testServer, printedCodes);
+    final story = seedStory(testServer.library, pageCount: 2);
+
+    final queued = await startIllustrationJob(testServer, token, story.id);
+    final settled = await testServer.server.illustrationQueue.whenSettled(
+      queued['jobId']! as String,
+    );
+
+    expect(settled.status, IllustrationJobStatus.completed);
+    expect(settled.completedPageCount, 2);
+    expect(
+      comfy.probedNodeTypes,
+      containsAll(<String>['FaceDetailer', 'UltralyticsDetectorProvider']),
+      reason: 'the custom nodes are confirmed once, before any render',
+    );
+    expect(comfy.workflows, hasLength(2));
+    for (final workflow in comfy.workflows) {
+      expect(
+        _inputs(workflow, checkpointNodeId)['ckpt_name'],
+        'dreamshaper_8.safetensors',
+      );
+      expect(
+        _inputs(workflow, illustrationLoraNodeId(0))['lora_name'],
+        'kids-book.safetensors',
+      );
+      expect(_inputs(workflow, upscaleResizeNodeId)['width'], 1024);
+      expect(_inputs(workflow, saveImageNodeId)['images'], <Object?>[
+        faceDetailerNodeId,
+        0,
+      ]);
     }
   });
+
+  test(
+    'face detailing without the Impact Pack fails before it draws',
+    () async {
+      final printedCodes = <String>[];
+      final comfy = FakeComfyUiClient(
+        missingNodeTypes: const <String>{'FaceDetailer'},
+      );
+      final logLines = <String>[];
+      final testServer = await createTestServer(
+        comfyUiClient: comfy,
+        notifyCode: printedCodes.add,
+        logEvent: logLines.add,
+        illustration: const IllustrationSettings(
+          faceDetail: IllustrationFaceDetailSettings(enabled: true),
+        ),
+      );
+      addTearDown(testServer.close);
+      final token = await pairDevice(testServer, printedCodes);
+      final story = seedStory(testServer.library, pageCount: 3);
+
+      final queued = await startIllustrationJob(testServer, token, story.id);
+      final jobId = queued['jobId']! as String;
+      final settled = await testServer.server.illustrationQueue.whenSettled(
+        jobId,
+      );
+
+      expect(settled.status, IllustrationJobStatus.failed);
+      expect(settled.failure?.code.wireCode, 'missing_custom_node');
+      expect(
+        comfy.workflows,
+        isEmpty,
+        reason: 'nothing is rendered, so the book is never half drawn',
+      );
+      expect(
+        illustrationStatuses(testServer.library, story.id),
+        <String>['pending', 'pending', 'pending'],
+        reason: 'a missing extension is not the pages\' fault',
+      );
+
+      final (status, body) = await callJson(
+        testServer.handler,
+        'GET',
+        '/illustrations/jobs/$jobId',
+        headers: authHeaders(token),
+      );
+      expect(status, 200, reason: 'body was $body');
+      final error = body['error']! as Map<String, Object?>;
+      expect(error['code'], 'missing_custom_node');
+      expect(
+        error['message'],
+        allOf(contains('Impact-Pack'), contains('faceDetail')),
+        reason: 'the message must say what to install or what to turn off',
+      );
+      expect(
+        logLines.join('\n'),
+        contains('missing_custom_node'),
+        reason: 'the typed code is the whole of what a failure may log',
+      );
+    },
+  );
 
   test('a photo is stylized once and every page uses that portrait', () async {
     final printedCodes = <String>[];
@@ -219,7 +337,7 @@ void main() {
     final stylize = comfy.workflows.first;
     expect(
       _inputs(stylize, referenceSamplerNodeId)['denoise'],
-      illustrationReferenceDenoise,
+      IllustrationSettings.defaultReferenceDenoise,
     );
     expect(
       _inputs(stylize, referencePhotoNodeId)['image'],

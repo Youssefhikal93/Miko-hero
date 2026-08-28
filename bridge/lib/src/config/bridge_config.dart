@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:iam_hero_bridge/src/config/illustration_settings.dart';
+
 /// Immutable runtime configuration of the bridge service.
 ///
 /// All machine-specific values (paths, addresses, ports) live exclusively in
@@ -17,6 +19,7 @@ class BridgeConfig {
     required this.maxGenerationAttempts,
     required this.illustrationTimeoutSeconds,
     this.allowedWebOrigins = const <String>[],
+    this.illustration = IllustrationSettings.defaults,
   });
 
   /// Default loopback bind address: the bridge is private unless explicitly
@@ -111,6 +114,14 @@ class BridgeConfig {
   /// internet origin — the bridge is for the private home network only.
   final List<String> allowedWebOrigins;
 
+  /// How illustrations are rendered: checkpoint, size, sampler, LoRA chain,
+  /// and the optional upscale and face-detail passes.
+  ///
+  /// Absent from the file means "exactly what the bridge shipped with", so a
+  /// configuration written before this section existed renders the same
+  /// pictures it always did.
+  final IllustrationSettings illustration;
+
   /// [generationTimeoutSeconds] as a [Duration].
   Duration get generationTimeout => Duration(seconds: generationTimeoutSeconds);
 
@@ -131,6 +142,7 @@ class BridgeConfig {
       'maxGenerationAttempts': maxGenerationAttempts,
       'illustrationTimeoutSeconds': illustrationTimeoutSeconds,
       'allowedWebOrigins': allowedWebOrigins,
+      'illustration': illustration.toJson(),
     };
   }
 
@@ -174,7 +186,22 @@ class BridgeConfig {
         fallback: defaultIllustrationTimeoutSeconds,
       ),
       allowedWebOrigins: _readOriginList(json, 'allowedWebOrigins'),
+      illustration: _readIllustration(json),
     );
+  }
+
+  /// Reads and validates the optional `illustration` section.
+  static IllustrationSettings _readIllustration(Map<String, Object?> json) {
+    final value = json['illustration'];
+    if (value == null) {
+      return IllustrationSettings.defaults;
+    }
+    if (value is! Map<String, Object?>) {
+      throw const FormatException(
+        'Bridge config field "illustration" must be a JSON object.',
+      );
+    }
+    return IllustrationSettings.fromJson(value);
   }
 
   /// Reads and validates the optional list of extra allowed web origins.
@@ -212,7 +239,13 @@ class BridgeConfig {
   }
 
   /// Builds a fully-default configuration rooted at [workingDirectory].
-  factory BridgeConfig.defaults({required String workingDirectory}) {
+  ///
+  /// [illustration] exists so a test can render with a non-default pipeline
+  /// without writing a configuration file; every real run parses one.
+  factory BridgeConfig.defaults({
+    required String workingDirectory,
+    IllustrationSettings illustration = IllustrationSettings.defaults,
+  }) {
     return BridgeConfig(
       bindAddress: defaultBindAddress,
       port: defaultPort,
@@ -223,6 +256,7 @@ class BridgeConfig {
       generationTimeoutSeconds: defaultGenerationTimeoutSeconds,
       maxGenerationAttempts: defaultMaxGenerationAttempts,
       illustrationTimeoutSeconds: defaultIllustrationTimeoutSeconds,
+      illustration: illustration,
     );
   }
 

@@ -19,6 +19,7 @@ export 'src/common/image_bytes.dart';
 export 'src/common/paths.dart';
 export 'src/config/bridge_config.dart';
 export 'src/config/bridge_config_loader.dart';
+export 'src/config/illustration_settings.dart';
 export 'src/generation/cancellation.dart';
 export 'src/generation/generated_story.dart';
 export 'src/generation/generation_errors.dart';
