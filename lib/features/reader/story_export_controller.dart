@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/export/pdf_file_service.dart';
 import 'package:miko_hero/core/export/story_pdf_service.dart';
+import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
 /// Supplies the offline multilingual PDF renderer.
@@ -31,6 +35,10 @@ class StoryExportController {
   /// [includePhoto] carries the parent's export-time choice: only then is the
   /// hero's saved reference photo resolved and placed on the PDF cover. A
   /// missing profile or photo silently produces the photo-free cover.
+  ///
+  /// Page illustrations are story content rather than private likeness, so
+  /// every picture this device already downloaded prints unconditionally on the
+  /// page it was drawn for.
   Future<bool> export(
     StoryBook story,
     String dialogTitle, {
@@ -44,8 +52,32 @@ class StoryExportController {
         .build(
           story,
           coverPhotoBase64: includePhoto ? _coverPhoto(story) : null,
+          illustrationBytesById: await _illustrations(story),
         );
     return _ref.read(pdfFileServiceProvider).save(bytes, story, dialogTitle);
+  }
+
+  /// Reads every stored page image of [story], skipping the ones absent here.
+  ///
+  /// Reads sequentially through the same cache the reader displays from, so an
+  /// export shows exactly the pictures the child can already see. A cache that
+  /// refuses one identity yields no bytes for that page instead of failing:
+  /// losing a picture may cost a text-only page, never the export. Stories with
+  /// no bridge identities — every demo book — resolve to no pictures at all.
+  Future<Map<String, Uint8List>> _illustrations(StoryBook story) async {
+    final illustrationIds = BridgeStoryProvenance.illustrationIdsOf(story);
+    if (illustrationIds.isEmpty) return const <String, Uint8List>{};
+    final store = _ref.read(illustrationStoreProvider);
+    final illustrations = <String, Uint8List>{};
+    for (final illustrationId in illustrationIds) {
+      try {
+        final cached = await store.read(illustrationId);
+        if (cached != null) illustrations[illustrationId] = cached.bytes;
+      } on Exception {
+        continue;
+      }
+    }
+    return illustrations;
   }
 
   /// Reads the hero's private photo from loaded state, or null when absent.

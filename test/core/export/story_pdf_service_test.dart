@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/export/story_pdf_service.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -55,6 +57,100 @@ void main() {
     expect(ascii.decode(broken.take(4).toList()), '%PDF');
     expect(broken.length, withoutPhoto.length);
   });
+
+  for (final language in <AppLanguage>[
+    AppLanguage.english,
+    AppLanguage.arabic,
+  ]) {
+    test('drawn ${language.code} pages carry their picture', () async {
+      final story = _illustratedStory(language);
+
+      final illustrated = await StoryPdfService().build(
+        story,
+        illustrationBytesById: <String, Uint8List>{
+          'illustration-1': base64Decode(_transparentPixel),
+          'illustration-2': base64Decode(_transparentPixel),
+        },
+      );
+      final textOnly = await StoryPdfService().build(story);
+
+      expect(ascii.decode(illustrated.take(4).toList()), '%PDF');
+      expect(illustrated.length, greaterThan(textOnly.length));
+    });
+  }
+
+  test('a page whose picture is missing stays text-only', () async {
+    final story = _illustratedStory(AppLanguage.english);
+
+    final partial = await StoryPdfService().build(
+      story,
+      illustrationBytesById: <String, Uint8List>{
+        'illustration-1': base64Decode(_transparentPixel),
+      },
+    );
+    final everyPage = await StoryPdfService().build(
+      story,
+      illustrationBytesById: <String, Uint8List>{
+        'illustration-1': base64Decode(_transparentPixel),
+        'illustration-2': base64Decode(_transparentPixel),
+      },
+    );
+    final textOnly = await StoryPdfService().build(story);
+
+    expect(ascii.decode(partial.take(4).toList()), '%PDF');
+    expect(partial.length, greaterThan(textOnly.length));
+    expect(partial.length, lessThan(everyPage.length));
+  });
+
+  test('undecodable page bytes fall back to the text-only page', () async {
+    final story = _illustratedStory(AppLanguage.english);
+
+    final broken = await StoryPdfService().build(
+      story,
+      illustrationBytesById: <String, Uint8List>{
+        'illustration-1': Uint8List.fromList(ascii.encode('not-an-image')),
+        'illustration-2': Uint8List(0),
+      },
+    );
+    final textOnly = await StoryPdfService().build(story);
+
+    expect(ascii.decode(broken.take(4).toList()), '%PDF');
+    expect(broken.length, textOnly.length);
+  });
+
+  test('a demo story ignores bytes it has no identity for', () async {
+    final story = _story(AppLanguage.english, 'Miko waved at the moon.');
+
+    final withBytes = await StoryPdfService().build(
+      story,
+      illustrationBytesById: <String, Uint8List>{
+        'illustration-1': base64Decode(_transparentPixel),
+      },
+    );
+    final textOnly = await StoryPdfService().build(story);
+
+    expect(withBytes.length, textOnly.length);
+  });
+
+  test('pictures leave the cover photo choice untouched', () async {
+    final story = _illustratedStory(AppLanguage.english);
+    final pictures = <String, Uint8List>{
+      'illustration-1': base64Decode(_transparentPixel),
+      'illustration-2': base64Decode(_transparentPixel),
+    };
+
+    final withoutPhoto = await StoryPdfService().build(
+      story,
+      illustrationBytesById: pictures,
+    );
+    final withPhoto = await StoryPdfService().build(
+      story,
+      coverPhotoBase64: _transparentPixel,
+      illustrationBytesById: pictures,
+    );
+
+    expect(withPhoto.length, greaterThan(withoutPhoto.length));
+  });
 }
 
 /// Obviously fake 1x1 transparent image standing in for a reference photo.
@@ -71,6 +167,45 @@ StoryBook _story(AppLanguage language, String pageText) {
       request: _request(language),
       pages: <StoryPage>[
         StoryPage(number: 1, text: pageText, sceneDescription: 'A kind hero'),
+      ],
+    ),
+  );
+}
+
+/// Creates one bridge-generated book whose pages name their drawn pictures.
+///
+/// Built through the real provenance encoding, so the export has to recover the
+/// identities the same way the reader does.
+StoryBook _illustratedStory(AppLanguage language) {
+  return StoryBook(
+    id: 'story-drawn-${language.code}',
+    createdAt: DateTime.utc(2026, 8, 18),
+    content: StoryContent(
+      title: _title(language),
+      request: _request(language),
+      pages: <StoryPage>[
+        StoryPage(
+          number: 1,
+          text: language == AppLanguage.arabic
+              ? 'وجد ميكو تنيناً لطيفاً.'
+              : 'Miko found a kind dragon.',
+          sceneDescription: const BridgeStoryProvenance(
+            scene: 'A kind hero greets a dragon',
+            storyId: 'bridge-story-1',
+            illustrationId: 'illustration-1',
+          ).toSceneDescription(),
+        ),
+        StoryPage(
+          number: 2,
+          text: language == AppLanguage.arabic
+              ? 'ساعد أصدقاءه بشجاعة.'
+              : 'He helped his friends bravely.',
+          sceneDescription: const BridgeStoryProvenance(
+            scene: 'The hero helps his friends',
+            storyId: 'bridge-story-1',
+            illustrationId: 'illustration-2',
+          ).toSceneDescription(),
+        ),
       ],
     ),
   );

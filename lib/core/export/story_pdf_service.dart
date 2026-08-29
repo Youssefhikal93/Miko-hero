@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:pdf/pdf.dart';
@@ -10,6 +12,22 @@ const _brandName = 'Iam - hero';
 const _sansAsset = 'assets/fonts/NotoSans-Regular.ttf';
 const _arabicAsset = 'assets/fonts/NotoNaskhArabic-Regular.ttf';
 const _coverPhotoSize = 170.0;
+const _illustrationCorner = 18.0;
+const _illustrationGap = 20.0;
+
+/// Share of one printed page an illustration may occupy at most.
+///
+/// Page images are square, so an unbounded one would fill the sheet and push
+/// the prose it belongs with onto the next page. Half the sheet keeps picture
+/// and words together for the page lengths this app generates.
+const _illustrationHeightShare = 0.5;
+
+/// Widest an illustration may print, matching the prose column exactly.
+final _illustrationMaxWidth = PdfPageFormat.a4.availableWidth;
+
+/// Tallest an illustration may print before the prose loses its own page.
+final _illustrationMaxHeight =
+    PdfPageFormat.a4.availableHeight * _illustrationHeightShare;
 
 /// Builds printable storybooks locally without uploading family content.
 class StoryPdfService {
@@ -25,12 +43,31 @@ class StoryPdfService {
   /// and only when the parent asked for it at export time. Unreadable bytes
   /// fall back to the photo-free cover instead of failing the export. Inner
   /// pages never contain the photo.
-  Future<Uint8List> build(StoryBook story, {String? coverPhotoBase64}) async {
+  ///
+  /// [illustrationBytesById] carries the page images this device already
+  /// downloaded, keyed by the master-library illustration identity each bridge
+  /// page names in its provenance. A page is illustrated exactly when its
+  /// identity is present and its bytes decode; anything else — a demo story
+  /// with no identities at all, a picture this device never fetched, or bytes
+  /// that no decoder recognizes — prints as the text-only page it printed
+  /// before pictures existed. Illustrations are story content, so unlike the
+  /// photo they need no per-export permission.
+  Future<Uint8List> build(
+    StoryBook story, {
+    String? coverPhotoBase64,
+    Map<String, Uint8List> illustrationBytesById = const <String, Uint8List>{},
+  }) async {
     final fonts = await _loadFonts();
     final document = _document(story, fonts);
     _addCover(document, story, fonts, _coverPhoto(coverPhotoBase64));
     for (final page in story.content.pages) {
-      _addStoryPage(document, story, page, fonts);
+      _addStoryPage(
+        document,
+        story,
+        page,
+        fonts,
+        _illustration(page, illustrationBytesById),
+      );
     }
     return document.save();
   }
@@ -41,6 +78,32 @@ class StoryPdfService {
     if (encodedPhoto == null || encodedPhoto.isEmpty) return null;
     try {
       return pw.MemoryImage(base64Decode(encodedPhoto));
+    } on Exception {
+      return null;
+    }
+  }
+
+  /// Decodes one page's downloaded picture, treating bad bytes as absent.
+  ///
+  /// Mirrors the cover photo's failure semantics: a picture that cannot be
+  /// decoded, or that reports no usable pixel size, costs the family one
+  /// text-only page rather than the whole export.
+  pw.MemoryImage? _illustration(
+    StoryPage page,
+    Map<String, Uint8List> illustrationBytesById,
+  ) {
+    if (illustrationBytesById.isEmpty) return null;
+    final provenance = BridgeStoryProvenance.fromSceneDescription(
+      page.sceneDescription,
+    );
+    if (provenance == null) return null;
+    final bytes = illustrationBytesById[provenance.illustrationId];
+    if (bytes == null || bytes.isEmpty) return null;
+    try {
+      final illustration = pw.MemoryImage(bytes);
+      final width = illustration.width ?? 0;
+      final height = illustration.height ?? 0;
+      return width > 0 && height > 0 ? illustration : null;
     } on Exception {
       return null;
     }
@@ -128,11 +191,16 @@ class StoryPdfService {
   }
 
   /// Adds one semantic story page and lets long prose continue safely.
+  ///
+  /// The picture leads and the prose follows, which reads the same in both
+  /// directions: only the surrounding text flow mirrors for Arabic, so the same
+  /// scaffolding serves every supported language.
   void _addStoryPage(
     pw.Document document,
     StoryBook story,
     StoryPage page,
     _StoryPdfFonts fonts,
+    pw.MemoryImage? illustration,
   ) {
     document.addPage(
       pw.MultiPage(
@@ -140,9 +208,46 @@ class StoryPdfService {
         textDirection: _direction(story),
         header: (_) => _pageHeader(story, page),
         footer: (context) => _footer(context, fonts),
-        build: (_) => <pw.Widget>[_pageText(page)],
+        build: (_) => <pw.Widget>[
+          if (illustration != null) _pageIllustration(illustration),
+          _pageText(page),
+        ],
       ),
     );
+  }
+
+  /// Prints the page picture centred, scaled down to keep its own proportions.
+  pw.Widget _pageIllustration(pw.MemoryImage illustration) {
+    final size = _illustrationSize(illustration);
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: _illustrationGap),
+      child: pw.Center(
+        child: pw.ClipRRect(
+          horizontalRadius: _illustrationCorner,
+          verticalRadius: _illustrationCorner,
+          child: pw.Image(
+            illustration,
+            width: size.x,
+            height: size.y,
+            fit: pw.BoxFit.contain,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Fits the picture inside the printable column without distorting it.
+  ///
+  /// Scales by the tighter of the two limits, so a portrait picture from a
+  /// later workflow prints just as faithfully as today's square pages.
+  PdfPoint _illustrationSize(pw.MemoryImage illustration) {
+    final width = (illustration.width ?? 0).toDouble();
+    final height = (illustration.height ?? 0).toDouble();
+    final scale = math.min(
+      _illustrationMaxWidth / width,
+      _illustrationMaxHeight / height,
+    );
+    return PdfPoint(width * scale, height * scale);
   }
 
   /// Shows story position without depending on the interface language.
