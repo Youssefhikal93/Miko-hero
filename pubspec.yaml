@@ -61,6 +61,11 @@ dev_dependencies:
   # a preference store that fails mid-write and prove the restore rollback.
   shared_preferences_platform_interface: ^2.4.2
 
+  # Already resolved through pdf, which shapes Arabic with it before drawing.
+  # Declared so the font test can shape the exact strings the export prints and
+  # prove every resulting glyph exists in the bundled display face.
+  bidi: ^2.0.13
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -79,6 +84,11 @@ flutter:
   assets:
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoNaskhArabic-Regular.ttf
+    # Storybook display faces used only by the offline PDF export: Baloo 2 for
+    # the Latin story languages, Amiri Bold for Arabic. See
+    # assets/fonts/README.md for why two faces rather than one.
+    - assets/fonts/Baloo2-Variable.ttf
+    - assets/fonts/Amiri-Bold.ttf
 
   # Bundled for the optional per-child easy-reading font in the story reader.
   # Latin script only; Arabic prose keeps the interface font.

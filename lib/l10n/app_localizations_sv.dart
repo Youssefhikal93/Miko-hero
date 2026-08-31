@@ -889,6 +889,32 @@ class AppLocalizationsSv extends AppLocalizations {
       'En sparad PDF är inte krypterad och lämnar appen.';
 
   @override
+  String pdfForHero(String name) {
+    return 'till $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'Den här boken tillhör $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'Skapad $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'Sida $number av $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'Berättelsens hjärta';
+
+  @override
+  String get pdfTheEnd => 'Slut';
+
+  @override
   String get narrationSettings => 'Berättarinställningar';
 
   @override

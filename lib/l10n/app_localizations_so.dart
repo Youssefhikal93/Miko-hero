@@ -888,6 +888,32 @@ class AppLocalizationsSo extends AppLocalizations {
       'PDF-ka la kaydiyay sir kuma jiro oo app-ka wuu ka baxayaa.';
 
   @override
+  String pdfForHero(String name) {
+    return 'loogu talagalay $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'Buuggan waxaa iska leh $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'Waxaa la sameeyay $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'Bogga $number ee $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'Wadnaha sheekadan';
+
+  @override
+  String get pdfTheEnd => 'Dhammaad';
+
+  @override
   String get narrationSettings => 'Dejinta akhrinta codka';
 
   @override

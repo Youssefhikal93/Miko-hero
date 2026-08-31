@@ -872,6 +872,32 @@ class AppLocalizationsAr extends AppLocalizations {
       'ملف PDF المحفوظ غير مشفّر ويخرج من التطبيق.';
 
   @override
+  String pdfForHero(String name) {
+    return 'إلى $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'هذا الكتاب يخص $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'صُنع في $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'صفحة $number من $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'قلب هذه القصة';
+
+  @override
+  String get pdfTheEnd => 'النهاية';
+
+  @override
   String get narrationSettings => 'إعدادات القراءة الصوتية';
 
   @override

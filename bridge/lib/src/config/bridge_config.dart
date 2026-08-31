@@ -38,11 +38,15 @@ class BridgeConfig {
   /// Default Ollama model used for story generation.
   static const String defaultOllamaModel = 'gemma3:4b';
 
-  /// Default wall-clock budget for one story generation call: 10 minutes.
+  /// Default wall-clock budget for one story generation call: 15 minutes.
   ///
-  /// A small local GPU needs minutes for a ten-page story, so this is
-  /// generous on purpose — but always bounded.
-  static const int defaultGenerationTimeoutSeconds = 600;
+  /// The budget is per model call, and a job makes two: a small outline call
+  /// and the call that writes the pages. Raised from ten minutes when the
+  /// two-pass pipeline landed, because the recommended larger models — the
+  /// ones that actually write correct Arabic — take noticeably longer per call
+  /// on a 4 GB card than the 4B floor model does. Generous on purpose, but
+  /// always bounded.
+  static const int defaultGenerationTimeoutSeconds = 900;
 
   /// Default number of generation attempts per job (one try plus two
   /// retries) before the job fails.
