@@ -160,7 +160,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoRequired => 'Choose a reference photo.';
 
   @override
-  String get createStoryTitle => 'Create a story';
+  String get createStoryTitle => 'New story';
+
+  @override
+  String get whoIsTheHero => 'Who is the hero';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'What happens';
+
+  @override
+  String get lessonHint => 'And the lesson it teaches';
+
+  @override
+  String get howLong => 'How long';
+
+  @override
+  String get pages => 'pages';
+
+  @override
+  String get lookAndLanguage => 'Look and language';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Write the story';
+
+  @override
+  String get demoGeneratorLabel => 'Demo';
+
+  @override
+  String get localAiGeneratorLabel => 'Local AI';
 
   @override
   String get chooseHeroProfile => 'Choose a hero profile';
@@ -202,7 +249,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get longLength => 'Long · 10 pages';
 
   @override
-  String get pictureBookStyle => 'Soft picture book';
+  String get pictureBookStyle => 'Picture book';
 
   @override
   String get watercolorStyle => 'Watercolor';
