@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +15,7 @@ import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
+import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_artwork.dart';
@@ -633,7 +633,7 @@ class _HeroCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              _HeroAvatar(profile: profile),
+              HeroFace(profile: profile, size: 44),
               const SizedBox(height: 8),
               Text(
                 profile.name,
@@ -665,44 +665,6 @@ class _HeroCard extends StatelessWidget {
     if (!gender.isSpecified) return text.yearsOld(profile.age);
     final genderName = gender == ChildGender.girl ? text.girl : text.boy;
     return text.heroAgeGender(profile.age, genderName);
-  }
-}
-
-/// The child's private profile photo, never leaving this device.
-class _HeroAvatar extends StatelessWidget {
-  /// Creates the round photo used by one hero card.
-  const _HeroAvatar({required this.profile});
-
-  final ChildProfile profile;
-
-  @override
-  /// Falls back to the child's initial when the stored photo cannot be drawn.
-  Widget build(BuildContext context) {
-    final accent = Color(profile.themeColorValue);
-    Widget initial() => ColoredBox(
-      color: accent.withValues(alpha: 0.16),
-      child: Center(
-        child: Text(
-          profile.name.characters.first.toUpperCase(),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: accent,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-    Widget photo;
-    try {
-      photo = Image.memory(
-        base64Decode(profile.photoBase64),
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stackTrace) => initial(),
-      );
-    } on FormatException {
-      photo = initial();
-    }
-    return ClipOval(child: SizedBox.square(dimension: 44, child: photo));
   }
 }
 

@@ -23,7 +23,7 @@ void main() {
     await pumpApp(tester, route: '/story/story-1', illustrationStore: store);
 
     expect(_pageImage, findsOneWidget);
-    expect(find.byType(CircleAvatar), findsNothing);
+    expect(_placeholderFace, findsNothing);
     expect(find.text('1'), findsOneWidget, reason: 'the page number stays');
   });
 
@@ -35,7 +35,7 @@ void main() {
     await pumpApp(tester, route: '/story/story-1');
 
     expect(_pageImage, findsNothing);
-    expect(find.byType(CircleAvatar), findsOneWidget);
+    expect(_placeholderFace, findsOneWidget);
     expect(
       find.byType(CircularProgressIndicator),
       findsNothing,
@@ -100,6 +100,11 @@ void main() {
 /// The drawn picture inside the reader page, when there is one.
 final Finder _pageImage = find.byKey(
   const ValueKey<String>('page-illustration'),
+);
+
+/// The hero's face standing in for a page picture that has not arrived.
+final Finder _placeholderFace = find.byKey(
+  const ValueKey<String>('page-placeholder-face'),
 );
 
 /// The drawn cover behind a library card, when there is one.

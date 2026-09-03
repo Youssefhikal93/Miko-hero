@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -20,6 +19,7 @@ import 'package:miko_hero/features/reader/narration_controller.dart';
 import 'package:miko_hero/features/reader/story_export_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
 import 'package:miko_hero/shared/reading_badge_view.dart';
 import 'package:miko_hero/shared/reading_text_style.dart';
@@ -561,17 +561,14 @@ class _PageIllustration extends ConsumerWidget {
 
   /// Centres the child's own photo, or a friendly face, over the gradient.
   Widget _placeholderFace() {
-    final photo = profile?.photoBase64;
     return Center(
-      child: CircleAvatar(
-        radius: 72,
-        backgroundColor: Colors.white24,
-        backgroundImage: photo == null
-            ? null
-            : MemoryImage(base64Decode(photo)),
-        child: photo == null
-            ? const Icon(Icons.face_rounded, size: 74, color: Colors.white)
-            : null,
+      child: HeroFace(
+        key: const ValueKey<String>('page-placeholder-face'),
+        profile: profile,
+        size: 144,
+        background: Colors.white24,
+        fallbackIcon: Icons.face_rounded,
+        fallbackColor: Colors.white,
       ),
     );
   }
@@ -732,8 +729,8 @@ class _HeroAvatar extends StatelessWidget {
   /// Creates the avatar of the child this book belongs to.
   const _HeroAvatar({required this.profile});
 
-  /// Diameter of the ringed circle, matching the design reference.
-  static const _diameter = 42.0;
+  /// Face diameter that keeps the ringed circle at its 42 px reference.
+  static const _faceSize = 34.0;
 
   final ChildProfile? profile;
 
@@ -742,39 +739,15 @@ class _HeroAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final hero = profile;
     if (hero == null) return const SizedBox.shrink();
-    final photo = hero.photoBase64;
     return Semantics(
       label: hero.name,
-      child: Container(
-        width: _diameter,
-        height: _diameter,
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        child: Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppTheme.tile,
-            image: photo.isEmpty
-                ? null
-                : DecorationImage(
-                    image: MemoryImage(base64Decode(photo)),
-                    fit: BoxFit.cover,
-                  ),
-          ),
-          child: photo.isEmpty ? Text(_initial(hero.name)) : null,
-        ),
+      child: HeroFace(
+        profile: hero,
+        size: _faceSize,
+        ring: true,
+        background: AppTheme.tile,
       ),
     );
-  }
-
-  /// Reduces a hero name to the single letter the ring encircles.
-  String _initial(String name) {
-    final trimmed = name.trim();
-    return trimmed.isEmpty ? '' : trimmed.substring(0, 1).toUpperCase();
   }
 }
 

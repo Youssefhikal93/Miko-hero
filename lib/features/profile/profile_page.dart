@@ -10,6 +10,7 @@ import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
+import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Local profile manager for every child who can star in a story.
@@ -83,10 +84,7 @@ class _ProfileCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 14),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          radius: 32,
-          backgroundImage: MemoryImage(base64Decode(profile.photoBase64)),
-        ),
+        leading: HeroFace(profile: profile, size: 64),
         title: Text(
           profile.heroName,
           style: Theme.of(context).textTheme.titleMedium,

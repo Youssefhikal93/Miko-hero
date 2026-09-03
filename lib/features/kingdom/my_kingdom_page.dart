@@ -233,9 +233,8 @@ class _ProfileChooser extends StatelessWidget {
                       selected: profile.id == activeProfileId,
                       onSelected: (_) => onSelected(profile),
                       avatar: KingdomAvatar(
-                        photoBase64: profile.photoBase64,
+                        profile: profile,
                         frame: profile.kingdomTheme.frame,
-                        color: Color(profile.themeColorValue),
                         radius: 12,
                       ),
                       label: Text(profile.heroName),
@@ -292,11 +291,7 @@ class _ProfileSummary extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            KingdomAvatar(
-              photoBase64: profile.photoBase64,
-              frame: profile.kingdomTheme.frame,
-              color: Color(profile.themeColorValue),
-            ),
+            KingdomAvatar(profile: profile, frame: profile.kingdomTheme.frame),
             const SizedBox(width: 18),
             Expanded(
               child: Column(

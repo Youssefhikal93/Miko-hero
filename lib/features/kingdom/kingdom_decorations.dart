@@ -1,9 +1,10 @@
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:miko_hero/app/app_theme.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
+import 'package:miko_hero/shared/hero_face.dart';
 
 /// Resolves the Material icon that stands for one favourite symbol.
 ///
@@ -78,35 +79,35 @@ class KingdomCastle extends StatelessWidget {
 }
 
 /// Child photo wrapped in the frame the parent chose for that child.
+///
+/// The face itself is the shared [HeroFace], so a kingdom avatar decodes the
+/// stored photo, falls back, and reads an initial exactly as every other
+/// surface does. This widget owns only what is its own: the painted frame.
 class KingdomAvatar extends StatelessWidget {
-  /// Creates a framed avatar from one profile's locally stored photo bytes.
+  /// Creates a framed avatar around one child's face.
   const KingdomAvatar({
-    required this.photoBase64,
+    required this.profile,
     required this.frame,
-    required this.color,
     this.radius = 42,
     super.key,
   });
 
-  /// Base64 reference photo read from the profile, never from a remote source.
-  final String photoBase64;
+  /// Child whose locally stored photo and colour the avatar is built from.
+  final ChildProfile profile;
 
   /// Decoration drawn around the photo.
   final AvatarFrameStyle frame;
 
-  /// Child's saved kingdom color, used for the frame decoration.
-  final Color color;
-
   /// Photo radius; the frame is painted in the ring just outside it.
   final double radius;
+
+  /// Child's saved kingdom color, used for the frame decoration.
+  Color get color => Color(profile.themeColorValue);
 
   @override
   /// Keeps the plain circle identical to the pre-personalization avatar.
   Widget build(BuildContext context) {
-    final photo = CircleAvatar(
-      radius: radius,
-      backgroundImage: MemoryImage(base64Decode(photoBase64)),
-    );
+    final photo = HeroFace(profile: profile, size: radius * 2);
     if (frame == AvatarFrameStyle.none) return photo;
     final diameter = (radius + _frameInset) * 2;
     return SizedBox.square(

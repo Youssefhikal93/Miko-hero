@@ -16,6 +16,7 @@ import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
@@ -303,7 +304,12 @@ class _ChildChip extends StatelessWidget {
       onSelected: (_) => onSelected(),
       selectedColor: accent.withValues(alpha: 0.18),
       side: BorderSide(color: selected ? accent : AppTheme.hairline),
-      avatar: _ChildInitial(profile: profile, accent: accent),
+      avatar: HeroFace(
+        profile: profile,
+        size: 28,
+        accent: accent,
+        background: accent.withValues(alpha: 0.22),
+      ),
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
@@ -319,42 +325,6 @@ class _ChildChip extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// The first letter of a child's name on a disc in their own color.
-///
-/// A letter rather than the saved reference photo, which the kingdom avatar
-/// already shows at a size worth decoding: a chip avatar is 32 px, and an
-/// initial names the shelf's owner at that size without any image work.
-class _ChildInitial extends StatelessWidget {
-  /// Creates the initial disc for one child profile.
-  const _ChildInitial({required this.profile, required this.accent});
-
-  final ChildProfile profile;
-  final Color accent;
-
-  @override
-  /// Prints the initial in the child's accent on a wash of the same color.
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      backgroundColor: accent.withValues(alpha: 0.22),
-      child: Text(
-        _initial,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: accent,
-        ),
-      ),
-    );
-  }
-
-  /// Reads one whole first character, so an emoji name keeps its glyph.
-  String get _initial {
-    final name = profile.name.trim();
-    if (name.isEmpty) return '·';
-    return String.fromCharCode(name.runes.first).toUpperCase();
   }
 }
 

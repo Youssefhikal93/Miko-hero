@@ -1,11 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/hero_face.dart';
 
 /// Home's header: who the app is reading as, and the way to change it.
 ///
@@ -130,31 +129,13 @@ class HomeHeroAvatar extends StatelessWidget {
   /// primary to, so the header ring is the accent while every child in the
   /// switcher still wears their own.
   Widget build(BuildContext context) {
-    final child = profile;
-    final accent = child == null
-        ? Theme.of(context).colorScheme.primary
-        : Color(child.themeColorValue);
-    final photo = profile?.photoBase64;
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: accent, width: 2),
-      ),
-      child: CircleAvatar(
-        radius: radius,
-        backgroundColor: AppTheme.sunken,
-        backgroundImage: photo == null
-            ? null
-            : MemoryImage(base64Decode(photo)),
-        child: photo == null
-            ? const Icon(
-                Icons.person_rounded,
-                size: 20,
-                color: AppTheme.mutedDeep,
-              )
-            : null,
-      ),
+    return HeroFace(
+      profile: profile,
+      size: radius * 2,
+      ring: true,
+      background: AppTheme.sunken,
+      fallbackIcon: Icons.person_rounded,
+      fallbackColor: AppTheme.mutedDeep,
     );
   }
 }
