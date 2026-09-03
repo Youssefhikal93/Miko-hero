@@ -44,7 +44,11 @@ handled and what is genuinely the model's job.
 2. **Story-arc and age-aware prompting.** The page prompt demands a warm
    opening, a challenge or discovery in the middle, an ending the child's own
    action earns, and the lesson shown rather than stated. Sentence length and
-   vocabulary follow the child's age.
+   vocabulary follow the child's age. Since 2026-09-03 (#25) it also demands
+   three to five sentences per page, a concrete sensory detail and a line of
+   spoken dialogue on each page, feelings shown through the body, and an
+   outline whose hero wants something on page 1 and pays a cost in the middle.
+   The first `qwen3.5:9b` books were correct but flat; this is the fix.
 3. **Arabic rules in the prompt.** For `ar` the prompt explicitly requires
    simple Modern Standard Arabic (فصحى مبسطة), forbids dialect mixing, and
    forbids Latin letters anywhere in the story text. Every other language gets
