@@ -101,6 +101,66 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
+  testWidgets('the bottom bar shows icons the family can still name', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'active_profile_id': 'miko',
+      'child_profiles': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'miko',
+          'name': 'Miko',
+          'age': 7,
+          'photoBase64': _transparentPixel,
+          'gender': 'girl',
+          'themeColorValue': AppTheme.girlPink.toARGB32(),
+        },
+      ]),
+    });
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
+          ),
+        ],
+        child: const IamHeroApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final bar = find.byType(NavigationBar);
+    expect(bar, findsOneWidget);
+    for (final label in _destinationLabels.values) {
+      expect(
+        find.descendant(of: bar, matching: find.text(label)),
+        findsNothing,
+      );
+    }
+    _expectActiveDot(tester, '/', accent: AppTheme.girlPink);
+
+    for (final route in <String>[
+      '/create',
+      '/library',
+      '/kingdom',
+      '/settings',
+      '/',
+    ]) {
+      await tester.tap(
+        find.descendant(
+          of: bar,
+          matching: find.bySemanticsLabel(
+            RegExp('^${_destinationLabels[route]}'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      _expectActiveDot(tester, route, accent: AppTheme.girlPink);
+    }
+    semantics.dispose();
+  });
+
   testWidgets('each hero restores the custom color saved in My Kingdom', (
     tester,
   ) async {
@@ -329,6 +389,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("a moon garden: Abbas's Adventure"), findsWidgets);
   });
+}
+
+/// English name every bottom destination keeps for accessibility tooling.
+const _destinationLabels = <String, String>{
+  '/': 'Home',
+  '/create': 'Create',
+  '/library': 'Library',
+  '/kingdom': 'My Kingdom',
+  '/settings': 'Settings',
+};
+
+/// Fails unless the dot marks [route] alone, drawn in the child's [accent].
+void _expectActiveDot(
+  WidgetTester tester,
+  String route, {
+  required Color accent,
+}) {
+  for (final candidate in _destinationLabels.keys) {
+    final dot = find.byKey(ValueKey<String>('nav-dot-$candidate'));
+    if (candidate != route) {
+      expect(dot, findsNothing);
+      continue;
+    }
+    expect(dot, findsOneWidget);
+    final decoration = tester.widget<Container>(dot).decoration;
+    expect((decoration! as BoxDecoration).color, accent);
+    expect(Theme.of(tester.element(dot)).colorScheme.primary, accent);
+  }
 }
 
 const _transparentPixel =
