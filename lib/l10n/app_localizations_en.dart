@@ -50,6 +50,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setUpProfile => 'Add a profile';
 
   @override
+  String get readingAs => 'Reading as';
+
+  @override
+  String get greetingMorning => 'Good morning.';
+
+  @override
+  String get greetingAfternoon => 'Good afternoon.';
+
+  @override
+  String get greetingEvening => 'Good evening.';
+
+  @override
+  String get greetingNight => 'Good night.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title is waiting to be finished.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'New stories are waiting for a parent to read them.';
+
+  @override
+  String get greetingCreateStory =>
+      'Tonight\'s story has not been written yet.';
+
+  @override
+  String get keepReading => 'Keep reading';
+
+  @override
+  String get newStory => 'New story';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned of $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Drafts waiting for review: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Parent only · hidden from the shelf';
+
+  @override
+  String get onTheShelf => 'On the shelf';
+
+  @override
+  String get seeAll => 'See all';
+
+  @override
   String get editProfile => 'Edit hero profile';
 
   @override

@@ -180,6 +180,96 @@ abstract class AppLocalizations {
   /// **'Add a profile'**
   String get setUpProfile;
 
+  /// No description provided for @readingAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading as'**
+  String get readingAs;
+
+  /// No description provided for @greetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning.'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon.'**
+  String get greetingAfternoon;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening.'**
+  String get greetingEvening;
+
+  /// No description provided for @greetingNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Good night.'**
+  String get greetingNight;
+
+  /// No description provided for @greetingContinueStory.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is waiting to be finished.'**
+  String greetingContinueStory(String title);
+
+  /// No description provided for @greetingDraftsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'New stories are waiting for a parent to read them.'**
+  String get greetingDraftsWaiting;
+
+  /// No description provided for @greetingCreateStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Tonight\'s story has not been written yet.'**
+  String get greetingCreateStory;
+
+  /// No description provided for @keepReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep reading'**
+  String get keepReading;
+
+  /// No description provided for @newStory.
+  ///
+  /// In en, this message translates to:
+  /// **'New story'**
+  String get newStory;
+
+  /// No description provided for @readingBadgesEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'{earned} of {total}'**
+  String readingBadgesEarned(int earned, int total);
+
+  /// No description provided for @draftsWaitingForReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts waiting for review: {count}'**
+  String draftsWaitingForReview(int count);
+
+  /// No description provided for @draftsWaitingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent only · hidden from the shelf'**
+  String get draftsWaitingHint;
+
+  /// No description provided for @onTheShelf.
+  ///
+  /// In en, this message translates to:
+  /// **'On the shelf'**
+  String get onTheShelf;
+
+  /// No description provided for @seeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get seeAll;
+
   /// No description provided for @editProfile.
   ///
   /// In en, this message translates to:

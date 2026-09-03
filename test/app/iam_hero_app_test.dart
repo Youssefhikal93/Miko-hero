@@ -41,9 +41,9 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
     await tester.pumpAndSettle();
 
-    final welcome = find.text('مغامرة جديدة تبدأ هنا');
-    expect(welcome, findsOneWidget);
-    expect(Directionality.of(tester.element(welcome)), TextDirection.rtl);
+    final prompt = find.text('أضف ملف بطل');
+    expect(prompt, findsOneWidget);
+    expect(Directionality.of(tester.element(prompt)), TextDirection.rtl);
   });
 
   testWidgets('Somali selection keeps localized Material controls available', (
@@ -334,7 +334,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Create another story'));
+    await tester.tap(find.text('New story'));
     await tester.pumpAndSettle();
 
     expect(find.text('Choose a hero profile'), findsOneWidget);
