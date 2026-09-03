@@ -95,7 +95,9 @@ refused at startup with a clear message — fix and restart.
    `v1-5-pruned-emaonly-fp16.safetensors`, render the same story again
    (seeds are deterministic), and compare with the owner.
 5. Watch GPU memory during a run. If ComfyUI runs out of memory with
-   `targetSize` 1024, drop it to 768 — still far better than 512.
+   `targetSize` 1024, drop it to 768 — still far better than 512. The bridge
+   unloads its Ollama model before ComfyUI starts, so no manual unload is
+   needed.
 6. If `faceDetail` was enabled: confirm the first render actually completes —
    the FaceDetailer wiring follows the Impact Pack's documented inputs but
    was never run against a real install; a `missing_custom_node` error means
