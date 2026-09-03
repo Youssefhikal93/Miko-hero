@@ -2,20 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/illustrations/illustration_providers.dart';
-import 'package:miko_hero/core/models/child_story_preferences.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
 
 import '../../support/in_memory_illustration_store.dart';
-
-/// A one-pixel PNG, small enough to decode inside a widget test.
-const _pngPixel =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+import '../../support/seeded_device.dart';
 
 /// Verifies what a child sees on a page and on a shelf, with art and without.
 void main() {
@@ -24,11 +17,10 @@ void main() {
   testWidgets('a cached page picture replaces the placeholder art', (
     tester,
   ) async {
-    _seed(route: '/story/story-1');
+    await _seed();
     final store = await _storeHolding(const <String>['illustration-1']);
 
-    await tester.pumpWidget(_app(store));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-1', illustrationStore: store);
 
     expect(_pageImage, findsOneWidget);
     expect(find.byType(CircleAvatar), findsNothing);
@@ -38,10 +30,9 @@ void main() {
   testWidgets('a page with no picture keeps the gradient placeholder', (
     tester,
   ) async {
-    _seed(route: '/story/story-1');
+    await _seed();
 
-    await tester.pumpWidget(_app(InMemoryIllustrationStore()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-1');
 
     expect(_pageImage, findsNothing);
     expect(find.byType(CircleAvatar), findsOneWidget);
@@ -56,11 +47,10 @@ void main() {
   testWidgets('a demo story keeps its chip and never shows a picture', (
     tester,
   ) async {
-    _seed(route: '/story/story-1', hasBridgeProvenance: false);
+    await _seed(hasBridgeProvenance: false);
     final store = await _storeHolding(const <String>['illustration-1']);
 
-    await tester.pumpWidget(_app(store));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-1', illustrationStore: store);
 
     expect(_pageImage, findsNothing);
     expect(find.text('DEMO'), findsWidgets);
@@ -69,11 +59,10 @@ void main() {
   testWidgets('a PC story whose first page is cached gets a cover', (
     tester,
   ) async {
-    _seed();
+    await _seed();
     final store = await _storeHolding(const <String>['illustration-1']);
 
-    await tester.pumpWidget(_app(store));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/library', illustrationStore: store);
 
     expect(_coverImage, findsOneWidget);
     expect(
@@ -87,10 +76,9 @@ void main() {
   testWidgets('a shelf with no cached pictures keeps its gradients', (
     tester,
   ) async {
-    _seed();
+    await _seed();
 
-    await tester.pumpWidget(_app(InMemoryIllustrationStore()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/library');
 
     expect(_coverImage, findsNothing);
     expect(find.text('The moon garden'), findsWidgets);
@@ -99,11 +87,10 @@ void main() {
   testWidgets('a demo shelf card keeps its badge and its gradient', (
     tester,
   ) async {
-    _seed(hasBridgeProvenance: false);
+    await _seed(hasBridgeProvenance: false);
     final store = await _storeHolding(const <String>['illustration-1']);
 
-    await tester.pumpWidget(_app(store));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/library', illustrationStore: store);
 
     expect(_coverImage, findsNothing);
     expect(find.text('DEMO'), findsWidgets);
@@ -125,23 +112,18 @@ Future<InMemoryIllustrationStore> _storeHolding(
   List<String> illustrationIds,
 ) async {
   final store = InMemoryIllustrationStore();
-  final bytes = base64Decode(_pngPixel);
+  final bytes = base64Decode(transparentPixelPhoto);
   for (final illustrationId in illustrationIds) {
     await store.write(illustrationId, Uint8List.fromList(bytes), eTag: 'v1');
   }
   return store;
 }
 
-/// Builds the real application over one in-memory page-image cache.
-Widget _app(InMemoryIllustrationStore store) {
-  return ProviderScope(
-    overrides: [illustrationStoreProvider.overrideWithValue(store)],
-    child: const IamHeroApp(),
-  );
-}
-
-/// Stores one family holding a single approved story, then routes to [route].
-void _seed({String route = '/library', bool hasBridgeProvenance = true}) {
+/// Stores one family holding a single approved story, from the PC or the demo.
+///
+/// Only a story whose page carries its bridge identities can ever have a
+/// cached picture, which is what separates the two halves of this suite.
+Future<void> _seed({bool hasBridgeProvenance = true}) {
   final scene = hasBridgeProvenance
       ? const BridgeStoryProvenance(
           scene: 'a glowing garden',
@@ -149,49 +131,16 @@ void _seed({String route = '/library', bool hasBridgeProvenance = true}) {
           illustrationId: 'illustration-1',
         ).toSceneDescription()
       : 'a glowing garden';
-  SharedPreferences.setMockInitialValues(<String, Object>{
-    'active_profile_id': 'miko',
-    'child_profiles': jsonEncode(<Map<String, Object>>[
-      <String, Object>{
-        'id': 'miko',
-        'name': 'Miko',
-        'age': 7,
-        'photoBase64': _pngPixel,
-        'gender': 'girl',
-      },
-    ]),
-    'story_library': jsonEncode(<Map<String, Object>>[
-      <String, Object>{
-        'id': 'story-1',
-        'createdAt': DateTime.utc(2026, 8, 17, 12).toIso8601String(),
-        'reviewStatus': 'approved',
-        'content': <String, Object>{
-          'title': 'The moon garden',
-          'request': <String, Object>{
-            'profileId': 'miko',
-            'heroName': 'Miko',
-            'gender': 'girl',
-            'prompt': <String, Object>{
-              'theme': 'a moon garden',
-              'moral': 'kindness',
-              'preferences': const ChildStoryPreferences().toJson(),
-            },
-            'presentation': <String, Object>{
-              'language': 'en',
-              'length': 'short',
-              'style': 'pictureBook',
-            },
-          },
-          'pages': <Map<String, Object>>[
-            <String, Object>{
-              'number': 1,
-              'text': 'Miko woke up. The garden glowed.',
-              'sceneDescription': scene,
-            },
-          ],
-        },
-      },
-    ]),
-  });
-  appRouter.go(route);
+  return seedDevice(
+    profiles: <ChildProfile>[child()],
+    stories: <StoryBook>[
+      book(
+        profileId: 'miko',
+        pages: <StoryPage>[
+          storyPage(1, 'Miko woke up. The garden glowed.', scene: scene),
+        ],
+      ),
+    ],
+    activeProfileId: 'miko',
+  );
 }

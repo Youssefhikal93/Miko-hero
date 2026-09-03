@@ -1,28 +1,20 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
-import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
-import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/reading_badge.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../support/seeded_device.dart';
 
 /// Verifies the local reading rewards a child earns by finishing stories.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-  });
 
   test('badges are earned at one, five, ten, and twenty-five stories', () {
     expect(ReadingBadge.earnedWith(0), isEmpty);
@@ -103,17 +95,14 @@ void main() {
   testWidgets('reaching the last page celebrates the first badge once', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[_profileJson()]),
-      'story_library': jsonEncode(<Map<String, Object>>[
-        _storyJson('story-moon'),
-      ]),
-    });
-    appRouter.go('/story/story-moon');
+    await seedDevice(
+      profiles: <ChildProfile>[child()],
+      // Two pages, so one page turn is enough to finish the book.
+      stories: <StoryBook>[book(profileId: 'miko', id: 'story-moon')],
+      activeProfileId: 'miko',
+    );
 
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-moon');
 
     expect(find.text('New badge earned: First story'), findsNothing);
 
@@ -149,20 +138,11 @@ void main() {
 Future<ProviderContainer> _familyContainer({
   List<StoryBook> stories = const <StoryBook>[],
 }) async {
-  final repository = await LocalRepository.open();
-  await repository.saveProfiles(const <ChildProfile>[
-    ChildProfile(
-      id: 'miko',
-      name: 'Miko',
-      legacyAge: 7,
-      photoBase64: 'cHJpdmF0ZS1waG90bw==',
-      gender: ChildGender.girl,
-      themeColorValue: roseProfileThemeColorValue,
-      hasCustomThemeColor: false,
-    ),
-  ]);
-  await repository.saveStories(stories);
-  await repository.saveActiveProfileId('miko');
+  await seedDevice(
+    profiles: <ChildProfile>[child()],
+    stories: stories,
+    activeProfileId: 'miko',
+  );
   final container = ProviderContainer();
   addTearDown(container.dispose);
   await container.read(appControllerProvider.future);
@@ -171,88 +151,15 @@ Future<ProviderContainer> _familyContainer({
 
 /// Builds one approved book belonging to the container's only child.
 StoryBook _story(String storyId) {
-  return StoryBook(
+  return book(
     id: storyId,
+    profileId: 'miko',
+    title: 'Moon Garden',
+    theme: 'moon garden',
     createdAt: DateTime.utc(2026, 8, 18),
-    content: const StoryContent(
-      title: 'Moon Garden',
-      request: StoryRequest(
-        hero: StoryHero(
-          profileId: 'miko',
-          name: 'Miko',
-          gender: ChildGender.girl,
-        ),
-        prompt: StoryPrompt(
-          theme: 'moon garden',
-          moral: 'kindness',
-          preferences: ChildStoryPreferences(),
-        ),
-        presentation: StoryPresentation(
-          language: AppLanguage.english,
-          length: StoryLength.short,
-          style: IllustrationStyle.watercolor,
-        ),
-      ),
-      pages: <StoryPage>[
-        StoryPage(
-          number: 1,
-          text: 'A kind beginning.',
-          sceneDescription: 'A moonlit garden.',
-        ),
-      ],
-    ),
+    style: IllustrationStyle.watercolor,
+    pages: <StoryPage>[
+      storyPage(1, 'A kind beginning.', scene: 'A moonlit garden.'),
+    ],
   );
 }
-
-/// The same profile as stored JSON, for the widget flow.
-Map<String, Object> _profileJson() {
-  return <String, Object>{
-    'id': 'miko',
-    'name': 'Miko',
-    'age': 7,
-    'photoBase64': _transparentPixel,
-    'gender': 'girl',
-  };
-}
-
-/// One approved two-page book the reader can finish in a single page turn.
-Map<String, Object> _storyJson(String storyId) {
-  return <String, Object>{
-    'id': storyId,
-    'createdAt': DateTime.utc(2026, 8, 17, 12).toIso8601String(),
-    'reviewStatus': 'approved',
-    'content': <String, Object>{
-      'title': 'The moon garden',
-      'request': <String, Object>{
-        'profileId': 'miko',
-        'heroName': 'Miko',
-        'gender': 'girl',
-        'prompt': <String, Object>{
-          'theme': 'a moon garden',
-          'moral': 'kindness',
-          'preferences': const ChildStoryPreferences().toJson(),
-        },
-        'presentation': <String, Object>{
-          'language': 'en',
-          'length': 'short',
-          'style': 'pictureBook',
-        },
-      },
-      'pages': <Map<String, Object>>[
-        <String, Object>{
-          'number': 1,
-          'text': 'Miko woke up.',
-          'sceneDescription': 'a glowing garden',
-        },
-        <String, Object>{
-          'number': 2,
-          'text': 'The stars sang.',
-          'sceneDescription': 'singing stars',
-        },
-      ],
-    },
-  };
-}
-
-const _transparentPixel =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';

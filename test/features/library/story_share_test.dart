@@ -5,27 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/backup/story_share_codec.dart';
 import 'package:miko_hero/core/backup/story_share_file_service.dart';
-import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
-import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/shared_story.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/library/story_share_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../support/seeded_device.dart';
 
 /// Verifies that one story can travel between devices without duplicates.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-  });
 
   test(
     'an imported story is stored for the profile the parent chose',
@@ -93,13 +86,7 @@ void main() {
   testWidgets('a picked story file is previewed, imported, and readable', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        _profileJson('miko', 'Miko', 'girl'),
-        _profileJson('abbas', 'Abbas', 'boy'),
-      ]),
-    });
+    await _storeFamily();
     final codec = StoryShareCodec(deriver: _fakeBackupKey);
     final bytes = await codec.encode(
       SharedStory(
@@ -108,10 +95,8 @@ void main() {
       ),
       'family-safe-password',
     );
-    appRouter.go('/library');
 
-    await tester.pumpWidget(_app(codec, _FakeStoryFiles(bytes)));
-    await tester.pumpAndSettle();
+    await _pumpLibrary(tester, codec, _FakeStoryFiles(bytes));
 
     await tester.tap(find.text('Import story file'));
     await tester.pumpAndSettle();
@@ -149,22 +134,20 @@ void main() {
   testWidgets('a full backup file is refused by the story importer', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        _profileJson('miko', 'Miko', 'girl'),
-      ]),
-    });
+    await seedDevice(
+      profiles: <ChildProfile>[child()],
+      activeProfileId: 'miko',
+    );
     final backup = await EncryptedBackupCodec(deriver: _fakeBackupKey).encode(
       (await (await LocalRepository.open()).readState()),
       'family-safe-password',
     );
-    appRouter.go('/library');
 
-    await tester.pumpWidget(
-      _app(StoryShareCodec(deriver: _fakeBackupKey), _FakeStoryFiles(backup)),
+    await _pumpLibrary(
+      tester,
+      StoryShareCodec(deriver: _fakeBackupKey),
+      _FakeStoryFiles(backup),
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Import story file'));
     await tester.pumpAndSettle();
@@ -180,14 +163,31 @@ void main() {
   });
 }
 
-/// Builds the real application with in-process crypto and a fake file picker.
-Widget _app(StoryShareCodec codec, _FakeStoryFiles files) {
-  return ProviderScope(
+/// Opens the shelf with in-process crypto and a fake file picker.
+Future<void> _pumpLibrary(
+  WidgetTester tester,
+  StoryShareCodec codec,
+  _FakeStoryFiles files,
+) {
+  return pumpApp(
+    tester,
+    route: '/library',
     overrides: [
       storyShareCodecProvider.overrideWithValue(codec),
       storyShareFileServiceProvider.overrideWithValue(files),
     ],
-    child: const IamHeroApp(),
+  );
+}
+
+/// Stores the two children an imported story can be attached to.
+Future<void> _storeFamily({List<StoryBook> stories = const <StoryBook>[]}) {
+  return seedDevice(
+    profiles: <ChildProfile>[
+      child(),
+      child(id: 'abbas', name: 'Abbas', gender: ChildGender.boy),
+    ],
+    stories: stories,
+    activeProfileId: 'miko',
   );
 }
 
@@ -195,13 +195,7 @@ Widget _app(StoryShareCodec codec, _FakeStoryFiles files) {
 Future<ProviderContainer> _familyContainer({
   List<StoryBook> stories = const <StoryBook>[],
 }) async {
-  final repository = await LocalRepository.open();
-  await repository.saveProfiles(<ChildProfile>[
-    _profile('miko', 'Miko', ChildGender.girl),
-    _profile('abbas', 'Abbas', ChildGender.boy),
-  ]);
-  await repository.saveStories(stories);
-  await repository.saveActiveProfileId('miko');
+  await _storeFamily(stories: stories);
   final container = ProviderContainer(
     overrides: [
       storyShareCodecProvider.overrideWithValue(
@@ -243,67 +237,20 @@ class _FakeStoryFiles extends StoryShareFileService {
   }
 }
 
-/// One private child profile stored the way the editor would save it.
-ChildProfile _profile(String id, String name, ChildGender gender) {
-  return ChildProfile(
-    id: id,
-    name: name,
-    legacyAge: 7,
-    photoBase64: 'cHJpdmF0ZS1waG90bw==',
-    gender: gender,
-    themeColorValue: defaultProfileThemeColorValue(gender),
-    hasCustomThemeColor: false,
-  );
-}
-
-/// The same profile as stored JSON, for widget tests that seed preferences.
-Map<String, Object> _profileJson(String id, String name, String gender) {
-  return <String, Object>{
-    'id': id,
-    'name': name,
-    'age': 7,
-    'photoBase64': _transparentPixel,
-    'gender': gender,
-  };
-}
-
 /// Builds one approved two-page book owned by [profileId].
 StoryBook _story({required String profileId}) {
-  return StoryBook(
+  return book(
     id: 'story-moon',
+    profileId: profileId,
+    title: 'Moon Garden',
+    heroName: 'Maya',
+    theme: 'moon garden',
     createdAt: DateTime.utc(2026, 8, 18),
-    content: StoryContent(
-      title: 'Moon Garden',
-      request: StoryRequest(
-        hero: StoryHero(
-          profileId: profileId,
-          name: 'Maya',
-          gender: ChildGender.girl,
-        ),
-        prompt: const StoryPrompt(
-          theme: 'moon garden',
-          moral: 'kindness',
-          preferences: ChildStoryPreferences(),
-        ),
-        presentation: const StoryPresentation(
-          language: AppLanguage.english,
-          length: StoryLength.short,
-          style: IllustrationStyle.watercolor,
-        ),
-      ),
-      pages: const <StoryPage>[
-        StoryPage(
-          number: 1,
-          text: 'A kind beginning.',
-          sceneDescription: 'A moonlit garden.',
-        ),
-        StoryPage(
-          number: 2,
-          text: 'A gentle ending.',
-          sceneDescription: 'A sleeping garden.',
-        ),
-      ],
-    ),
+    style: IllustrationStyle.watercolor,
+    pages: <StoryPage>[
+      storyPage(1, 'A kind beginning.', scene: 'A moonlit garden.'),
+      storyPage(2, 'A gentle ending.', scene: 'A sleeping garden.'),
+    ],
   );
 }
 
@@ -323,6 +270,3 @@ Future<Uint8List> _fakeBackupKey(BackupKeyDerivation derivation) async {
     ),
   );
 }
-
-const _transparentPixel =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';

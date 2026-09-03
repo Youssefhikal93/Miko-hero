@@ -1,31 +1,27 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
-import 'package:miko_hero/core/models/child_story_preferences.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
+
+import '../../support/seeded_device.dart';
 
 /// Verifies the reader chrome a child reads the book through.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[_profile()]),
-      'story_library': jsonEncode(<Map<String, Object>>[_story()]),
-    });
-    appRouter.go('/story/story-1');
+  setUp(() async {
+    // Three pages, so a middle page has a dot on both sides.
+    await seedDevice(
+      profiles: <ChildProfile>[child()],
+      stories: <StoryBook>[book(profileId: 'miko', pageCount: 3)],
+      activeProfileId: 'miko',
+    );
   });
 
   testWidgets('turning a page with the button moves the counter and the dot', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-1');
 
     expect(find.text('Page 1 of 3'), findsOneWidget);
     expect(_openDot(0), findsOneWidget);
@@ -46,8 +42,7 @@ void main() {
   });
 
   testWidgets('swiping the book moves the counter and the dot', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-1');
 
     await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
     await tester.pumpAndSettle();
@@ -57,8 +52,7 @@ void main() {
   });
 
   testWidgets('the reader offers its top row and its tool row', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-1');
 
     expect(find.text('Read to me'), findsOneWidget);
     expect(find.byTooltip('Close'), findsOneWidget);
@@ -72,8 +66,7 @@ void main() {
   testWidgets('the text size icon opens the hero saved prose size', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/story/story-1');
 
     await tester.tap(find.byTooltip('Text size'));
     await tester.pumpAndSettle();
@@ -103,61 +96,3 @@ bool _sizeSelected(WidgetTester tester, String size) {
       )
       .selected;
 }
-
-/// One approved three-page book, so a middle page has a dot on both sides.
-Map<String, Object> _story() {
-  return <String, Object>{
-    'id': 'story-1',
-    'createdAt': DateTime.utc(2026, 8, 17, 12).toIso8601String(),
-    'reviewStatus': 'approved',
-    'content': <String, Object>{
-      'title': 'The moon garden',
-      'request': <String, Object>{
-        'profileId': 'miko',
-        'heroName': 'Miko',
-        'gender': 'girl',
-        'prompt': <String, Object>{
-          'theme': 'a moon garden',
-          'moral': 'kindness',
-          'preferences': const ChildStoryPreferences().toJson(),
-        },
-        'presentation': <String, Object>{
-          'language': 'en',
-          'length': 'short',
-          'style': 'pictureBook',
-        },
-      },
-      'pages': <Map<String, Object>>[
-        <String, Object>{
-          'number': 1,
-          'text': 'Miko woke up.',
-          'sceneDescription': 'a glowing garden',
-        },
-        <String, Object>{
-          'number': 2,
-          'text': 'She ran outside.',
-          'sceneDescription': 'singing stars',
-        },
-        <String, Object>{
-          'number': 3,
-          'text': 'The garden closed.',
-          'sceneDescription': 'a sleeping garden',
-        },
-      ],
-    },
-  };
-}
-
-/// One private child profile owning the story under test.
-Map<String, Object> _profile() {
-  return <String, Object>{
-    'id': 'miko',
-    'name': 'Miko',
-    'age': 7,
-    'photoBase64': _transparentPixel,
-    'gender': 'girl',
-  };
-}
-
-const _transparentPixel =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';

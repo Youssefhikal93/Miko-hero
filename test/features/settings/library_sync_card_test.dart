@@ -1,18 +1,11 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
-import 'package:miko_hero/core/ai_connection/bridge_client.dart';
-import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_bridge_http_client.dart';
+import '../../support/seeded_device.dart';
 
 /// Verifies what the parent-gated AI connection card says about syncing.
 ///
@@ -24,9 +17,8 @@ void main() {
   testWidgets('the card reports the automatic sync after a start', (
     tester,
   ) async {
-    _storeFamily();
-    await tester.pumpWidget(_app(_bridgeWithOneStory()));
-    await tester.pumpAndSettle();
+    await _storeFamily();
+    await _pumpSettings(tester, _bridgeWithOneStory());
 
     expect(find.text('Offline story library'), findsOneWidget);
     expect(find.text('1 new · 0 updated · 0 removed'), findsOneWidget);
@@ -38,9 +30,8 @@ void main() {
   });
 
   testWidgets('syncing again reports that nothing changed', (tester) async {
-    _storeFamily();
-    await tester.pumpWidget(_app(_bridgeWithOneStory()));
-    await tester.pumpAndSettle();
+    await _storeFamily();
+    await _pumpSettings(tester, _bridgeWithOneStory());
 
     final syncNow = find.byKey(const ValueKey<String>('sync-library-now'));
     await tester.ensureVisible(syncNow);
@@ -54,15 +45,13 @@ void main() {
   testWidgets('a device that never synced says so and reports failures', (
     tester,
   ) async {
-    _storeFamily(isPaired: false);
-    await tester.pumpWidget(
-      _app(
-        FakeBridgeHttpClient((request) async {
-          throw http.ClientException('Connection refused.', request.url);
-        }),
-      ),
+    await _storeFamily(isPaired: false);
+    await _pumpSettings(
+      tester,
+      FakeBridgeHttpClient((request) async {
+        throw http.ClientException('Connection refused.', request.url);
+      }),
     );
-    await tester.pumpAndSettle();
 
     expect(
       _lastSyncLabel(tester),
@@ -83,16 +72,15 @@ void main() {
   });
 }
 
-/// Builds the real application over one scripted PC boundary.
-Widget _app(FakeBridgeHttpClient httpClient) {
-  return ProviderScope(
-    overrides: [
-      bridgeHttpClientProvider.overrideWithValue(httpClient),
-      bridgeCredentialStorageProvider.overrideWithValue(
-        InMemoryBridgeCredentialStorage(),
-      ),
-    ],
-    child: const IamHeroApp(),
+/// Opens the parent-gated settings route over one scripted PC boundary.
+Future<void> _pumpSettings(
+  WidgetTester tester,
+  FakeBridgeHttpClient httpClient,
+) {
+  return pumpApp(
+    tester,
+    route: '/settings',
+    overrides: [bridgeHttpClientProvider.overrideWithValue(httpClient)],
   );
 }
 
@@ -138,29 +126,12 @@ FakeBridgeHttpClient _bridgeWithOneStory() {
   });
 }
 
-/// Stores one Local AI family and opens the parent-gated settings route.
-void _storeFamily({bool isPaired = true}) {
-  SharedPreferences.setMockInitialValues(<String, Object>{
-    'active_profile_id': 'miko',
-    'child_profiles': jsonEncode(<Map<String, Object>>[
-      <String, Object>{
-        'id': 'miko',
-        'name': 'Miko',
-        'age': 7,
-        'photoBase64': 'cGhvdG8=',
-        'gender': 'girl',
-      },
-    ]),
-    'ai_connection': jsonEncode(<String, Object>{
-      'mode': 'localAi',
-      'baseUrl': defaultBridgeBaseUrl,
-    }),
-    if (isPaired)
-      'bridge_device': jsonEncode(<String, Object>{
-        'deviceToken': 'device-token',
-        'deviceName': 'Family tablet',
-        'pairedAtUtc': '2026-08-22T09:00:00.000Z',
-      }),
-  });
-  appRouter.go('/settings');
+/// Stores one Local AI family, paired with the PC or not yet.
+Future<void> _storeFamily({bool isPaired = true}) {
+  return seedDevice(
+    profiles: <ChildProfile>[child()],
+    activeProfileId: 'miko',
+    aiConnection: localAiConnection(),
+    bridgeCredential: isPaired ? pairedDevice() : null,
+  );
 }

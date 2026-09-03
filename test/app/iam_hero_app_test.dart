@@ -1,34 +1,29 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/app_theme.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:miko_hero/core/generation/story_generator.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
-import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/seeded_device.dart';
 
 /// Verifies localized application behavior from the user's point of view.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
+  setUp(() async {
+    await seedDevice();
     appRouter.go('/');
   });
 
   testWidgets('first launch offers the first private child profile', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     expect(find.text('Add a hero profile'), findsOneWidget);
     expect(find.text('Add a profile'), findsWidgets);
@@ -38,12 +33,9 @@ void main() {
   testWidgets('Arabic interface applies right-to-left direction', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'app_locale': 'ar',
-    });
+    await seedDevice(locale: AppLanguage.arabic.locale);
 
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     final prompt = find.text('أضف ملف بطل');
     expect(prompt, findsOneWidget);
@@ -53,17 +45,7 @@ void main() {
   testWidgets('Somali selection keeps localized Material controls available', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          bridgeCredentialStorageProvider.overrideWithValue(
-            InMemoryBridgeCredentialStorage(),
-          ),
-        ],
-        child: const IamHeroApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
     appRouter.go('/settings');
     await tester.pumpAndSettle();
 
@@ -84,8 +66,7 @@ void main() {
   testWidgets('profile editor keeps the family drawer available', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
     appRouter.go('/profiles/new');
     await tester.pumpAndSettle();
 
@@ -108,31 +89,12 @@ void main() {
   testWidgets('the bottom bar shows icons the family can still name', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        <String, Object>{
-          'id': 'miko',
-          'name': 'Miko',
-          'age': 7,
-          'photoBase64': _transparentPixel,
-          'gender': 'girl',
-          'themeColorValue': AppTheme.girlPink.toARGB32(),
-        },
-      ]),
-    });
-    final semantics = tester.ensureSemantics();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          bridgeCredentialStorageProvider.overrideWithValue(
-            InMemoryBridgeCredentialStorage(),
-          ),
-        ],
-        child: const IamHeroApp(),
-      ),
+    await seedDevice(
+      profiles: <ChildProfile>[_miko()],
+      activeProfileId: 'miko',
     );
-    await tester.pumpAndSettle();
+    final semantics = tester.ensureSemantics();
+    await pumpApp(tester);
 
     final bar = find.byType(NavigationBar);
     expect(bar, findsOneWidget);
@@ -168,30 +130,20 @@ void main() {
   testWidgets('each hero restores the custom color saved in My Kingdom', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        <String, Object>{
-          'id': 'miko',
-          'name': 'Miko',
-          'age': 7,
-          'photoBase64': _transparentPixel,
-          'gender': 'girl',
-          'themeColorValue': AppTheme.girlPink.toARGB32(),
-        },
-        <String, Object>{
-          'id': 'abbas',
-          'name': 'Abbas',
-          'age': 9,
-          'photoBase64': _transparentPixel,
-          'gender': 'boy',
-          'themeColorValue': AppTheme.boyCyan.toARGB32(),
-        },
-      ]),
-    });
-    appRouter.go('/kingdom');
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await seedDevice(
+      profiles: <ChildProfile>[
+        _miko(),
+        child(
+          id: 'abbas',
+          name: 'Abbas',
+          legacyAge: 9,
+          gender: ChildGender.boy,
+          themeColorValue: AppTheme.boyCyan.toARGB32(),
+        ),
+      ],
+      activeProfileId: 'miko',
+    );
+    await pumpApp(tester, route: '/kingdom');
 
     final themeTitle = find.text('Kingdom color');
     expect(
@@ -259,21 +211,12 @@ void main() {
   testWidgets('a legacy profile keeps its age until a birth date is chosen', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        <String, Object>{
-          'id': 'miko',
-          'name': 'Miko',
-          'age': 7,
-          'photoBase64': _transparentPixel,
-          'gender': 'girl',
-        },
-      ]),
-    });
-    appRouter.go('/profiles/miko');
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    // No birth date: the saved age is all this profile has ever carried.
+    await seedDevice(
+      profiles: <ChildProfile>[child()],
+      activeProfileId: 'miko',
+    );
+    await pumpApp(tester, route: '/profiles/miko');
 
     expect(find.text('Age'), findsNothing);
     expect(
@@ -302,42 +245,31 @@ void main() {
   testWidgets('selected child receives the story and a separate library tab', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        <String, Object>{
-          'id': 'miko',
-          'name': 'Miko',
-          'age': 7,
-          'photoBase64': _transparentPixel,
-          'gender': 'girl',
-        },
-        <String, Object>{
-          'id': 'abbas',
-          'name': 'Abbas',
-          'age': 9,
-          'photoBase64': _transparentPixel,
-        },
-      ]),
-    });
+    // No active child yet, and Abbas has never been given a Girl/Boy answer.
+    await seedDevice(
+      profiles: <ChildProfile>[
+        child(),
+        child(
+          id: 'abbas',
+          name: 'Abbas',
+          legacyAge: 9,
+          gender: ChildGender.unspecified,
+        ),
+      ],
+    );
     final fixedTime = DateTime.utc(2026, 8, 17, 12);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          storyGeneratorProvider.overrideWithValue(
-            DemoStoryGenerator(
-              latency: Duration.zero,
-              currentTime: () => fixedTime,
-            ),
+    await pumpApp(
+      tester,
+      overrides: [
+        storyGeneratorProvider.overrideWithValue(
+          DemoStoryGenerator(
+            latency: Duration.zero,
+            currentTime: () => fixedTime,
           ),
-          bridgeCredentialStorageProvider.overrideWithValue(
-            InMemoryBridgeCredentialStorage(),
-          ),
-        ],
-        child: const IamHeroApp(),
-      ),
+        ),
+      ],
     );
-    await tester.pumpAndSettle();
     await tester.tap(find.text('New story'));
     await tester.pumpAndSettle();
 
@@ -401,31 +333,13 @@ void main() {
   testWidgets('tap choices reach the controller as the existing request', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        <String, Object>{
-          'id': 'miko',
-          'name': 'Miko',
-          'age': 7,
-          'photoBase64': _transparentPixel,
-          'gender': 'girl',
-        },
-      ]),
-    });
+    await seedDevice(profiles: <ChildProfile>[child()]);
     final generator = _RecordingStoryGenerator();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          storyGeneratorProvider.overrideWithValue(generator),
-          bridgeCredentialStorageProvider.overrideWithValue(
-            InMemoryBridgeCredentialStorage(),
-          ),
-        ],
-        child: const IamHeroApp(),
-      ),
+    await pumpApp(
+      tester,
+      overrides: [storyGeneratorProvider.overrideWithValue(generator)],
     );
-    await tester.pumpAndSettle();
     appRouter.go('/create');
     await tester.pumpAndSettle();
 
@@ -472,33 +386,12 @@ void main() {
   testWidgets('the header names the saved Local AI generator, never the demo', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        <String, Object>{
-          'id': 'miko',
-          'name': 'Miko',
-          'age': 7,
-          'photoBase64': _transparentPixel,
-          'gender': 'girl',
-        },
-      ]),
-      'ai_connection': jsonEncode(<String, String>{
-        'mode': 'localAi',
-        'baseUrl': 'http://127.0.0.1:8765',
-      }),
-    });
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          bridgeCredentialStorageProvider.overrideWithValue(
-            InMemoryBridgeCredentialStorage(),
-          ),
-        ],
-        child: const IamHeroApp(),
-      ),
+    await seedDevice(
+      profiles: <ChildProfile>[child()],
+      aiConnection: localAiConnection(),
     );
-    await tester.pumpAndSettle();
+
+    await pumpApp(tester);
     appRouter.go('/create');
     await tester.pumpAndSettle();
 
@@ -524,6 +417,11 @@ class _RecordingStoryGenerator implements StoryGenerator {
 }
 
 DateTime _fixedGenerationTime() => DateTime.utc(2026, 8, 17, 12);
+
+/// The girl profile whose saved kingdom color the application theme follows.
+ChildProfile _miko() {
+  return child(themeColorValue: AppTheme.girlPink.toARGB32());
+}
 
 /// English name every bottom destination keeps for accessibility tooling.
 const _destinationLabels = <String, String>{
@@ -552,6 +450,3 @@ void _expectActiveDot(
     expect(Theme.of(tester.element(dot)).colorScheme.primary, accent);
   }
 }
-
-const _transparentPixel =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
