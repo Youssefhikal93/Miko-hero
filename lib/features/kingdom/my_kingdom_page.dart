@@ -407,7 +407,7 @@ class _ThemeCard extends StatelessWidget {
   /// Localizes labels without duplicating the actual palette color values.
   List<_PaletteChoice> _paletteChoices(AppLocalizations text) {
     return <_PaletteChoice>[
-      _PaletteChoice(label: text.goldenTheme, color: AppTheme.amber),
+      _PaletteChoice(label: text.goldenTheme, color: AppTheme.candle),
       _PaletteChoice(label: text.roseTheme, color: AppTheme.girlPink),
       _PaletteChoice(label: text.purpleTheme, color: AppTheme.purple),
       _PaletteChoice(label: text.cyanTheme, color: AppTheme.boyCyan),

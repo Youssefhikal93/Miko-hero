@@ -91,9 +91,20 @@ flutter:
     - assets/fonts/Baloo2-Variable.ttf
     - assets/fonts/Amiri-Bold.ttf
 
-  # Bundled for the optional per-child easy-reading font in the story reader.
-  # Latin script only; Arabic prose keeps the interface font.
   fonts:
+    # The interface typeface. One variable file carrying the whole weight
+    # range; the shared theme pins the axis, because the font's default
+    # instance is its thinnest weight. See assets/fonts/README.md.
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-Variable.ttf
+    # Interface fallback for Arabic, which Outfit has no glyphs for. The file
+    # is the one the offline PDF export already bundles.
+    - family: NotoNaskhArabic
+      fonts:
+        - asset: assets/fonts/NotoNaskhArabic-Regular.ttf
+    # Bundled for the optional per-child easy-reading font in the story reader.
+    # Latin script only; Arabic prose keeps the interface font.
     - family: AtkinsonHyperlegible
       fonts:
         - asset: assets/fonts/AtkinsonHyperlegible-Regular.ttf

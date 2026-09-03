@@ -49,7 +49,7 @@ Rules that every change must respect:
 | `lib/app/app_controller.dart` | Loads the complete persisted `AppState` on startup and commits snapshots that feature controllers have already persisted. Also the composition root: hosts the repository and service providers and the `storyGeneratorProvider`, which follows the parent's saved generator mode and falls back to the demo only while those settings are still loading. |
 | `lib/app/app_router.dart` | go_router configuration: all routes, the shell wrapper, and parent-PIN gating for parent-only destinations (`/settings`, `/kingdom`, `/profiles`, `/review`, `/generation`). |
 | `lib/app/app_shell.dart` | Responsive navigation frame around every route: app bar plus drawer and bottom navigation on mobile, extended rail on desktop widths (≥ 900 px). |
-| `lib/app/app_theme.dart` | The shared visual system: dark palette, per-child color schemes (rose for girls, cyan for boys, plus saved custom colors), typography, component themes, and the reader's bedtime prose, surface, and warm page wash. |
+| `lib/app/app_theme.dart` | The shared visual system: the named redesign palette tokens (`night`, `tile`, `sunken`, `candle`, `candleLight`, `onCandle`, `light`, `frost`, `muted`, `mutedDeep`, `hairline`, `hairlineWarm`) every component theme reads from — cards, fields, chips, buttons, app bar, dialogs, and the bottom bar, rail, and drawer; the per-child color schemes (rose for girls, cyan for boys, plus saved custom colors) that stay the accent on rings, indicators, and selected states; the Outfit interface typography, whose `wght` axis is pinned per style because the bundled variable file defaults to its thinnest instance; and the reader's bedtime prose, surface, and warm page wash. `interfaceFontFamilyFor` is the one place the Arabic fallback is decided, following `AppLanguage.usesLatinScript` exactly as story prose does. |
 
 ## Domain models — `lib/core/models/`
 
@@ -214,7 +214,7 @@ Rules that every change must respect:
 | `parent_access_gate.dart` | Two parent-PIN surfaces: a full-page gate for parent-only routes and a modal prompt for destructive actions (deletion, export, collection edits). Refuses input while a cooldown is stored and shows the remaining wait; PIN fields never retain the secret. Also owns the shared localization of one attempt outcome. |
 | `gender_selector.dart` | The required Girl/Boy selector shared by profile and story forms. |
 | `app_language_dropdown.dart` | Four-language dropdown with ISO badges, shared by app settings and story settings. |
-| `screen_layout.dart` | Width-constrained page scaffold, hero gradient card, and section headings. Accepts an optional per-page backdrop gradient, used by My Kingdom for the active child's chosen flavor. |
+| `screen_layout.dart` | Width-constrained page scaffold, the hero panel — a flat tile ringed by the active child's accent rather than a gradient surface — and section headings. Accepts an optional per-page backdrop gradient, used by My Kingdom for the active child's chosen flavor. |
 | `story_card.dart` | Library card with cover treatment, demo badge, and the favorite, collections, share, and delete commands its surrounding feature allows. The open action owns a full-width row and the icons wrap below it, so a one-column shelf on a 360 px phone keeps full touch targets. |
 | `encryption_password_dialog.dart` | The password prompt shared by encrypted backups and single-story files, with per-file localized wording, optional confirmation field, the shared minimum length, and controllers that discard the secret with the modal. |
 | `reading_text_style.dart` | Resolves story prose typography from one child's reading comfort by scaling the theme body size and requesting the easy-reading family only for Latin script. Shared by the reader and the review preview. |
@@ -234,17 +234,19 @@ Rules that every change must respect:
 | Path | Responsibility |
 | --- | --- |
 | `assets/fonts/NotoSans-Regular.ttf` | Latin-script **body** font embedded only for offline PDF export (English, Swedish, Somali). |
-| `assets/fonts/NotoNaskhArabic-Regular.ttf` | Arabic-script **body** font embedded only for offline PDF export. |
+| `assets/fonts/Outfit-Variable.ttf` | The **interface** typeface: headings, labels, buttons, chips, and navigation on every platform. One variable file (`wght` 100–900) whose default instance is the thinnest weight, so the theme pins the axis. Latin script only. |
+| `assets/fonts/NotoNaskhArabic-Regular.ttf` | Arabic-script **body** font for offline PDF export, and the **interface** face for the Arabic locale, which Outfit cannot render. Regular weight only. |
 | `assets/fonts/Baloo2-Variable.ttf` | Rounded storybook **display** face for exported titles, dedications and badges in English, Swedish and Somali. |
 | `assets/fonts/Amiri-Bold.ttf` | Arabic **display** face for the same headings. Two faces rather than one because the PDF renderer shapes Arabic into Presentation Forms-B code points, which the rounded Arabic candidates do not carry — see `assets/fonts/README.md`. |
 | `assets/fonts/AtkinsonHyperlegible-Regular.ttf` | Latin-script easy-reading font used only by the optional per-child reader setting; regular weight only. |
-| `assets/fonts/OFL.txt`, `OFL-AtkinsonHyperlegible.txt`, `OFL-Baloo2.txt`, `OFL-Amiri.txt`, `README.md` | SIL Open Font License texts and provenance notes for the bundled fonts, including the measured glyph-coverage reasoning behind the display pair. |
+| `assets/fonts/OFL.txt`, `OFL-Outfit.txt`, `OFL-AtkinsonHyperlegible.txt`, `OFL-Baloo2.txt`, `OFL-Amiri.txt`, `README.md` | SIL Open Font License texts and provenance notes for the bundled fonts, including where each file came from, the measured glyph-coverage reasoning behind the display pair, and why the interface falls back to Naskh for Arabic. |
 
 ## Tests — `test/`
 
 | File | What it proves |
 | --- | --- |
 | `test/app/iam_hero_app_test.dart` | End-to-end widget flows: onboarding, profile creation, choosing a birth date for a legacy age-only profile, story creation through review and approval into the reader, per-child library tabs, theme restoration, and localization. |
+| `test/app/app_theme_test.dart` | The shared skin: every palette token holds its redesign value and reaches the cards, fields, chips, buttons, dialogs, and all three navigation surfaces; the active child's colour stays the accent on the filled button, the selected chip, and the indicators; every interface text slot asks for Outfit with its weight pinned on the axis; the Arabic locale asks for the Naskh face and never for Outfit; both faces are in the asset bundle; and the hero panel paints a flat tile with an accent ring instead of a gradient. |
 | `test/core/generation/demo_story_generator_test.dart` | Demo stories respect language, page count, gender context, and saved child preferences; requests without a gender choice are rejected. |
 | `test/core/models/child_profile_test.dart` | Legacy age-only profiles still decode, ages count the birthday itself (including leap-day children), and malformed, future, or too-recent birth dates are refused at the storage boundary. |
 | `test/core/storage/local_repository_test.dart` | Real persistence round-trips, legacy-JSON migration, corrupt-data surfacing, `replaceState` preserving the parent PIN while clearing the queue, an end-to-end encrypted restore, rollback when a preference write fails midway, and refusal of a newer-schema backup. |
@@ -315,6 +317,7 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | --- | --- |
 | Child profiles, birth dates, and photos | `core/models/child_profile.dart`, `features/profile/*` |
 | Per-child themes | `app/app_theme.dart`, `features/kingdom/my_kingdom_page.dart`, `features/profile/profile_controller.dart` |
+| Palette tokens and interface typeface | `app/app_theme.dart`, `assets/fonts/Outfit-Variable.ttf`, `assets/fonts/README.md`, `docs/design/iam-hero-redesign.html` |
 | Story creation (demo and local AI) | `features/story_creation/*`, `core/generation/*` |
 | PC bridge client and pairing | `core/ai_connection/*`, `features/settings/ai_connection_controller.dart`, `ai_connection_card.dart`, `shared/local_ai_messages.dart` |
 | Durable generation queue | `core/models/generation_job.dart`, `features/story_creation/generation_queue_controller.dart`, `generation_center_page.dart` |

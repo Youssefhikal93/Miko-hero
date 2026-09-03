@@ -27,7 +27,7 @@ class AppLanguageDropdown extends StatelessWidget {
   final bool enabled;
 
   static const _menuStyle = MenuStyle(
-    backgroundColor: WidgetStatePropertyAll<Color>(AppTheme.panel),
+    backgroundColor: WidgetStatePropertyAll<Color>(AppTheme.tile),
     surfaceTintColor: WidgetStatePropertyAll<Color>(Colors.transparent),
     elevation: WidgetStatePropertyAll<double>(10),
     padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(
@@ -36,7 +36,7 @@ class AppLanguageDropdown extends StatelessWidget {
     shape: WidgetStatePropertyAll<OutlinedBorder>(
       RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(18)),
-        side: BorderSide(color: Color(0xFF343949)),
+        side: BorderSide(color: AppTheme.hairline),
       ),
     ),
   );
@@ -79,7 +79,7 @@ class AppLanguageDropdown extends StatelessWidget {
     );
     return InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF10131C),
+      fillColor: AppTheme.sunken,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       border: outline,
       enabledBorder: outline,

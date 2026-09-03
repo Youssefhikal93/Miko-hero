@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
@@ -501,7 +502,11 @@ class _GeneratorNotice extends StatelessWidget {
   /// Keeps sample generation from ever being mistaken for connected AI.
   Widget build(BuildContext context) {
     return Card(
-      color: const Color(0xFF2B2113),
+      color: AppTheme.tile,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: AppTheme.hairlineWarm),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(

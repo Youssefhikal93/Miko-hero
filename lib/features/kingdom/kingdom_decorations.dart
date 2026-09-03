@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
 
 /// Resolves the Material icon that stands for one favourite symbol.
@@ -27,10 +28,10 @@ IconData kingdomSymbolIcon(KingdomSymbol symbol) {
 
 /// Builds the page backdrop for one child, keeping dark-theme text readable.
 ///
-/// Every flavor stays a dark, low-luminance wash over the application ink so
+/// Every flavor stays a dark, low-luminance wash over the shared night token so
 /// body text keeps the same contrast it has on the default night sky.
 LinearGradient kingdomBackdropGradient(KingdomBackdrop backdrop) {
-  const ink = Color(0xFF090B12);
+  const ink = AppTheme.night;
   final tint = switch (backdrop) {
     KingdomBackdrop.nightSky => const Color(0xFF2F2340),
     KingdomBackdrop.meadow => const Color(0xFF1D3A24),
