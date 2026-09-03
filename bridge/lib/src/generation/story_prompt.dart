@@ -82,9 +82,12 @@ Hard requirements:
 4. "heroAppearance" is ONE short English line describing how $name looks in
    the pictures: hair, clothing colours, and one small prop that recurs — for
    example "short curly black hair, mustard-yellow raincoat, red boots,
-   carries a small brass lantern". Invent it freely; it must be a drawn
-   character description and must never describe or refer to a photograph, a
-   real person, or any real identifying feature.
+   carries a small brass lantern". It is read only by the picture model, so
+   it must be in English with Latin letters only,
+   even when the story itself is not in English; any other script is rejected.
+   Invent it freely; it must be a drawn character description and
+   must never describe or refer to a photograph, a real person, or any real
+   identifying feature.
 5. Keep everything gentle and appropriate for a ${request.ageYears}-year-old:
    no violence, death, horror, romance, brands or scary imagery.
 
