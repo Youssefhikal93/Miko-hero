@@ -390,10 +390,12 @@ void main() {
 
     expect(find.text('Miko hero'), findsOneWidget);
     expect(find.text('Abbas hero'), findsOneWidget);
-    expect(find.text("a moon garden: Abbas's Adventure"), findsNothing);
-    await tester.tap(find.text('Abbas hero'));
-    await tester.pumpAndSettle();
+    // The shelf opens on the child the app is reading as, which writing this
+    // story made Abbas; Miko's chip is the empty shelf beside it.
     expect(find.text("a moon garden: Abbas's Adventure"), findsWidgets);
+    await tester.tap(find.text('Miko hero'));
+    await tester.pumpAndSettle();
+    expect(find.text("a moon garden: Abbas's Adventure"), findsNothing);
   });
 
   testWidgets('tap choices reach the controller as the existing request', (

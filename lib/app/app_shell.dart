@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Responsive navigation frame retained around every application route.
 class AppShell extends StatelessWidget {
@@ -22,7 +23,7 @@ class AppShell extends StatelessWidget {
     final selectedIndex = _selectedIndex(location);
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= 900) {
+        if (constraints.maxWidth >= desktopBreakpoint) {
           return _DesktopShell(
             destinations: destinations,
             selectedIndex: selectedIndex,
@@ -30,7 +31,6 @@ class AppShell extends StatelessWidget {
           );
         }
         return _MobileShell(
-          location: location,
           destinations: destinations,
           selectedIndex: selectedIndex,
           child: child,
@@ -102,25 +102,23 @@ class _NavigationDestination {
 class _MobileShell extends StatelessWidget {
   /// Creates the mobile frame around any primary or detail route.
   const _MobileShell({
-    required this.location,
     required this.destinations,
     required this.selectedIndex,
     required this.child,
   });
 
-  final String location;
   final List<_NavigationDestination> destinations;
   final int selectedIndex;
   final Widget child;
 
   @override
   /// Keeps the menu button visible inside profile editors and story readers.
+  ///
+  /// The app bar carries no exit of its own: the reader prints its own close
+  /// beside the hero, so a second one here would be the same command twice.
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Iam - hero'),
-        actions: _readerActions(context),
-      ),
+      appBar: AppBar(title: const Text('Iam - hero')),
       drawer: _AppDrawer(
         destinations: destinations,
         selectedIndex: selectedIndex,
@@ -139,18 +137,6 @@ class _MobileShell extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// Adds a library exit while the global drawer remains the leading action.
-  List<Widget> _readerActions(BuildContext context) {
-    if (!location.startsWith('/story/')) return const <Widget>[];
-    return <Widget>[
-      IconButton(
-        tooltip: AppLocalizations.of(context).library,
-        onPressed: () => context.go('/library'),
-        icon: const Icon(Icons.close_rounded),
-      ),
-    ];
   }
 
   /// Adapts shared route data to an icon-only destination with an active dot.

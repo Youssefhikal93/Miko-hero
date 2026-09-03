@@ -132,35 +132,11 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
-  /// No description provided for @welcomeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'A new adventure starts here'**
-  String get welcomeTitle;
-
-  /// No description provided for @welcomeBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Create private, illustrated stories where each child becomes the hero.'**
-  String get welcomeBody;
-
   /// No description provided for @createFirstStory.
   ///
   /// In en, this message translates to:
   /// **'Create a first story'**
   String get createFirstStory;
-
-  /// No description provided for @createAnotherStory.
-  ///
-  /// In en, this message translates to:
-  /// **'Create another story'**
-  String get createAnotherStory;
-
-  /// No description provided for @recentStories.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent stories'**
-  String get recentStories;
 
   /// No description provided for @profileIncompleteTitle.
   ///
@@ -570,29 +546,11 @@ abstract class AppLocalizations {
   /// **'Local AI'**
   String get localAiGeneratorLabel;
 
-  /// No description provided for @chooseHeroProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose a hero profile'**
-  String get chooseHeroProfile;
-
-  /// No description provided for @selectHeroProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a child'**
-  String get selectHeroProfile;
-
   /// No description provided for @profileSelectionRequired.
   ///
   /// In en, this message translates to:
   /// **'Choose which child will be the hero.'**
   String get profileSelectionRequired;
-
-  /// No description provided for @storyLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Story language'**
-  String get storyLanguage;
 
   /// No description provided for @theme.
   ///
@@ -612,42 +570,6 @@ abstract class AppLocalizations {
   /// **'Lesson or value'**
   String get moral;
 
-  /// No description provided for @moralHint.
-  ///
-  /// In en, this message translates to:
-  /// **'For example: kindness and courage'**
-  String get moralHint;
-
-  /// No description provided for @storyLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Story length'**
-  String get storyLength;
-
-  /// No description provided for @illustrationStyle.
-  ///
-  /// In en, this message translates to:
-  /// **'Illustration style'**
-  String get illustrationStyle;
-
-  /// No description provided for @shortLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Short · 6 pages'**
-  String get shortLength;
-
-  /// No description provided for @mediumLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Medium · 8 pages'**
-  String get mediumLength;
-
-  /// No description provided for @longLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Long · 10 pages'**
-  String get longLength;
-
   /// No description provided for @pictureBookStyle.
   ///
   /// In en, this message translates to:
@@ -666,23 +588,11 @@ abstract class AppLocalizations {
   /// **'Colorful 3D'**
   String get threeDStyle;
 
-  /// No description provided for @generateStory.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate demo story'**
-  String get generateStory;
-
   /// No description provided for @demoModeNotice.
   ///
   /// In en, this message translates to:
   /// **'Demo mode creates a clearly marked sample story with no PC and no AI. Switch the story generator to Local AI in settings to write on your family PC.'**
   String get demoModeNotice;
-
-  /// No description provided for @profileNeeded.
-  ///
-  /// In en, this message translates to:
-  /// **'Add at least one hero profile first.'**
-  String get profileNeeded;
 
   /// No description provided for @themeRequired.
   ///
@@ -2687,12 +2597,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stories are written by the AI on your family PC. The PC, its bridge, and its model must be running.'**
   String get localAiModeNotice;
-
-  /// No description provided for @generateLocalAiStory.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate story on the PC'**
-  String get generateLocalAiStory;
 
   /// No description provided for @localAiSubmitting.
   ///

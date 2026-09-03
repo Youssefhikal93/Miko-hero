@@ -32,7 +32,11 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/library',
-          builder: (context, state) => const StoryLibraryPage(),
+          builder: (context, state) {
+            return StoryLibraryPage(
+              profileId: state.uri.queryParameters[libraryChildQueryParameter],
+            );
+          },
         ),
         GoRoute(
           path: '/settings',

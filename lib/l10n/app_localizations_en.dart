@@ -24,20 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
-  String get welcomeTitle => 'A new adventure starts here';
-
-  @override
-  String get welcomeBody =>
-      'Create private, illustrated stories where each child becomes the hero.';
-
-  @override
   String get createFirstStory => 'Create a first story';
-
-  @override
-  String get createAnotherStory => 'Create another story';
-
-  @override
-  String get recentStories => 'Recent stories';
 
   @override
   String get profileIncompleteTitle => 'Add a hero profile';
@@ -263,16 +250,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localAiGeneratorLabel => 'Local AI';
 
   @override
-  String get chooseHeroProfile => 'Choose a hero profile';
-
-  @override
-  String get selectHeroProfile => 'Select a child';
-
-  @override
   String get profileSelectionRequired => 'Choose which child will be the hero.';
-
-  @override
-  String get storyLanguage => 'Story language';
 
   @override
   String get theme => 'Adventure theme';
@@ -284,24 +262,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moral => 'Lesson or value';
 
   @override
-  String get moralHint => 'For example: kindness and courage';
-
-  @override
-  String get storyLength => 'Story length';
-
-  @override
-  String get illustrationStyle => 'Illustration style';
-
-  @override
-  String get shortLength => 'Short · 6 pages';
-
-  @override
-  String get mediumLength => 'Medium · 8 pages';
-
-  @override
-  String get longLength => 'Long · 10 pages';
-
-  @override
   String get pictureBookStyle => 'Picture book';
 
   @override
@@ -311,14 +271,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get threeDStyle => 'Colorful 3D';
 
   @override
-  String get generateStory => 'Generate demo story';
-
-  @override
   String get demoModeNotice =>
       'Demo mode creates a clearly marked sample story with no PC and no AI. Switch the story generator to Local AI in settings to write on your family PC.';
-
-  @override
-  String get profileNeeded => 'Add at least one hero profile first.';
 
   @override
   String get themeRequired => 'Describe the adventure theme.';
@@ -1458,9 +1412,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'Stories are written by the AI on your family PC. The PC, its bridge, and its model must be running.';
-
-  @override
-  String get generateLocalAiStory => 'Generate story on the PC';
 
   @override
   String get localAiSubmitting => 'Sending the request to the PC…';

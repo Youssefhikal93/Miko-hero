@@ -24,20 +24,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settings => 'Inställningar';
 
   @override
-  String get welcomeTitle => 'Ett nytt äventyr börjar här';
-
-  @override
-  String get welcomeBody =>
-      'Skapa privata, illustrerade berättelser där varje barn blir hjälten.';
-
-  @override
   String get createFirstStory => 'Skapa en första berättelse';
-
-  @override
-  String get createAnotherStory => 'Skapa en ny berättelse';
-
-  @override
-  String get recentStories => 'Senaste berättelser';
 
   @override
   String get profileIncompleteTitle => 'Lägg till en hjälteprofil';
@@ -262,17 +249,8 @@ class AppLocalizationsSv extends AppLocalizations {
   String get localAiGeneratorLabel => 'Lokal AI';
 
   @override
-  String get chooseHeroProfile => 'Välj en hjälteprofil';
-
-  @override
-  String get selectHeroProfile => 'Välj ett barn';
-
-  @override
   String get profileSelectionRequired =>
       'Välj vilket barn som ska vara hjälten.';
-
-  @override
-  String get storyLanguage => 'Berättelsens språk';
 
   @override
   String get theme => 'Äventyrets tema';
@@ -284,24 +262,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get moral => 'Lärdom eller värde';
 
   @override
-  String get moralHint => 'Till exempel: vänlighet och mod';
-
-  @override
-  String get storyLength => 'Berättelsens längd';
-
-  @override
-  String get illustrationStyle => 'Illustrationsstil';
-
-  @override
-  String get shortLength => 'Kort · 6 sidor';
-
-  @override
-  String get mediumLength => 'Mellan · 8 sidor';
-
-  @override
-  String get longLength => 'Lång · 10 sidor';
-
-  @override
   String get pictureBookStyle => 'Bilderbok';
 
   @override
@@ -311,14 +271,8 @@ class AppLocalizationsSv extends AppLocalizations {
   String get threeDStyle => 'Färgstark 3D';
 
   @override
-  String get generateStory => 'Skapa demoberättelse';
-
-  @override
   String get demoModeNotice =>
       'Demoläget skapar en tydligt markerad exempelberättelse helt utan dator och utan AI. Byt berättelsegenerator till Lokal AI i inställningarna för att skriva på familjens dator.';
-
-  @override
-  String get profileNeeded => 'Lägg först till minst en hjälteprofil.';
 
   @override
   String get themeRequired => 'Beskriv äventyrets tema.';
@@ -1470,9 +1424,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'Berättelserna skrivs av AI:n på familjens dator. Datorn, dess brygga och dess modell måste vara igång.';
-
-  @override
-  String get generateLocalAiStory => 'Skapa berättelse på datorn';
 
   @override
   String get localAiSubmitting => 'Skickar förfrågan till datorn…';

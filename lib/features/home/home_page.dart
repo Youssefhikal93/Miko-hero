@@ -9,6 +9,7 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/home/home_greeting.dart';
 import 'package:miko_hero/features/home/home_hero_switcher.dart';
 import 'package:miko_hero/features/home/home_tiles.dart';
+import 'package:miko_hero/features/library/story_library_page.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -122,7 +123,7 @@ class _HomeContent extends StatelessWidget {
     if (covers.isEmpty) return const <Widget>[];
     return <Widget>[
       const SizedBox(height: 24),
-      _ShelfHeading(text: text),
+      _ShelfHeading(text: text, profileId: activeProfile.id),
       const SizedBox(height: 12),
       _ShelfStrip(covers: covers),
     ];
@@ -200,9 +201,12 @@ class _Greeting extends StatelessWidget {
 /// "On the shelf" over the link that hands the rest to the library.
 class _ShelfHeading extends StatelessWidget {
   /// Creates the strip heading and its library link.
-  const _ShelfHeading({required this.text});
+  const _ShelfHeading({required this.text, required this.profileId});
 
   final AppLocalizations text;
+
+  /// Child whose shelf the strip is showing, named in the library route.
+  final String profileId;
 
   @override
   /// Sends the family to the shelf they were already looking at.
@@ -223,7 +227,7 @@ class _ShelfHeading extends StatelessWidget {
         ),
         TextButton(
           key: const ValueKey<String>('home-see-all'),
-          onPressed: () => context.go('/library'),
+          onPressed: () => context.go(libraryRouteForChild(profileId)),
           child: Text(text.seeAll),
         ),
       ],
