@@ -167,8 +167,11 @@ class StoryGenerationQueue
             readOllamaResponseText(planned.bodyText),
             expectedPageCount: request.pageCount,
           );
+          // The lesson moment is read by the page pass as story material, so
+          // it has to be in the story's language exactly like the beats are.
           _requirePureLanguage(request, <String>[
             parsed.title,
+            parsed.lessonMoment,
             for (final beat in parsed.beats) beat.summary,
           ]);
           outline = parsed;

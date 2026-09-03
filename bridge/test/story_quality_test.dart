@@ -37,10 +37,14 @@ StoryOutline outline({
   int pageCount = 6,
   String title = 'Nour and the Sea Lanterns',
   String heroAppearance = 'short curly black hair, red boots, brass lantern',
+  String lessonMoment = 'Nour is asked to share her only lit lantern.',
+  int turnPage = 3,
 }) {
   return StoryOutline(
     title: title,
     heroAppearance: heroAppearance,
+    lessonMoment: lessonMoment,
+    turnPage: turnPage,
     beats: List<StoryOutlineBeat>.generate(
       pageCount,
       (index) => StoryOutlineBeat(
@@ -74,12 +78,16 @@ void main() {
       int beats = 6,
       Object? title = 'Nour and the Sea Lanterns',
       Object? heroAppearance = 'red boots and a brass lantern',
+      Object? lessonMoment = 'Nour is asked to share her only lit lantern.',
+      Object? turnPage = 3,
       int Function(int index)? number,
       Object? Function(int index)? summary,
     }) {
       return jsonEncode(<String, Object?>{
         'title': title,
         'heroAppearance': heroAppearance,
+        'lessonMoment': lessonMoment,
+        'turnPage': turnPage,
         'beats': List<Object?>.generate(
           beats,
           (index) => <String, Object?>{
@@ -95,9 +103,25 @@ void main() {
 
       expect(parsed.title, 'Nour and the Sea Lanterns');
       expect(parsed.heroAppearance, 'red boots and a brass lantern');
+      expect(
+        parsed.lessonMoment,
+        'Nour is asked to share her only lit lantern.',
+      );
+      expect(parsed.turnPage, 3);
       expect(parsed.beats, hasLength(6));
       expect(parsed.beats.first.pageNumber, 1);
       expect(parsed.beats.last.pageNumber, 6);
+    });
+
+    test('every page between the first and the last can be the turn', () {
+      for (final turnPage in <int>[2, 3, 4, 5]) {
+        final parsed = parseStoryOutline(
+          plan(turnPage: turnPage),
+          expectedPageCount: 6,
+        );
+
+        expect(parsed.turnPage, turnPage);
+      }
     });
 
     test('the hero appearance is collapsed onto one line', () {
@@ -118,6 +142,26 @@ void main() {
       expect(block, isNot(contains('4.')));
     });
 
+    test('the prompt block carries the lesson moment and the turn page', () {
+      final block = outline(
+        pageCount: 6,
+        lessonMoment: 'Nour is asked to wait when she wants to run ahead.',
+        turnPage: 4,
+      ).toPromptBlock();
+
+      expect(
+        block,
+        contains(
+          'Lesson moment (what the middle of the book is about): Nour is '
+          'asked to wait when she wants to run ahead.',
+        ),
+      );
+      expect(
+        block,
+        contains('Turn page (where the hero chooses the lesson): 4'),
+      );
+    });
+
     final refused = <String, String>{
       'text instead of JSON': 'Here is a plan!',
       'a JSON array': '[]',
@@ -125,6 +169,18 @@ void main() {
       'a blank title': plan(title: '   '),
       'a missing hero appearance': plan(heroAppearance: null),
       'a blank hero appearance': plan(heroAppearance: ' '),
+      'a missing lesson moment': plan(lessonMoment: null),
+      'a blank lesson moment': plan(lessonMoment: '   '),
+      'a non-string lesson moment': plan(lessonMoment: 7),
+      'an oversized lesson moment': plan(
+        lessonMoment: 'a' * (maximumLessonMomentLength + 1),
+      ),
+      'a missing turn page': plan(turnPage: null),
+      'a non-integer turn page': plan(turnPage: 'three'),
+      'a turn page on page one': plan(turnPage: 1),
+      'a turn page before the book starts': plan(turnPage: 0),
+      'a turn page on the last page': plan(turnPage: 6),
+      'a turn page past the last page': plan(turnPage: 7),
       'too few beats': plan(beats: 5),
       'too many beats': plan(beats: 7),
       'beats out of order': plan(number: (index) => 6 - index),
@@ -450,12 +506,54 @@ void main() {
       expect(prompt, contains('the flat sentence'));
     });
 
-    test('the page prompt demands an earned ending and no stated moral', () {
+    test('the page prompt demands an earned ending and no lecture', () {
       final prompt = buildStoryPagesPrompt(request(), outline());
 
       expect(prompt, contains('earned by her own choice or action'));
-      expect(prompt, contains('Never state it'));
+      expect(prompt, contains('Never lecture the'));
       expect(prompt, contains('never address the reader'));
+    });
+
+    test('one character may speak the lesson, the reader is never told', () {
+      final prompt = buildStoryPagesPrompt(request(), outline());
+
+      expect(
+        prompt,
+        contains('may say the lesson out loud once'),
+        reason: 'a parent or a friend is allowed one spoken line',
+      );
+      expect(
+        prompt,
+        contains('never address the reader'),
+        reason: 'the relaxed dialogue rule must not relax this one',
+      );
+    });
+
+    test('the outline prompt makes the middle challenge be the lesson', () {
+      final prompt = buildStoryOutlinePrompt(request(pageCount: 8));
+
+      expect(prompt, contains('The middle challenge IS the lesson'));
+      expect(prompt, contains('"lessonMoment" is ONE sentence'));
+      expect(
+        prompt,
+        contains('in the middle of the book: after page 1 and before page 8'),
+        reason: 'the turn page range is stated in pages, not in the abstract',
+      );
+    });
+
+    test('the page prompt names the turn page and what it must show', () {
+      final prompt = buildStoryPagesPrompt(
+        request(),
+        outline(
+          lessonMoment: 'Nour is asked to wait for her father.',
+          turnPage: 5,
+        ),
+      );
+
+      expect(prompt, contains('Nour is asked to wait for her father.'));
+      expect(prompt, contains('Page 5 is the turn: on that page'));
+      expect(prompt, contains('chooses the lesson in what Nour actually does'));
+      expect(prompt, contains('how making it feels in the'));
     });
 
     test('the name is asked for naturally, not in every sentence', () {
@@ -551,7 +649,15 @@ void main() {
 
       expect(beats['minItems'], 10);
       expect(beats['maxItems'], 10);
-      expect(schema['required'], <String>['title', 'heroAppearance', 'beats']);
+      expect(schema['required'], <String>[
+        'title',
+        'heroAppearance',
+        'lessonMoment',
+        'turnPage',
+        'beats',
+      ]);
+      expect(properties['lessonMoment'], <String, Object?>{'type': 'string'});
+      expect(properties['turnPage'], <String, Object?>{'type': 'integer'});
     });
   });
 }

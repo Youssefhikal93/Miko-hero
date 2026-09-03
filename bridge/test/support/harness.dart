@@ -329,19 +329,31 @@ bool isOutlineRequest(OllamaGenerateRequest request) {
 /// A schema-valid outline answer with [pageCount] beats.
 ///
 /// [includeHeroAppearance] can be turned off to reproduce a model that plans
-/// the pages but forgets what the hero looks like.
+/// the pages but forgets what the hero looks like, and
+/// [includeLessonMoment] to reproduce one that plans an adventure with no
+/// place in it for the parent's lesson.
+///
+/// [turnPage] defaults to the middle of the book, which is the only range the
+/// parser accepts.
 String outlinePayload({
   required int pageCount,
   String title = 'Nour and the Sea Lanterns',
   String heroAppearance =
       'short curly black hair, mustard-yellow raincoat, red boots, '
       'carries a small brass lantern',
+  String lessonMoment =
+      'Nour is asked to share her one lit lantern with a smaller child '
+      'who has none.',
+  int? turnPage,
   String Function(int pageNumber)? summary,
   bool includeHeroAppearance = true,
+  bool includeLessonMoment = true,
 }) {
   return jsonEncode(<String, Object?>{
     'title': title,
     if (includeHeroAppearance) 'heroAppearance': heroAppearance,
+    if (includeLessonMoment) 'lessonMoment': lessonMoment,
+    'turnPage': turnPage ?? pageCount ~/ 2,
     'beats': List<Object?>.generate(
       pageCount,
       (index) => <String, Object?>{

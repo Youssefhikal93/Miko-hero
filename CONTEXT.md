@@ -155,6 +155,17 @@ graphics card right now, and has to let go before the other may start.
 _Avoid_: lease holder, lock owner
 
 **Outline**:
-The story plan the model writes first: title, one beat per page, and the hero's
-appearance line, approved before any page is written.
+The story plan the model writes first: title, one beat per page, the hero's
+appearance line, the lesson moment and the turn page, approved before any page
+is written.
 _Avoid_: plan (in code), skeleton
+
+**Lesson moment**:
+The one sentence in an outline naming the concrete situation where the hero
+faces the parent's moral. The situation, never the moral restated.
+_Avoid_: theme, message, takeaway
+
+**Turn page**:
+The page of an outline where the hero chooses the lesson. Always in the middle
+of the book: after page 1, before the last page.
+_Avoid_: climax, twist

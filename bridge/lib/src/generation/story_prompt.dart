@@ -63,9 +63,10 @@ Plan the arc across the $pageCount pages like this:
 - Page 1 opens warmly in an ordinary, safe moment, shows who $name is, and
   names one small thing $name wants or hopes for today. That want is the
   thread the whole book pulls on.
-- The middle pages bring one challenge or discovery and let it grow. It
-  costs $name something before it turns: a try that does not work, a hard
-  choice, a moment of doubt. Then $name does something about it.
+- The middle challenge IS the lesson, not a separate adventure sitting next
+  to it. $name first does the opposite of the lesson, it costs $name
+  something real — a try that fails, a friend hurt, a thing lost — and then
+  on the turn page $name chooses the lesson instead.
 - The final page resolves it because of something $name chose or did — never
   because an adult, a rescue or luck fixed it — and the ending answers the
   want from page 1, even if not in the way $name expected.
@@ -88,7 +89,15 @@ Hard requirements:
    Invent it freely; it must be a drawn character description and
    must never describe or refer to a photograph, a real person, or any real
    identifying feature.
-5. Keep everything gentle and appropriate for a ${request.ageYears}-year-old:
+5. "lessonMoment" is ONE sentence in $language naming the concrete situation
+   where $name faces the lesson: what happens, who is there, and what $name
+   has to decide. Name the situation, do not restate the lesson, and do not
+   summarise the whole book.
+6. "turnPage" is the page number where $name chooses the lesson. It must fall
+   in the middle of the book: after page 1 and before page $pageCount. Before
+   it $name is still doing the opposite; after it the story lives with the
+   choice.
+7. Keep everything gentle and appropriate for a ${request.ageYears}-year-old:
    no violence, death, horror, romance, brands or scary imagery.
 
 Answer with one JSON object matching the requested schema and nothing else.
@@ -151,9 +160,17 @@ Hard requirements:
 6. The book reads as one continuous arc: the warm opening, the challenge or
    discovery growing through the middle pages, and a last page where the
    ending is earned by $possessive own choice or action.
-7. Show the lesson through what happens and how it feels. Never state it,
-   never summarise it, and never address the reader — no "and so we learn",
-   no "remember, children", no closing lesson sentence.
+6a. Page ${outline.turnPage} is the turn: on that page $name faces the plan's
+    lesson moment and chooses the lesson in what $name actually does. Show
+    the choice being made — the action itself, and how making it feels in the
+    body. Before that page $name is still doing the opposite; after it the
+    story lives with what $name chose.
+7. Show the lesson through what happens and how it feels. Never lecture the
+   reader and never address the reader — no "and so we learn", no "remember,
+   children", no closing lesson sentence, no narrator explaining the point.
+   One character — a parent, a friend — may say the lesson out loud once, in
+   ordinary dialogue that sounds like that person talking to $name. Once in
+   the whole book, never more, and never on the last page.
 ${_preferenceRules(request)}
 8. Keep everything gentle and appropriate for a ${request.ageYears}-year-old:
    no violence, death, horror, romance, brands or scary imagery.

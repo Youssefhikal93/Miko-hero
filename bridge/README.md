@@ -765,10 +765,11 @@ invent and write a whole book at once produces six unrelated scenes with the
 moral announced on the last page.
 
 1. **Outline pass.** A deliberately tiny schema: a working title, exactly one
-   beat per page, and a one-line **hero appearance sheet** — clothing colours,
-   hair, one recurring prop. The prompt asks for a real arc: a warm ordinary
-   opening, a challenge or discovery growing through the middle, and a last
-   page resolved by something the child themself chose or did.
+   beat per page, a one-line **hero appearance sheet** — clothing colours,
+   hair, one recurring prop — a **lesson moment**, and a **turn page**. The
+   prompt asks for a real arc: a warm ordinary opening, a challenge or
+   discovery growing through the middle, and a last page resolved by something
+   the child themself chose or did.
 2. **Page pass.** The approved outline is embedded verbatim in the prompt, so
    the pages tell that plan rather than a new story. Beat N becomes page N.
 
@@ -782,6 +783,42 @@ The prompt also carries the reader's age into a concrete reading level
 (sentence length and vocabulary bands for ≤4, ≤7, ≤10 and older), asks for the
 child's name only where it reads naturally rather than in every sentence, and
 weaves in `favoriteTopics` and `recurringWorld` when they were sent.
+
+### The lesson is the spine
+
+The parent's moral used to reach the model as one line, and two rules then
+forbade the model to state it — so a story about "listening to your parents"
+came back as a nice adventure with nothing in it to listen to. The plan now
+carries the lesson itself:
+
+- **`lessonMoment`** — one sentence, in the story's own language, naming the
+  concrete situation where the hero faces the lesson. Not the moral restated:
+  the moment it is tested. It is embedded verbatim in the page prompt.
+- **`turnPage`** — the page where the hero chooses the lesson. **The middle is
+  defined as every page after page 1 and before the last page.** Page 1 is the
+  warm ordinary opening, so a turn there leaves the hero no room to do the
+  opposite first; the last page is the resolution, so a turn there is the
+  moral announced at the end — the exact failure this plan exists to prevent.
+  A six-page book may turn on 2, 3, 4 or 5.
+
+The outline prompt tells the planner the middle challenge **is** the lesson:
+the hero does the opposite of it first, that costs something real, and on the
+turn page the hero chooses the lesson instead. The page prompt names the turn
+page and demands the choice be shown in action and in the body, never
+reported afterwards.
+
+A missing, blank, oversized or wrong-language lesson moment, and a turn page
+outside the middle, are all `invalid_model_output` — the plan is refused and
+re-planned, exactly like a hero appearance line in the wrong script. The
+lesson moment's language is checked by the same purity check as the title and
+the beats, so an English lesson moment on an Arabic book is refused.
+
+**One character may say it out loud.** The old rule forbade the model to state
+the moral at all. It still must never lecture and never address the reader —
+no "and so we learn", no "remember, children", no closing lesson sentence, no
+narrator explaining the point — but a parent or a friend may say the lesson
+once, in ordinary dialogue, and never on the last page. Real picture books do
+that; forbidding it was part of why the lesson evaporated.
 
 ### Job lifecycle
 

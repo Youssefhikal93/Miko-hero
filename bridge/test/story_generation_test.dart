@@ -228,6 +228,8 @@ void main() {
         outline: outlinePayload(
           pageCount: 8,
           title: arabicTitle,
+          lessonMoment:
+              'يطلب والد يوسف أن يبقى قريبًا، لكن الفانوس البعيد يناديه.',
           summary: (pageNumber) => 'مشى يوسف خطوة أخرى ($pageNumber).',
         ),
         story: storyPayload(
@@ -373,6 +375,22 @@ void main() {
     'an outline without a hero appearance': outlinePayload(
       pageCount: 6,
       includeHeroAppearance: false,
+    ),
+    'an outline without a lesson moment': outlinePayload(
+      pageCount: 6,
+      includeLessonMoment: false,
+    ),
+    'an outline with a blank lesson moment': outlinePayload(
+      pageCount: 6,
+      lessonMoment: '   ',
+    ),
+    'an outline whose lesson moment is in the wrong language': outlinePayload(
+      pageCount: 6,
+      lessonMoment: 'يطلب والد نور أن تبقى قريبة، لكن الفانوس البعيد يناديها.',
+    ),
+    'an outline that turns on the last page': outlinePayload(
+      pageCount: 6,
+      turnPage: 6,
     ),
     'an outline that is not JSON': 'Sure! Here is a plan for Nour.',
     'an outline in the wrong language': outlinePayload(
