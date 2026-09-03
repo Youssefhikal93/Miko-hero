@@ -17,6 +17,61 @@ const String ollamaGeneratePath = '/api/generate';
 /// runaway model and is aborted instead of filling memory.
 const int maxOllamaResponseBytes = 4 * 1024 * 1024;
 
+/// Budget for the unload call made after a job leaves the GPU.
+///
+/// Short on purpose: the story is already written or already failed, and the
+/// only thing waiting on this is the release of the shared GPU lease.
+const Duration ollamaUnloadTimeout = Duration(seconds: 5);
+
+/// Where the local Ollama is, which model it must answer with, and how long
+/// one call to it may take.
+///
+/// Three values that only ever travel together. Handing callers the target
+/// instead of the three fields is what keeps the queue from knowing how a URL,
+/// a model tag and a duration combine into an outbound call.
+class OllamaTarget {
+  /// Creates a target from an already-validated base URL.
+  const OllamaTarget({
+    required this.baseUrl,
+    required this.model,
+    required this.callTimeout,
+  });
+
+  /// Base URL of the local Ollama API.
+  final BaseUrl baseUrl;
+
+  /// Model tag every call names, e.g. `gemma3:4b`.
+  final String model;
+
+  /// Wall-clock budget for one generation call — not for a whole job, which
+  /// makes two.
+  final Duration callTimeout;
+
+  /// One generation call carrying [prompt] and the schema its answer must
+  /// conform to.
+  OllamaGenerateRequest generateRequest({
+    required String prompt,
+    required Map<String, Object?> format,
+  }) {
+    return OllamaGenerateRequest(
+      baseUrl: baseUrl,
+      model: model,
+      prompt: prompt,
+      format: format,
+      timeout: callTimeout,
+    );
+  }
+
+  /// The call that asks Ollama to drop [model] from the card again.
+  OllamaUnloadRequest unloadRequest() {
+    return OllamaUnloadRequest(
+      baseUrl: baseUrl,
+      model: model,
+      timeout: ollamaUnloadTimeout,
+    );
+  }
+}
+
 /// One `/api/generate` call to the local Ollama server.
 class OllamaGenerateRequest {
   /// Creates a request against [baseUrl] for [model].

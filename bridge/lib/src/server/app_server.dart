@@ -101,12 +101,8 @@ class AppServer {
     );
     _healthHandler = HealthHandler(
       probes: <HealthProbe>[
-        OllamaProbe(
-          client: _probeHttpClient,
-          baseUrl: config.ollamaBaseUrl,
-          model: config.ollamaModel,
-        ),
-        ComfyUiProbe(client: _probeHttpClient, baseUrl: config.comfyUiBaseUrl),
+        OllamaProbe(client: _probeHttpClient, target: config.ollama),
+        ComfyUiProbe(client: _probeHttpClient, target: config.comfyUi),
         LibraryProbe(library: library),
       ],
     );

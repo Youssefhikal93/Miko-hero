@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
+import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 
@@ -40,19 +42,21 @@ abstract class HealthProbe {
 /// Probes the configured Ollama instance: version endpoint reachable and
 /// the configured model present in `/api/tags`.
 class OllamaProbe implements HealthProbe {
-  /// Creates a probe against [baseUrl] requiring [model].
+  /// Creates a probe against the configured [target].
+  ///
+  /// The target's own call timeout is deliberately not used: a probe answers
+  /// `/health` and must never make a browser wait fifteen minutes for it.
   OllamaProbe({
     required this._client,
-    required String baseUrl,
-    required this.model,
+    required this._target,
     this.timeout = probeTimeout,
-  }) : _baseUrl = _normalize(baseUrl);
+  });
 
   final ProbeHttpClient _client;
-  final Uri _baseUrl;
+  final OllamaTarget _target;
 
   /// Model tag that must be available locally (e.g. `gemma3:4b`).
-  final String model;
+  String get model => _target.model;
 
   /// Per-request timeout.
   final Duration timeout;
@@ -64,11 +68,11 @@ class OllamaProbe implements HealthProbe {
   Future<ProbeStatus> check() async {
     try {
       await _client.get(
-        _baseUrl.replace(path: '${_baseUrl.path}/api/version'),
+        _target.baseUrl.resolve('/api/version'),
         timeout: timeout,
       );
       final tagsResponse = await _client.get(
-        _baseUrl.replace(path: '${_baseUrl.path}/api/tags'),
+        _target.baseUrl.resolve('/api/tags'),
         timeout: timeout,
       );
       if (tagsResponse.statusCode != HttpStatus.ok) {
@@ -127,15 +131,18 @@ class OllamaProbe implements HealthProbe {
 /// It is expected and fine for this to stay unavailable until ComfyUI is
 /// installed; the bridge keeps working without it.
 class ComfyUiProbe implements HealthProbe {
-  /// Creates a probe against [baseUrl].
+  /// Creates a probe against the configured [target].
+  ///
+  /// Only the target's base URL is used; a render budget is minutes long and
+  /// has nothing to do with how long `/health` may wait.
   ComfyUiProbe({
     required this._client,
-    required String baseUrl,
+    required this._target,
     this.timeout = probeTimeout,
-  }) : _baseUrl = _normalize(baseUrl);
+  });
 
   final ProbeHttpClient _client;
-  final Uri _baseUrl;
+  final ComfyUiTarget _target;
 
   /// Per-request timeout.
   final Duration timeout;
@@ -147,7 +154,7 @@ class ComfyUiProbe implements HealthProbe {
   Future<ProbeStatus> check() async {
     try {
       final response = await _client.get(
-        _baseUrl.replace(path: '${_baseUrl.path}/system_stats'),
+        _target.baseUrl.resolve('/system_stats'),
         timeout: timeout,
       );
       if (response.statusCode == HttpStatus.ok) {
@@ -236,16 +243,4 @@ class LibraryProbe implements HealthProbe {
       }
     }
   }
-}
-
-Uri _normalize(String baseUrl) {
-  final parsed = Uri.tryParse(baseUrl);
-  if (parsed == null || !parsed.hasScheme || parsed.host.isEmpty) {
-    throw FormatException('Invalid base URL for probe: $baseUrl');
-  }
-  var path = parsed.path;
-  while (path.endsWith('/')) {
-    path = path.substring(0, path.length - 1);
-  }
-  return parsed.replace(path: path);
 }

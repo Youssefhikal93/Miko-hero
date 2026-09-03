@@ -17,6 +17,46 @@ const int maxComfyUiJsonBytes = 4 * 1024 * 1024;
 /// misconfigured workflow cannot stream an unbounded file into memory.
 const int maxComfyUiImageBytes = 16 * 1024 * 1024;
 
+/// Longest any single control call to ComfyUI may take.
+///
+/// Submitting a workflow, reading history, asking whether a node class exists
+/// and interrupting are metadata calls: if they have not answered in half a
+/// minute, the server is not merely busy.
+const Duration comfyUiControlTimeout = Duration(seconds: 30);
+
+/// Where the local ComfyUI is and what each kind of call to it may cost.
+///
+/// The two endpoints differ only in their budget, and the rule for that
+/// budget is a policy — a control call is capped at [comfyUiControlTimeout],
+/// but never given more time than the whole page has — so it lives here,
+/// beside the endpoint it shapes, rather than inside whichever caller happens
+/// to build one.
+class ComfyUiTarget {
+  /// Creates a target from an already-validated base URL and page budget.
+  const ComfyUiTarget({required this.baseUrl, required this.renderTimeout});
+
+  /// Base URL of the local ComfyUI API.
+  final BaseUrl baseUrl;
+
+  /// Wall-clock budget for rendering one page end to end.
+  final Duration renderTimeout;
+
+  /// Endpoint for the short metadata calls.
+  ///
+  /// Capped at [comfyUiControlTimeout], and at [renderTimeout] when that is
+  /// shorter: a control call may never outlive the page it belongs to.
+  ComfyUiEndpoint get control => ComfyUiEndpoint(
+    baseUrl: baseUrl,
+    timeout: renderTimeout < comfyUiControlTimeout
+        ? renderTimeout
+        : comfyUiControlTimeout,
+  );
+
+  /// Endpoint for the two calls that move bytes: upload and download.
+  ComfyUiEndpoint get transfer =>
+      ComfyUiEndpoint(baseUrl: baseUrl, timeout: renderTimeout);
+}
+
 /// Where ComfyUI lives and how long any one call to it may take.
 ///
 /// Passed to every method instead of being captured in a constructor so the

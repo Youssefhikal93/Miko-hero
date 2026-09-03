@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:iam_hero_bridge/src/common/atomic_files.dart';
-import 'package:iam_hero_bridge/src/common/base_url.dart';
 import 'package:iam_hero_bridge/src/common/image_bytes.dart';
 import 'package:iam_hero_bridge/src/common/paths.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
@@ -20,12 +19,6 @@ import 'package:iam_hero_bridge/src/library/story_deleter.dart';
 /// One second is far below the time a 512x512 render takes and far above
 /// anything that would busy-poll the local server.
 const Duration illustrationPollInterval = Duration(seconds: 1);
-
-/// Longest any single control call to ComfyUI may take.
-///
-/// Submitting a workflow and reading history are metadata calls: if they
-/// have not answered in half a minute, the server is not merely busy.
-const Duration illustrationControlTimeout = Duration(seconds: 30);
 
 /// Renders one page image end to end: workflow in, stored PNG out.
 ///
@@ -55,18 +48,13 @@ class IllustrationRenderer {
   final Duration _pollInterval;
 
   /// Endpoint used for short metadata calls.
-  ComfyUiEndpoint get _control => ComfyUiEndpoint(
-    baseUrl: BaseUrl.parse(_config.comfyUiBaseUrl),
-    timeout: _config.illustrationTimeout < illustrationControlTimeout
-        ? _config.illustrationTimeout
-        : illustrationControlTimeout,
-  );
+  ComfyUiEndpoint get _control => _config.comfyUi.control;
 
   /// Endpoint used for the two calls that move bytes.
-  ComfyUiEndpoint get _transfer => ComfyUiEndpoint(
-    baseUrl: BaseUrl.parse(_config.comfyUiBaseUrl),
-    timeout: _config.illustrationTimeout,
-  );
+  ComfyUiEndpoint get _transfer => _config.comfyUi.transfer;
+
+  /// Wall-clock budget for rendering one page end to end.
+  Duration get _renderTimeout => _config.comfyUi.renderTimeout;
 
   /// Whether the local ComfyUI answers at all.
   Future<bool> isComfyUiReachable() => _client.isReachable(_control);
@@ -132,7 +120,7 @@ class IllustrationRenderer {
     required StoryGenderContext? gender,
     String? referenceImageName,
   }) async {
-    final deadline = _clock().toUtc().add(_config.illustrationTimeout);
+    final deadline = _clock().toUtc().add(_renderTimeout);
     final workflow = buildIllustrationWorkflow(
       illustrationId: target.illustrationId,
       sceneDescription: target.sceneDescription,
@@ -174,7 +162,7 @@ class IllustrationRenderer {
   }) async {
     // The stylization pass gets the same wall-clock budget as a page: it is
     // the same checkpoint, the same size and the same step count.
-    final deadline = _clock().toUtc().add(_config.illustrationTimeout);
+    final deadline = _clock().toUtc().add(_renderTimeout);
     try {
       final promptId = await _submit(
         buildReferenceStylizeWorkflow(
@@ -267,7 +255,7 @@ class IllustrationRenderer {
         throw IllustrationException(
           IllustrationFailureCode.comfyUiTimeout,
           'ComfyUI did not finish the page within '
-          '${_config.illustrationTimeoutSeconds} seconds.',
+          '${_renderTimeout.inSeconds} seconds.',
         );
       }
       await Future<void>.delayed(_pollInterval);

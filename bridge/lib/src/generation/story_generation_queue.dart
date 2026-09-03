@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:iam_hero_bridge/src/common/base_url.dart';
 import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
@@ -67,14 +66,10 @@ class StoryGenerationQueue {
   final GpuGate _gate;
 
   /// This queue's identity at the gate, and the thing the gate evicts.
-  ///
-  /// Lazy because it borrows the gate's eviction budget, which is only known
-  /// once [_gate] has been resolved.
   late final _OllamaTenant _tenant = _OllamaTenant(
     config: _config,
     client: _client,
     log: _log,
-    unloadTimeout: _gate.evictionTimeout,
   );
 
   final Uuid _uuid;
@@ -389,13 +384,7 @@ class StoryGenerationQueue {
     required String prompt,
     required Map<String, Object?> format,
   }) async {
-    final call = OllamaGenerateRequest(
-      baseUrl: BaseUrl.parse(_config.ollamaBaseUrl),
-      model: _config.ollamaModel,
-      prompt: prompt,
-      format: format,
-      timeout: _config.generationTimeout,
-    );
+    final call = _config.ollama.generateRequest(prompt: prompt, format: format);
     final OllamaGenerateResponse response;
     try {
       response = await _client.generate(call, cancellation: token);
@@ -405,7 +394,7 @@ class StoryGenerationQueue {
       throw GenerationException(
         GenerationFailureCode.ollamaTimeout,
         'Ollama did not finish within '
-        '${_config.generationTimeout.inMinutes} minutes.',
+        '${_config.ollama.callTimeout.inMinutes} minutes.',
       );
     } catch (_) {
       throw const GenerationException(
@@ -499,18 +488,19 @@ class StoryGenerationQueue {
 /// The job id is deliberately absent from these lines: by the time the gate
 /// evicts, the turn is over and the unload belongs to the queue, not to any
 /// one story.
+///
+/// The request itself comes ready-made from the configuration; the gate's
+/// eviction budget bounds the whole call on top of the request's own timeout.
 class _OllamaTenant implements GpuTenant {
   const _OllamaTenant({
     required this._config,
     required this._client,
     required this._log,
-    required this._unloadTimeout,
   });
 
   final BridgeConfig _config;
   final OllamaStoryClient _client;
   final GenerationLogSink _log;
-  final Duration _unloadTimeout;
 
   @override
   String get name => 'ollama';
@@ -518,13 +508,7 @@ class _OllamaTenant implements GpuTenant {
   @override
   Future<void> evict() async {
     try {
-      await _client.unload(
-        OllamaUnloadRequest(
-          baseUrl: BaseUrl.parse(_config.ollamaBaseUrl),
-          model: _config.ollamaModel,
-          timeout: _unloadTimeout,
-        ),
-      );
+      await _client.unload(_config.ollama.unloadRequest());
       _log('Ollama model unloaded');
     } catch (_) {
       // Swallowed rather than rethrown so the log says which local service

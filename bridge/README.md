@@ -70,7 +70,7 @@ start after an upgrade, the message names the key to fix or delete.
 | `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories. `gemma3:4b` is the floor, not a recommendation — see [`docs/STORY_QUALITY_UPGRADE.md`](../docs/STORY_QUALITY_UPGRADE.md) |
 | `generationTimeoutSeconds` | `900`        | Budget for **one** generation call (30–3600); a job makes two |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
-| `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800)   |
+| `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800). ComfyUI's short metadata calls — submit, poll, node check, interrupt — are separately capped at 30 s, or at this value when it is smaller |
 | `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Every entry must be an exact origin: scheme + host + optional port, with no wildcard, credentials, path, query, fragment, or trailing slash. Loopback origins (`localhost`, `127.0.0.0/8`, `[::1]`, any port) are always allowed. `http://` is accepted only for loopback and the private/LAN, link-local, and Tailscale ranges accepted by `bindAddress`; every public origin must be listed explicitly with `https://`. |
 | `illustration`  | see below               | How pages are rendered. Optional as a whole |
 
@@ -1040,8 +1040,9 @@ and wrong attempts are capped at five.
   request instead of orphaning it.
 - **Bounded rendering**: one page at a time behind the same one-GPU lock, a
   configurable per-page timeout (default 5 minutes) that interrupts the
-  abandoned render so the card is freed, a 16 MB ceiling on a downloaded
-  image, and a PNG magic-byte check before anything is stored.
+  abandoned render so the card is freed, a 30-second cap on every metadata
+  call to ComfyUI inside that budget, a 16 MB ceiling on a downloaded image,
+  and a PNG magic-byte check before anything is stored.
 - **Reference photos**: at most 2 MB, accepted only as JPEG or PNG, and only
   when the bytes match the declared type. Stored under the profile id inside
   `photos/`, so an id that could escape the folder is refused before the

@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:iam_hero_bridge/src/common/base_url.dart';
 import 'package:iam_hero_bridge/src/common/json_reader.dart';
 import 'package:iam_hero_bridge/src/common/local_network.dart';
 import 'package:iam_hero_bridge/src/config/illustration_settings.dart';
+import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
+import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
 
 /// Immutable runtime configuration of the bridge service.
 ///
@@ -10,7 +13,7 @@ import 'package:iam_hero_bridge/src/config/illustration_settings.dart';
 /// the JSON configuration file; nothing is hardcoded in source code.
 class BridgeConfig {
   /// Creates a configuration from validated values.
-  const BridgeConfig({
+  BridgeConfig({
     required this.bindAddress,
     required this.port,
     required this.libraryPath,
@@ -134,6 +137,26 @@ class BridgeConfig {
   /// [illustrationTimeoutSeconds] as a [Duration].
   Duration get illustrationTimeout =>
       Duration(seconds: illustrationTimeoutSeconds);
+
+  /// Everything an outbound Ollama call needs, assembled once.
+  ///
+  /// Callers ask the configuration for a request rather than for a URL, a
+  /// model tag and a duration to combine themselves — three modules used to
+  /// know that recipe, and a fourth knew a slightly different one.
+  late final OllamaTarget ollama = OllamaTarget(
+    baseUrl: BaseUrl.parse(ollamaBaseUrl),
+    model: ollamaModel,
+    callTimeout: generationTimeout,
+  );
+
+  /// Everything an outbound ComfyUI call needs, assembled once.
+  ///
+  /// The control/transfer timeout split is the target's policy, so the
+  /// renderer no longer hides it in a private getter where nothing tested it.
+  late final ComfyUiTarget comfyUi = ComfyUiTarget(
+    baseUrl: BaseUrl.parse(comfyUiBaseUrl),
+    renderTimeout: illustrationTimeout,
+  );
 
   /// Serializes the configuration into the JSON map persisted on disk.
   Map<String, Object> toJson() {

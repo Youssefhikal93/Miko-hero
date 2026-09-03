@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config_loader.dart';
+import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
+import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
 import 'package:test/test.dart';
 
 import 'support/harness.dart';
@@ -103,6 +105,98 @@ void main() {
           reason: value,
         );
       }
+    });
+  });
+
+  group('the endpoints the configuration hands out', () {
+    test('the default control endpoint is capped at the control timeout', () {
+      final config = BridgeConfig.fromJson(<String, Object?>{});
+      expect(config.comfyUi.transfer.timeout, config.illustrationTimeout);
+      expect(
+        config.comfyUi.control.timeout,
+        comfyUiControlTimeout,
+        reason:
+            'submitting a workflow and reading history are metadata calls; '
+            'they must not inherit the whole five-minute page budget',
+      );
+    });
+
+    test('the shortest illustrationTimeoutSeconds a file may hold still '
+        'leaves the control cap in force', () {
+      final config = BridgeConfig.fromJson(<String, Object?>{
+        'illustrationTimeoutSeconds':
+            BridgeConfig.minimumIllustrationTimeoutSeconds,
+      });
+      expect(config.comfyUi.transfer.timeout, const Duration(seconds: 60));
+      expect(config.comfyUi.control.timeout, comfyUiControlTimeout);
+    });
+
+    test('a short illustrationTimeoutSeconds also shortens the control '
+        'endpoint', () {
+      // Below the file's own floor of 60 s, so this is reached by building a
+      // configuration directly — which is what a test that renders with a
+      // deliberately tiny budget does. The policy still has to hold: a
+      // control call may never outlive the page it belongs to.
+      final config = BridgeConfig(
+        bindAddress: BridgeConfig.defaultBindAddress,
+        port: BridgeConfig.defaultPort,
+        libraryPath: BridgeConfig.defaultLibraryPath('.'),
+        ollamaBaseUrl: BridgeConfig.defaultOllamaBaseUrl,
+        comfyUiBaseUrl: BridgeConfig.defaultComfyUiBaseUrl,
+        ollamaModel: BridgeConfig.defaultOllamaModel,
+        generationTimeoutSeconds: BridgeConfig.defaultGenerationTimeoutSeconds,
+        maxGenerationAttempts: BridgeConfig.defaultMaxGenerationAttempts,
+        illustrationTimeoutSeconds: 5,
+      );
+      expect(config.comfyUi.transfer.timeout, const Duration(seconds: 5));
+      expect(config.comfyUi.control.timeout, const Duration(seconds: 5));
+    });
+
+    test('both ComfyUI endpoints resolve against the configured base', () {
+      final config = BridgeConfig.fromJson(<String, Object?>{
+        'comfyUiBaseUrl': 'http://192.168.1.20:8188/',
+      });
+      expect(
+        config.comfyUi.control.resolve('/prompt').toString(),
+        'http://192.168.1.20:8188/prompt',
+      );
+      expect(
+        config.comfyUi.transfer.baseUrl,
+        config.comfyUi.control.baseUrl,
+        reason: 'one base URL, two budgets',
+      );
+    });
+
+    test('the Ollama requests are built from the configuration alone', () {
+      final config = BridgeConfig.fromJson(<String, Object?>{
+        'ollamaBaseUrl': 'http://127.0.0.1:11434/',
+        'ollamaModel': 'qwen3.5:9b',
+        'generationTimeoutSeconds': 120,
+      });
+
+      final generate = config.ollama.generateRequest(
+        prompt: 'Write a story.',
+        format: <String, Object?>{'type': 'object'},
+      );
+      expect(
+        generate.endpoint.toString(),
+        'http://127.0.0.1:11434/api/generate',
+      );
+      expect(generate.model, 'qwen3.5:9b');
+      expect(generate.timeout, const Duration(seconds: 120));
+      expect(generate.toJson()['stream'], isFalse);
+
+      final unload = config.ollama.unloadRequest();
+      expect(unload.endpoint, generate.endpoint);
+      expect(unload.model, 'qwen3.5:9b');
+      expect(
+        unload.timeout,
+        ollamaUnloadTimeout,
+        reason:
+            'the story is already written or already failed; only the GPU '
+            'lease is waiting on this',
+      );
+      expect(unload.toJson()['keep_alive'], 0);
     });
   });
 }
