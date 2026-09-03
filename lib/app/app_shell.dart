@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:miko_hero/app/app_routes.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -114,17 +115,13 @@ class _MobileShell extends StatelessWidget {
   final int selectedIndex;
   final Widget child;
 
-  /// Routes whose page paints its own header, so the shell adds none.
+  /// Whether the page below paints its own header, so the shell adds none.
   ///
-  /// Home, the shelf, the creation form and the reader each open with their
-  /// own title row in the redesign; a shell bar above it would be a second
-  /// header on a phone. Every other route keeps the bar and its menu button.
-  static const _selfHeadedRoutes = <String>['/create', '/library', '/story/'];
-
-  bool get _paintsOwnHeader {
-    if (location == '/') return true;
-    return _selfHeadedRoutes.any(location.startsWith);
-  }
+  /// The answer is the route's own declaration, read back from [appRoutes];
+  /// the shell keeps no list of paths of its own. Home, the shelf, the creation
+  /// form and the reader each open with their own title row in the redesign,
+  /// and a shell bar above one of those would be a second header on a phone.
+  bool get _paintsOwnHeader => appRouteFor(location)?.paintsOwnHeader ?? false;
 
   @override
   /// Keeps the menu button visible inside profile editors and settings.
