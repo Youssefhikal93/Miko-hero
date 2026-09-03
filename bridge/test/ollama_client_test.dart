@@ -105,6 +105,13 @@ void main() {
       reason: 'Arabic must survive the transport unchanged',
     );
     expect(decoded['stream'], isFalse);
+    expect(
+      decoded['think'],
+      isFalse,
+      reason:
+          'thinking models otherwise put the JSON in `thinking` and '
+          'leave `response` empty',
+    );
     expect(decoded['model'], 'gemma3:4b');
   });
 

@@ -755,7 +755,10 @@ queued ──▶ generating ──▶ validating ──▶ completed
 
 - **queued** — accepted, waiting for the worker; reports `queuePosition`.
 - **generating** — `POST /api/generate` is in flight against the configured
-  model with `"stream": false` and a JSON schema in `format`. Both passes
+  model with `"stream": false`, `"think": false` and a JSON schema in
+  `format`. Thinking is off because reasoning models such as `qwen3.5:*`
+  otherwise return the JSON in Ollama's `thinking` field and an empty
+  `response`, which reads as `invalid_model_output`. Both passes
   live in this state; `progress` reads `Planning the story…` and then
   `Writing the story…`. The body is sent as explicit UTF-8 bytes with
   `Content-Type: application/json; charset=utf-8`, because Arabic corrupts

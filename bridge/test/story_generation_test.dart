@@ -262,6 +262,12 @@ void main() {
 
       expect(client.outlineRequests, hasLength(1));
       final outlineCall = client.outlineRequests.single;
+      expect(
+        (jsonDecode(utf8.decode(outlineCall.encodeBody()))!
+            as Map<String, Object?>)['think'],
+        isFalse,
+        reason: 'the outline pass must not think either',
+      );
       expect(outlineCall.prompt, contains('Arabic'));
       expect(outlineCall.prompt, contains(arabicTheme));
       expect(
@@ -292,6 +298,7 @@ void main() {
       );
       final decoded = jsonDecode(encoded)! as Map<String, Object?>;
       expect(decoded['stream'], isFalse);
+      expect(decoded['think'], isFalse);
       final format = decoded['format']! as Map<String, Object?>;
       final properties = format['properties']! as Map<String, Object?>;
       final pagesSchema = properties['pages']! as Map<String, Object?>;

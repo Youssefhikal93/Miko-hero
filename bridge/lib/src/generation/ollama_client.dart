@@ -52,11 +52,17 @@ class OllamaGenerateRequest {
   ///
   /// `stream` is always false: the bridge wants one complete, schema-checked
   /// answer, not a token stream.
+  ///
+  /// `think` is always false. Reasoning models such as `qwen3.5:*` otherwise
+  /// spend the answer in Ollama's `thinking` field and return an empty
+  /// `response`, which the bridge can only read as "no story". Models without
+  /// a thinking mode ignore the flag.
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'model': model,
       'prompt': prompt,
       'stream': false,
+      'think': false,
       'format': format,
     };
   }

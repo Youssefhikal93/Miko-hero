@@ -133,7 +133,10 @@ leader at 71.7%. That repository does not exist. Ignore it.
 **Decision:** any other freely downloadable Ollama model is a valid choice,
 but check its Arabic before adopting it. The one requirement the bridge
 places on a model is that it can follow a JSON schema (`format`), which every
-model listed here does.
+model listed here does. Reasoning models (every `qwen3.5:*` tag) are covered:
+the bridge sends `think: false`, because with thinking on Ollama returns the
+JSON in its `thinking` field and an empty `response`, which the bridge can
+only read as `invalid_model_output`.
 
 Pull the chosen model:
 
