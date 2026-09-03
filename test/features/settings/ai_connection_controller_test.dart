@@ -5,11 +5,14 @@ import 'package:miko_hero/core/ai_connection/ai_connection_settings.dart';
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:miko_hero/core/generation/local_ai_story_generator.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_bridge_http_client.dart';
+
+late InMemoryBridgeCredentialStorage _credentialStorage;
 
 /// Verifies the parent-gated AI connection commands over real local storage.
 void main() {
@@ -17,6 +20,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    _credentialStorage = InMemoryBridgeCredentialStorage();
   });
 
   test(
@@ -81,7 +85,9 @@ void main() {
     expect(connection.isPaired, isTrue);
     expect(connection.pairedDeviceName, 'Family tablet');
     expect(connection.credential.toString(), isNot(contains('issued-token')));
-    final repository = await LocalRepository.open();
+    final repository = await LocalRepository.open(
+      bridgeCredentialStorage: _credentialStorage,
+    );
     final stored = await repository.readBridgeCredential();
     expect(stored?.deviceToken, 'issued-token');
   });
@@ -119,7 +125,9 @@ void main() {
       container.read(aiConnectionControllerProvider).requireValue.isPaired,
       isFalse,
     );
-    final repository = await LocalRepository.open();
+    final repository = await LocalRepository.open(
+      bridgeCredentialStorage: _credentialStorage,
+    );
     expect(await repository.readBridgeCredential(), isNull);
   });
 
@@ -141,7 +149,9 @@ void main() {
         .requireValue;
     expect(connection.isPaired, isFalse);
     expect(connection.settings.mode, StoryGeneratorMode.localAi);
-    final repository = await LocalRepository.open();
+    final repository = await LocalRepository.open(
+      bridgeCredentialStorage: _credentialStorage,
+    );
     expect(await repository.readBridgeCredential(), isNull);
   });
 
@@ -196,7 +206,10 @@ void main() {
 /// Opens a container whose only replaced boundary is the HTTP client.
 ProviderContainer _container(FakeBridgeHttpClient httpClient) {
   final container = ProviderContainer(
-    overrides: [bridgeHttpClientProvider.overrideWithValue(httpClient)],
+    overrides: [
+      bridgeHttpClientProvider.overrideWithValue(httpClient),
+      bridgeCredentialStorageProvider.overrideWithValue(_credentialStorage),
+    ],
   );
   addTearDown(container.dispose);
   return container;

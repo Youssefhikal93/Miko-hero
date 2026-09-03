@@ -13,6 +13,7 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
@@ -194,7 +195,10 @@ Matcher _failure(BridgeFailure failure) {
 Future<ProviderContainer> _pairedContainer(
   FakeBridgeHttpClient httpClient,
 ) async {
-  final repository = await LocalRepository.open();
+  final credentialStorage = InMemoryBridgeCredentialStorage();
+  final repository = await LocalRepository.open(
+    bridgeCredentialStorage: credentialStorage,
+  );
   await repository.saveProfiles(const <ChildProfile>[
     ChildProfile(
       id: 'miko',
@@ -222,6 +226,7 @@ Future<ProviderContainer> _pairedContainer(
   final container = ProviderContainer(
     overrides: [
       bridgeHttpClientProvider.overrideWithValue(httpClient),
+      bridgeCredentialStorageProvider.overrideWithValue(credentialStorage),
       localAiPollIntervalProvider.overrideWithValue(Duration.zero),
     ],
   );

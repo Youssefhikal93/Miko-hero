@@ -59,7 +59,10 @@ handled and what is genuinely the model's job.
    retried. This catches gross failures; it cannot catch bad grammar.
 5. **A consistent hero.** The outline's appearance line is appended to every
    page's scene description, so ComfyUI draws the same child in the same
-   clothes on every page.
+   clothes on every page. The line has to be English: the first Arabic book
+   on `qwen3.5:9b` wrote it in Arabic, the image model read it as noise, and
+   the pages lost their foggy-night mood. An appearance line in another script
+   is now refused and the outline retried.
 6. **Everything is configurable.** The model is one line in
    `bridge_config.json`. Nothing about the model is hardcoded.
 

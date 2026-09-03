@@ -10,6 +10,7 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Reports corrupt device state without silently overwriting family content.
@@ -28,7 +29,7 @@ class LocalDataFormatException implements Exception {
 /// Persists private profiles, the interface locale, and story libraries locally.
 class LocalRepository {
   /// Wraps one opened preferences instance for atomic repository operations.
-  LocalRepository._(this._preferences);
+  LocalRepository._(this._preferences, this._bridgeCredentialStorage);
 
   static const _localeKey = 'app_locale';
   static const _legacyProfileKey = 'daughter_profile';
@@ -54,11 +55,15 @@ class LocalRepository {
   ];
 
   final SharedPreferences _preferences;
+  final BridgeCredentialStorage _bridgeCredentialStorage;
 
   /// Opens the platform-backed preferences store used by this device.
-  static Future<LocalRepository> open() async {
+  static Future<LocalRepository> open({
+    BridgeCredentialStorage bridgeCredentialStorage =
+        const SecureBridgeCredentialStorage(),
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    return LocalRepository._(preferences);
+    return LocalRepository._(preferences, bridgeCredentialStorage);
   }
 
   /// Reads and validates a complete application snapshot from local storage.
@@ -236,10 +241,23 @@ class LocalRepository {
   /// parent PIN: a token belongs to one device and its PC, not to a family
   /// snapshot that travels between devices.
   Future<BridgeCredential?> readBridgeCredential() async {
-    final encodedCredential = _preferences.getString(_bridgeDeviceKey);
-    if (encodedCredential == null) return null;
     try {
-      return BridgeCredential.fromJson(_jsonObject(encodedCredential));
+      final secureCredential = await _bridgeCredentialStorage.read();
+      if (secureCredential != null) {
+        final credential = BridgeCredential.fromJson(
+          _jsonObject(secureCredential),
+        );
+        await _preferences.remove(_bridgeDeviceKey);
+        return credential;
+      }
+      final legacyCredential = _preferences.getString(_bridgeDeviceKey);
+      if (legacyCredential == null) return null;
+      final credential = BridgeCredential.fromJson(
+        _jsonObject(legacyCredential),
+      );
+      await _bridgeCredentialStorage.write(legacyCredential);
+      await _preferences.remove(_bridgeDeviceKey);
+      return credential;
     } on FormatException catch (error) {
       throw LocalDataFormatException(error);
     }
@@ -247,14 +265,13 @@ class LocalRepository {
 
   /// Persists the bearer token issued by the PC at pairing time.
   Future<void> saveBridgeCredential(BridgeCredential credential) async {
-    await _preferences.setString(
-      _bridgeDeviceKey,
-      jsonEncode(credential.toJson()),
-    );
+    await _bridgeCredentialStorage.write(jsonEncode(credential.toJson()));
+    await _preferences.remove(_bridgeDeviceKey);
   }
 
   /// Forgets this device's pairing locally without contacting the PC.
   Future<void> removeBridgeCredential() async {
+    await _bridgeCredentialStorage.delete();
     await _preferences.remove(_bridgeDeviceKey);
   }
 

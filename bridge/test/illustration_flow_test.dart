@@ -527,12 +527,21 @@ void main() {
   test('a story job and an illustration job never overlap', () async {
     final printedCodes = <String>[];
     final storyGate = _GatedOllamaCall(_storyPayload());
+    final unloadStarted = Completer<void>();
+    final releaseUnload = Completer<void>();
     final renderOrder = <String>[];
     final comfy = FakeComfyUiClient(
       onSubmit: (index) async => renderOrder.add('render-$index'),
     );
+    final ollama = FakeOllamaStoryClient(
+      storyGate.call,
+      unloadResponder: (request) async {
+        unloadStarted.complete();
+        await releaseUnload.future;
+      },
+    );
     final testServer = await createTestServer(
-      ollamaClient: FakeOllamaStoryClient(storyGate.call),
+      ollamaClient: ollama,
       comfyUiClient: comfy,
       notifyCode: printedCodes.add,
     );
@@ -583,10 +592,21 @@ void main() {
     expect(waiting.$2['status'], anyOf('queued', 'rendering'));
 
     storyGate.release.complete();
+    await unloadStarted.future;
+    for (var tick = 0; tick < 10; tick++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(
+      comfy.workflows,
+      isEmpty,
+      reason: 'the renderer must wait until the Ollama unload finishes',
+    );
+    releaseUnload.complete();
     final storyJob = await testServer.server.generationQueue.whenSettled(
       storyJobId,
     );
     expect(storyJob.status, GenerationJobStatus.completed);
+    expect(ollama.unloadRequests, hasLength(1));
     renderOrder.add('story-done');
 
     final illustrationJob = await testServer.server.illustrationQueue
