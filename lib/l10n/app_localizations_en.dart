@@ -237,11 +237,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyCreated => 'The story is ready';
 
   @override
-  String get libraryTitle => 'Family story library';
+  String get libraryTitle => 'The shelf';
 
   @override
-  String get librarySubtitle =>
-      'Completed stories are stored only on this device.';
+  String get librarySubtitle => 'Stored only on this device';
+
+  @override
+  String get libraryStoredWithPc => 'Synced with the family PC';
+
+  @override
+  String get searchStoryTitles => 'Search titles';
+
+  @override
+  String get clearStorySearch => 'Clear search';
 
   @override
   String get emptyLibraryTitle => 'The bookshelf is waiting';
@@ -791,16 +799,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'Filter this shelf';
-
-  @override
-  String get allStories => 'All stories';
+  String allStoriesCount(int count) {
+    return 'All $count';
+  }
 
   @override
   String get favoriteStories => 'Favorites';
 
   @override
   String get noStoriesInFilter => 'No stories match this filter yet.';
+
+  @override
+  String get noStoriesMatchSearch =>
+      'No title on this shelf matches that search.';
 
   @override
   String get generationCenterTitle => 'Local generation center';

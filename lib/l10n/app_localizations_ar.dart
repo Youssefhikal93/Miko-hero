@@ -234,10 +234,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get storyCreated => 'القصة جاهزة';
 
   @override
-  String get libraryTitle => 'مكتبة قصص العائلة';
+  String get libraryTitle => 'الرف';
 
   @override
-  String get librarySubtitle => 'تُحفظ القصص المكتملة على هذا الجهاز فقط.';
+  String get librarySubtitle => 'محفوظة على هذا الجهاز فقط';
+
+  @override
+  String get libraryStoredWithPc => 'متزامنة مع حاسوب العائلة';
+
+  @override
+  String get searchStoryTitles => 'ابحث في العناوين';
+
+  @override
+  String get clearStorySearch => 'مسح البحث';
 
   @override
   String get emptyLibraryTitle => 'رف الكتب بانتظارك';
@@ -781,16 +790,18 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'تصفية هذا الرف';
-
-  @override
-  String get allStories => 'كل القصص';
+  String allStoriesCount(int count) {
+    return 'الكل $count';
+  }
 
   @override
   String get favoriteStories => 'المفضلة';
 
   @override
   String get noStoriesInFilter => 'لا توجد قصص تطابق هذا المرشح بعد.';
+
+  @override
+  String get noStoriesMatchSearch => 'لا يوجد عنوان في هذا الرف يطابق البحث.';
 
   @override
   String get generationCenterTitle => 'مركز التوليد المحلي';

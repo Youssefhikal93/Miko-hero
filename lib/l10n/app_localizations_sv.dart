@@ -238,11 +238,19 @@ class AppLocalizationsSv extends AppLocalizations {
   String get storyCreated => 'Berättelsen är klar';
 
   @override
-  String get libraryTitle => 'Familjens berättelsebibliotek';
+  String get libraryTitle => 'Bokhyllan';
 
   @override
-  String get librarySubtitle =>
-      'Färdiga berättelser lagras endast på den här enheten.';
+  String get librarySubtitle => 'Lagras endast på den här enheten';
+
+  @override
+  String get libraryStoredWithPc => 'Synkad med familjens dator';
+
+  @override
+  String get searchStoryTitles => 'Sök titlar';
+
+  @override
+  String get clearStorySearch => 'Rensa sökningen';
 
   @override
   String get emptyLibraryTitle => 'Bokhyllan väntar';
@@ -796,16 +804,18 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'Filtrera bokhyllan';
-
-  @override
-  String get allStories => 'Alla berättelser';
+  String allStoriesCount(int count) {
+    return 'Alla $count';
+  }
 
   @override
   String get favoriteStories => 'Favoriter';
 
   @override
   String get noStoriesInFilter => 'Inga berättelser matchar filtret ännu.';
+
+  @override
+  String get noStoriesMatchSearch => 'Ingen titel på hyllan matchar sökningen.';
 
   @override
   String get generationCenterTitle => 'Lokalt skapandecenter';

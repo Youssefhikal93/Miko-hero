@@ -115,10 +115,8 @@ void main() {
 
     await tester.tap(find.text('Import story file'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextField).first,
-      'family-safe-password',
-    );
+    // The last field is the password dialog's; the first is the shelf search.
+    await tester.enterText(find.byType(TextField).last, 'family-safe-password');
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
@@ -170,10 +168,7 @@ void main() {
 
     await tester.tap(find.text('Import story file'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextField).first,
-      'family-safe-password',
-    );
+    await tester.enterText(find.byType(TextField).last, 'family-safe-password');
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 

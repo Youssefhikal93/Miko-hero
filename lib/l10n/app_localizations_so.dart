@@ -237,11 +237,20 @@ class AppLocalizationsSo extends AppLocalizations {
   String get storyCreated => 'Sheekadu waa diyaar';
 
   @override
-  String get libraryTitle => 'Maktabadda sheekooyinka qoyska';
+  String get libraryTitle => 'Khaanadda buugaagta';
 
   @override
-  String get librarySubtitle =>
-      'Sheekooyinka dhammaystiran waxaa lagu kaydiyaa qalabkan oo keliya.';
+  String get librarySubtitle => 'Waxaa lagu kaydiyaa qalabkan oo keliya';
+
+  @override
+  String get libraryStoredWithPc =>
+      'Waa la isku waafajiyaa kombiyuutarka qoyska';
+
+  @override
+  String get searchStoryTitles => 'Raadi cinwaannada';
+
+  @override
+  String get clearStorySearch => 'Nadiifi raadinta';
 
   @override
   String get emptyLibraryTitle => 'Khaanadda buugtu way sugaysaa';
@@ -794,10 +803,9 @@ class AppLocalizationsSo extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'Kala saar khaanaddan';
-
-  @override
-  String get allStories => 'Dhammaan sheekooyinka';
+  String allStoriesCount(int count) {
+    return 'Dhammaan $count';
+  }
 
   @override
   String get favoriteStories => 'Kuwa la jecel yahay';
@@ -805,6 +813,10 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get noStoriesInFilter =>
       'Weli sheeko ku habboon kala-saarkan ma jirto.';
+
+  @override
+  String get noStoriesMatchSearch =>
+      'Khaanaddan kuma jiro cinwaan raadintaas u dhigma.';
 
   @override
   String get generationCenterTitle => 'Xarunta samaynta maxalliga ah';

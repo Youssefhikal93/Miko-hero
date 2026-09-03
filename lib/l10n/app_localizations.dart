@@ -537,14 +537,32 @@ abstract class AppLocalizations {
   /// No description provided for @libraryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Family story library'**
+  /// **'The shelf'**
   String get libraryTitle;
 
   /// No description provided for @librarySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Completed stories are stored only on this device.'**
+  /// **'Stored only on this device'**
   String get librarySubtitle;
+
+  /// No description provided for @libraryStoredWithPc.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced with the family PC'**
+  String get libraryStoredWithPc;
+
+  /// No description provided for @searchStoryTitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Search titles'**
+  String get searchStoryTitles;
+
+  /// No description provided for @clearStorySearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearStorySearch;
 
   /// No description provided for @emptyLibraryTitle.
   ///
@@ -1500,17 +1518,11 @@ abstract class AppLocalizations {
   /// **'Each collection name must be {max} characters or fewer.'**
   String collectionNameTooLong(int max);
 
-  /// No description provided for @filterStories.
+  /// No description provided for @allStoriesCount.
   ///
   /// In en, this message translates to:
-  /// **'Filter this shelf'**
-  String get filterStories;
-
-  /// No description provided for @allStories.
-  ///
-  /// In en, this message translates to:
-  /// **'All stories'**
-  String get allStories;
+  /// **'All {count}'**
+  String allStoriesCount(int count);
 
   /// No description provided for @favoriteStories.
   ///
@@ -1523,6 +1535,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No stories match this filter yet.'**
   String get noStoriesInFilter;
+
+  /// No description provided for @noStoriesMatchSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'No title on this shelf matches that search.'**
+  String get noStoriesMatchSearch;
 
   /// No description provided for @generationCenterTitle.
   ///
