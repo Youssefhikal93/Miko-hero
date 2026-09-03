@@ -753,6 +753,14 @@ class AppLocalizationsSo extends AppLocalizations {
   String get noDrafts => 'Sheeko dib-u-eegis sugaysa ma jirto.';
 
   @override
+  String get moreStoryActions => 'Ficillo kale oo sheekada';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count bogag';
+  }
+
+  @override
   String get addFavorite => 'Ku dar kuwa la jecel yahay';
 
   @override

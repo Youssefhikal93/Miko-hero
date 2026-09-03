@@ -1434,6 +1434,18 @@ abstract class AppLocalizations {
   /// **'No stories are waiting for review.'**
   String get noDrafts;
 
+  /// No description provided for @moreStoryActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More story actions'**
+  String get moreStoryActions;
+
+  /// No description provided for @storyPageCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pages'**
+  String storyPageCount(int count);
+
   /// No description provided for @addFavorite.
   ///
   /// In en, this message translates to:

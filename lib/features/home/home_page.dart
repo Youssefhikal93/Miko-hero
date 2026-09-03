@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_state.dart';
+import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -205,30 +206,37 @@ class _RecentStories extends StatelessWidget {
       children: <Widget>[
         SectionHeading(title: text.recentStories),
         const SizedBox(height: 18),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth >= 900
-                ? (constraints.maxWidth - 32) / 3
-                : constraints.maxWidth;
-            return Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: approvedStories.take(3).map((story) {
-                return SizedBox(
-                  width: width,
-                  child: StoryCard(
-                    story: story,
-                    actions: StoryCardActions(
-                      open: () => context.go('/story/${story.id}'),
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
+        MosaicGrid(
+          tiles: _tiles(
+            context,
+            approvedStories.take(3).toList(growable: false),
+          ),
         ),
       ],
     );
+  }
+
+  /// Gives the newest book the full-width tile and the two behind it a cover.
+  ///
+  /// Home offers no secondary command on a book, so the tiles carry no
+  /// overflow control: favourites, sharing, and deletion stay on the shelf and
+  /// in the parent surfaces that own them.
+  List<MosaicTile> _tiles(BuildContext context, List<StoryBook> stories) {
+    return <MosaicTile>[
+      for (var index = 0; index < stories.length; index++)
+        MosaicTile(
+          span: index == 0 ? 2 : 1,
+          child: StoryCard(
+            story: stories[index],
+            variant: index == 0
+                ? StoryCardVariant.large
+                : StoryCardVariant.small,
+            actions: StoryCardActions(
+              open: () => context.go('/story/${stories[index].id}'),
+            ),
+          ),
+        ),
+    ];
   }
 }
 

@@ -740,6 +740,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noDrafts => 'لا توجد قصص بانتظار المراجعة.';
 
   @override
+  String get moreStoryActions => 'إجراءات أخرى للقصة';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count صفحات';
+  }
+
+  @override
   String get addFavorite => 'إضافة إلى المفضلة';
 
   @override

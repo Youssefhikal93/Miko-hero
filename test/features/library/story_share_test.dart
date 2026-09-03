@@ -138,10 +138,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Abbas hero'));
     await tester.pumpAndSettle();
-    final openStory = find.text('Open story');
-    await tester.ensureVisible(openStory);
+    final storyTile = find.text('Moon Garden').first;
+    await tester.ensureVisible(storyTile);
     await tester.pumpAndSettle();
-    await tester.tap(openStory);
+    await tester.tap(storyTile);
     await tester.pumpAndSettle();
 
     expect(find.text('Page 1 of 2'), findsOneWidget);
