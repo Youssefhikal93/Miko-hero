@@ -352,7 +352,17 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                 padding: const EdgeInsetsDirectional.only(end: 8),
                 child: ChoiceChip(
                   key: ValueKey<String>('story-language-${language.code}'),
-                  label: Text(_storyLanguageName(text, language)),
+                  // Each chip is written in its own script, so the Arabic one
+                  // needs the Arabic-capable face whatever the interface uses.
+                  label: Text(
+                    _storyLanguageName(text, language),
+                    style: language.usesLatinScript
+                        ? null
+                        : TextStyle(
+                            fontFamily: interfaceFontFamilyFor(language),
+                            fontVariations: const <FontVariation>[],
+                          ),
+                  ),
                   showCheckmark: false,
                   selected: _language == language,
                   onSelected: _generating

@@ -240,9 +240,22 @@ class LocalRepository {
   /// Kept out of the backup-restore key group for the same reason as the
   /// parent PIN: a token belongs to one device and its PC, not to a family
   /// snapshot that travels between devices.
+  ///
+  /// A protected store that cannot answer (a missing platform plugin, a
+  /// browser without a secure context) must not take the whole AI connection
+  /// down with it: the device then reads as unpaired, or keeps its plaintext
+  /// copy until the store works again. Only corrupt content is an error.
   Future<BridgeCredential?> readBridgeCredential() async {
     try {
-      final secureCredential = await _bridgeCredentialStorage.read();
+      String? secureCredential;
+      var storeAnswers = true;
+      try {
+        secureCredential = await _bridgeCredentialStorage.read();
+      } catch (_) {
+        // The plugin threw (an Error on the web, an Exception elsewhere);
+        // the plaintext fallback below still applies.
+        storeAnswers = false;
+      }
       if (secureCredential != null) {
         final credential = BridgeCredential.fromJson(
           _jsonObject(secureCredential),
@@ -255,8 +268,14 @@ class LocalRepository {
       final credential = BridgeCredential.fromJson(
         _jsonObject(legacyCredential),
       );
-      await _bridgeCredentialStorage.write(legacyCredential);
-      await _preferences.remove(_bridgeDeviceKey);
+      if (storeAnswers) {
+        try {
+          await _bridgeCredentialStorage.write(legacyCredential);
+          await _preferences.remove(_bridgeDeviceKey);
+        } catch (_) {
+          // Keep the plaintext copy; the migration retries on the next read.
+        }
+      }
       return credential;
     } on FormatException catch (error) {
       throw LocalDataFormatException(error);

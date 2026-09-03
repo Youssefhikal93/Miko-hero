@@ -31,6 +31,7 @@ class AppShell extends StatelessWidget {
           );
         }
         return _MobileShell(
+          location: location,
           destinations: destinations,
           selectedIndex: selectedIndex,
           child: child,
@@ -102,23 +103,37 @@ class _NavigationDestination {
 class _MobileShell extends StatelessWidget {
   /// Creates the mobile frame around any primary or detail route.
   const _MobileShell({
+    required this.location,
     required this.destinations,
     required this.selectedIndex,
     required this.child,
   });
 
+  final String location;
   final List<_NavigationDestination> destinations;
   final int selectedIndex;
   final Widget child;
 
+  /// Routes whose page paints its own header, so the shell adds none.
+  ///
+  /// Home, the shelf, the creation form and the reader each open with their
+  /// own title row in the redesign; a shell bar above it would be a second
+  /// header on a phone. Every other route keeps the bar and its menu button.
+  static const _selfHeadedRoutes = <String>['/create', '/library', '/story/'];
+
+  bool get _paintsOwnHeader {
+    if (location == '/') return true;
+    return _selfHeadedRoutes.any(location.startsWith);
+  }
+
   @override
-  /// Keeps the menu button visible inside profile editors and story readers.
+  /// Keeps the menu button visible inside profile editors and settings.
   ///
   /// The app bar carries no exit of its own: the reader prints its own close
   /// beside the hero, so a second one here would be the same command twice.
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Iam - hero')),
+      appBar: _paintsOwnHeader ? null : AppBar(title: const Text('Iam - hero')),
       drawer: _AppDrawer(
         destinations: destinations,
         selectedIndex: selectedIndex,
