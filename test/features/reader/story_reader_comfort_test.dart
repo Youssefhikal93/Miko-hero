@@ -276,9 +276,9 @@ Future<void> _dismissNotice(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Opens the reader's narration choices dialog.
+/// Opens the reader's narration choices dialog from its sleep-timer icon.
 Future<void> _openNarrationSettings(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Narration settings'));
+  await tester.tap(find.byTooltip('Sleep timer'));
   await tester.pumpAndSettle();
 }
 

@@ -331,6 +331,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get readToMe => 'Read to me';
+
+  @override
   String get playNarration => 'Play narration';
 
   @override

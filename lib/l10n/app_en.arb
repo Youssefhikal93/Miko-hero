@@ -110,6 +110,7 @@
       "total": {"type": "int"}
     }
   },
+  "readToMe": "Read to me",
   "playNarration": "Play narration",
   "pauseNarration": "Pause narration",
   "resumeNarration": "Continue narration",
