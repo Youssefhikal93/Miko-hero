@@ -12,6 +12,7 @@ import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
+import 'package:miko_hero/features/story_creation/story_request_draft.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
@@ -49,25 +50,24 @@ class _StoryForm extends ConsumerStatefulWidget {
   ConsumerState<_StoryForm> createState() => _StoryFormState();
 }
 
-/// Mutable story request buffer and generation progress state.
+/// The form's text controllers, its layout, and one story request draft.
+///
+/// Every choice the parent taps lives in the draft; the two free-text fields
+/// stay with their controllers and join the draft when the request is built.
 class _StoryFormState extends ConsumerState<_StoryForm> {
   final _formKey = GlobalKey<FormState>();
   final _heroFieldKey = GlobalKey<FormFieldState<String>>();
   final _themeController = TextEditingController();
   final _moralController = TextEditingController();
-  String? _selectedProfileId;
-  ChildGender? _selectedGender;
-  late AppLanguage _language;
-  StoryLength _length = StoryLength.short;
-  IllustrationStyle _style = IllustrationStyle.pictureBook;
-  bool _savingProfileSelection = false;
-  bool _generating = false;
+  late StoryRequestDraft _draft;
 
   @override
   /// Defaults story language to the parent's current interface language.
   void initState() {
     super.initState();
-    _language = AppLanguage.fromCode(widget.locale.languageCode);
+    _draft = StoryRequestDraft(
+      language: AppLanguage.fromCode(widget.locale.languageCode),
+    );
   }
 
   @override
@@ -82,7 +82,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   /// Lays the request out as four tapped sections above one written action.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
-    final selectedProfile = _profileById(_selectedProfileId);
+    final selectedProfile = _profileById(_draft.hero?.id);
     final usesLocalAi = ref
         .watch(aiConnectionControllerProvider)
         .value
@@ -103,9 +103,9 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                 !selectedProfile.gender.isSpecified) ...<Widget>[
               const SizedBox(height: 18),
               GenderSelector(
-                key: ValueKey<String>(_selectedProfileId!),
-                selectedGender: _selectedGender,
-                enabled: !_generating && !_savingProfileSelection,
+                key: ValueKey<String>(selectedProfile.id),
+                selectedGender: _draft.gender,
+                enabled: _draft.acceptsInput,
                 onSelected: _genderSelected,
               ),
             ],
@@ -131,7 +131,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
             ],
             const SizedBox(height: 14),
             _writeButton(text, generatorKnown: usesLocalAi != null),
-            if (_generating) ...<Widget>[
+            if (_draft.isGenerating) ...<Widget>[
               const SizedBox(height: 22),
               const _GenerationProgress(),
             ],
@@ -157,7 +157,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   Widget _heroField(AppLocalizations text) {
     return FormField<String>(
       key: _heroFieldKey,
-      initialValue: _selectedProfileId,
+      initialValue: _draft.hero?.id,
       validator: (profileId) =>
           profileId == null ? text.profileSelectionRequired : null,
       builder: (field) => Column(
@@ -172,17 +172,17 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                   _HeroCard(
                     key: ValueKey<String>('story-hero-${profile.id}'),
                     profile: profile,
-                    gender: _cardGender(profile),
-                    selected: profile.id == _selectedProfileId,
-                    enabled: !_generating && !_savingProfileSelection,
-                    onTap: () => _profileSelected(profile.id),
+                    gender: _draft.genderOn(profile),
+                    selected: profile.id == _draft.hero?.id,
+                    enabled: _draft.acceptsInput,
+                    onTap: () => _profileSelected(profile),
                   ),
                   const SizedBox(width: 10),
                 ],
                 _AddHeroCard(
                   key: const ValueKey<String>('story-add-hero'),
                   label: text.add,
-                  enabled: !_generating,
+                  enabled: !_draft.isGenerating,
                 ),
               ],
             ),
@@ -199,41 +199,25 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     );
   }
 
-  /// Shows a just-made Girl/Boy choice on the card that is missing one.
-  ChildGender _cardGender(ChildProfile profile) {
-    if (profile.id != _selectedProfileId || _selectedGender == null) {
-      return profile.gender;
-    }
-    return _selectedGender!;
-  }
-
   /// Loads a profile's saved choice and applies its theme when already known.
-  void _profileSelected(String profileId) {
-    final profile = widget.profiles.firstWhere(
-      (candidate) => candidate.id == profileId,
-    );
-    final selectedGender = profile.gender.isSpecified ? profile.gender : null;
-    setState(() {
-      _selectedProfileId = profileId;
-      _selectedGender = selectedGender;
-      _language = profile.storyPreferences.defaultLanguage;
-    });
-    _heroFieldKey.currentState?.didChange(profileId);
+  void _profileSelected(ChildProfile profile) {
+    setState(() => _draft = _draft.withHero(profile));
+    _heroFieldKey.currentState?.didChange(profile.id);
+    final selectedGender = _draft.gender;
     if (selectedGender != null) {
-      setState(() => _savingProfileSelection = true);
-      unawaited(_persistProfileSelection(profileId, selectedGender));
+      setState(() => _draft = _draft.withSavingHero(saving: true));
+      unawaited(_persistProfileSelection(profile.id, selectedGender));
     }
   }
 
   /// Persists a deliberate Girl/Boy choice and updates the active app palette.
   void _genderSelected(ChildGender gender) {
-    final profileId = _selectedProfileId;
-    if (profileId == null || _savingProfileSelection) return;
+    final hero = _draft.hero;
+    if (hero == null || _draft.isSavingHero) return;
     setState(() {
-      _selectedGender = gender;
-      _savingProfileSelection = true;
+      _draft = _draft.withGender(gender).withSavingHero(saving: true);
     });
-    unawaited(_persistProfileSelection(profileId, gender));
+    unawaited(_persistProfileSelection(hero.id, gender));
   }
 
   /// Serializes profile selection and restores persisted input after a failure.
@@ -251,14 +235,12 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
           .read(appControllerProvider)
           .value
           ?.profileById(profileId);
-      setState(() {
-        _selectedGender = persistedProfile?.gender.isSpecified == true
-            ? persistedProfile?.gender
-            : null;
-      });
+      setState(() => _draft = _draft.withPersistedGender(persistedProfile));
       _showError(error);
     } finally {
-      if (mounted) setState(() => _savingProfileSelection = false);
+      if (mounted) {
+        setState(() => _draft = _draft.withSavingHero(saving: false));
+      }
     }
   }
 
@@ -267,7 +249,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     return TextFormField(
       key: const ValueKey<String>('story-theme'),
       controller: _themeController,
-      enabled: !_generating,
+      enabled: !_draft.isGenerating,
       textCapitalization: TextCapitalization.sentences,
       decoration: InputDecoration(hintText: text.themeHint),
       validator: (theme) =>
@@ -280,7 +262,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     return TextFormField(
       key: const ValueKey<String>('story-moral'),
       controller: _moralController,
-      enabled: !_generating,
+      enabled: !_draft.isGenerating,
       textCapitalization: TextCapitalization.sentences,
       decoration: InputDecoration(hintText: text.lessonHint),
       validator: (moral) =>
@@ -302,9 +284,10 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                   key: ValueKey<String>('story-length-${length.name}'),
                   pageCount: length.pageCount,
                   pagesLabel: text.pages,
-                  selected: _length == length,
-                  enabled: !_generating,
-                  onTap: () => setState(() => _length = length),
+                  selected: _draft.length == length,
+                  enabled: !_draft.isGenerating,
+                  onTap: () =>
+                      setState(() => _draft = _draft.withLength(length)),
                 ),
               ),
             );
@@ -328,9 +311,9 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                   key: ValueKey<String>('story-style-${style.name}'),
                   label: _styleName(text, style),
                   swatch: _styleSwatch(style),
-                  selected: _style == style,
-                  enabled: !_generating,
-                  onTap: () => setState(() => _style = style),
+                  selected: _draft.style == style,
+                  enabled: !_draft.isGenerating,
+                  onTap: () => setState(() => _draft = _draft.withStyle(style)),
                 ),
               ),
             );
@@ -362,10 +345,12 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                           ),
                   ),
                   showCheckmark: false,
-                  selected: _language == language,
-                  onSelected: _generating
+                  selected: _draft.language == language,
+                  onSelected: _draft.isGenerating
                       ? null
-                      : (_) => setState(() => _language = language),
+                      : (_) => setState(
+                          () => _draft = _draft.withLanguage(language),
+                        ),
                 ),
               );
             })
@@ -376,13 +361,13 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
 
   /// Prevents duplicate generation and waits for the saved generator selection.
   Widget _writeButton(AppLocalizations text, {required bool generatorKnown}) {
-    final blocked = _generating || _savingProfileSelection || !generatorKnown;
+    final blocked = !_draft.canWrite(generatorKnown: generatorKnown);
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
         key: const ValueKey<String>('story-submit'),
         onPressed: blocked ? null : _generateStory,
-        icon: _generating
+        icon: _draft.isGenerating
             ? const SizedBox.square(
                 dimension: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
@@ -396,16 +381,15 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   /// Validates the request, persists the generated draft, and opens its review.
   Future<void> _generateStory() async {
     if (!_formKey.currentState!.validate()) return;
-    final profile = _selectedProfile();
-    final gender = _selectedGender!;
-    setState(() => _generating = true);
+    final submitted = _completedDraft();
+    final hero = submitted.hero!;
+    final gender = submitted.gender!;
+    setState(() => _draft = submitted.withGenerating(running: true));
     try {
-      await ref
-          .read(profileControllerProvider)
-          .selectProfile(profile.id, gender);
+      await ref.read(profileControllerProvider).selectProfile(hero.id, gender);
       final story = await ref
           .read(storyControllerProvider)
-          .createStory(_storyRequest(profile, gender));
+          .createStory(submitted.toRequest());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).storyCreated)),
@@ -413,37 +397,22 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
       context.go('/review/${story.id}');
     } on Exception catch (error) {
       if (!mounted) return;
-      setState(() => _generating = false);
+      setState(() => _draft = _draft.withGenerating(running: false));
       _showError(error);
     }
   }
 
-  /// Captures one immutable request from the already-validated edit buffer.
-  StoryRequest _storyRequest(ChildProfile profile, ChildGender gender) {
-    return StoryRequest(
-      hero: StoryHero(
-        profileId: profile.id,
-        name: profile.name,
-        gender: gender,
-      ),
-      prompt: StoryPrompt(
-        theme: _themeController.text.trim(),
-        moral: _moralController.text.trim(),
-        preferences: profile.storyPreferences,
-      ),
-      presentation: StoryPresentation(
-        language: _language,
-        length: _length,
-        style: _style,
-      ),
-    );
-  }
-
-  /// Resolves the validated profile identity from the current widget snapshot.
-  ChildProfile _selectedProfile() {
-    return widget.profiles.firstWhere(
-      (candidate) => candidate.id == _selectedProfileId,
-    );
+  /// Joins the two typed fields and the stored hero to the tapped choices.
+  ///
+  /// The hero is re-read from the current snapshot, so a request is written
+  /// from the profile as storage holds it rather than as the card that was
+  /// tapped remembered it.
+  StoryRequestDraft _completedDraft() {
+    final stored = _profileById(_draft.hero?.id);
+    final draft = stored == null ? _draft : _draft.withRefreshedHero(stored);
+    return draft
+        .withTheme(_themeController.text)
+        .withMoral(_moralController.text);
   }
 
   /// Resolves an optional card selection without assuming a profile exists.
@@ -489,7 +458,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   /// Reads the shared artwork table for the hero chosen so far, so the card a
   /// parent taps carries the colours the finished story will actually wear.
   List<Color> _styleSwatch(IllustrationStyle style) {
-    return StoryArtwork.swatchFor(style, _selectedGender);
+    return StoryArtwork.swatchFor(style, _draft.gender);
   }
 }
 

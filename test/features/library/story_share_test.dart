@@ -13,9 +13,8 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/library/story_share_controller.dart';
 
-import '../../support/seeded_device.dart';
-
 import '../../support/fake_encrypted_file_picker.dart';
+import '../../support/seeded_device.dart';
 
 /// Verifies that one story can travel between devices without duplicates.
 void main() {
