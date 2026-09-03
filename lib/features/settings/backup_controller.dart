@@ -5,6 +5,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/backup/backup_file_service.dart';
 import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/models/app_state.dart';
+import 'package:miko_hero/core/storage/library_transaction.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 
 /// Supplies the authenticated encryption codec used by backup commands.
@@ -54,9 +55,7 @@ class BackupController {
 
   /// Replaces local family state only after decode and parent confirmation.
   Future<void> restore(AppState restoredState) async {
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.replaceState(restoredState);
-    _ref.read(appControllerProvider.notifier).commit(restoredState);
+    await _ref.read(libraryTransactionProvider).replaceState(restoredState);
     _ref.invalidate(generationQueueControllerProvider);
   }
 }

@@ -92,7 +92,7 @@ final appControllerProvider = AsyncNotifierProvider<AppController, AppState>(
   AppController.new,
 );
 
-/// Loads application state and commits snapshots already persisted by features.
+/// Loads application state and publishes snapshots storage already accepted.
 class AppController extends AsyncNotifier<AppState> {
   @override
   /// Loads local state before any feature screen is rendered.
@@ -101,7 +101,12 @@ class AppController extends AsyncNotifier<AppState> {
     return repository.readState();
   }
 
-  /// Publishes a snapshot only after its feature controller completes storage.
+  /// Publishes a snapshot that has already been written to local storage.
+  ///
+  /// The publish half of `LibraryTransaction`, which is the only caller in the
+  /// application: a feature controller that reached in here directly could
+  /// publish a library storage never accepted, which is exactly the drift the
+  /// transaction exists to prevent.
   void commit(AppState persistedState) {
     state = AsyncData(persistedState);
   }

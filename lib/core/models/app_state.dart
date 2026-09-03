@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 
 /// Snapshot schema written by this version; 4 introduced reading comfort.
 ///
@@ -136,6 +137,25 @@ class AppState {
       if (profile.id == profileId) return profile;
     }
     return null;
+  }
+
+  /// Resolves one stored book by identity, or null when it is already gone.
+  StoryBook? storyById(String storyId) {
+    for (final story in stories) {
+      if (story.id == storyId) return story;
+    }
+    return null;
+  }
+
+  /// Resolves one stored book or reports it as recoverably missing.
+  ///
+  /// A parent reaches this by acting on a card whose story another screen
+  /// deleted meanwhile, so it is an [UnknownEntityException] the surface is
+  /// expected to catch rather than a programming error.
+  StoryBook requireStoryById(String storyId) {
+    final story = storyById(storyId);
+    if (story == null) throw const UnknownEntityException('story');
+    return story;
   }
 
   /// Returns the newest-first shelf belonging to one child profile.

@@ -8,6 +8,7 @@ import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/shared_story.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
+import 'package:miko_hero/core/storage/library_transaction.dart';
 
 /// Supplies the authenticated encryption codec used by story share commands.
 final storyShareCodecProvider = Provider<StoryShareCodec>((ref) {
@@ -34,7 +35,7 @@ class StoryShareController {
   /// Encrypts one stored story plus its hero name, without the child's photo.
   Future<Uint8List> createStoryFile(String storyId, String password) {
     final current = _currentState;
-    final story = _requireStory(current, storyId);
+    final story = current.requireStoryById(storyId);
     final profile = current.profileById(story.content.request.profileId);
     final heroName = profile?.name ?? story.content.request.heroName;
     return _ref
@@ -72,36 +73,21 @@ class StoryShareController {
   /// imported book keeps its review status, so a shared draft still needs
   /// parent approval here.
   Future<void> importStory(SharedStory shared, String profileId) async {
-    final current = _currentState;
-    if (current.profileById(profileId) == null) {
+    if (_currentState.profileById(profileId) == null) {
       throw const UnknownEntityException('child profile');
     }
-    if (current.stories.any((story) => story.id == shared.story.id)) {
-      throw const DuplicateStoryException();
-    }
-    final savedStories = <StoryBook>[
-      shared.storyForProfile(profileId),
-      ...current.stories,
-    ]..sort((left, right) => right.createdAt.compareTo(left.createdAt));
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveStories(savedStories);
-    _ref
-        .read(appControllerProvider.notifier)
-        .commit(
-          current.withStories(List<StoryBook>.unmodifiable(savedStories)),
-        );
+    await _ref.read(libraryTransactionProvider).mutateStories((stories) {
+      if (stories.any((story) => story.id == shared.story.id)) {
+        throw const DuplicateStoryException();
+      }
+      // Newest-first is the transaction's job; the import only says which
+      // books the shelf should hold afterwards.
+      return <StoryBook>[shared.storyForProfile(profileId), ...stories];
+    });
   }
 
   /// Reads the loaded snapshot or preserves the provider's loading error.
   AppState get _currentState {
     return _ref.read(appControllerProvider).requireValue;
-  }
-
-  /// Rejects an export for a story that was deleted on another screen.
-  StoryBook _requireStory(AppState current, String storyId) {
-    for (final story in current.stories) {
-      if (story.id == storyId) return story;
-    }
-    throw const UnknownEntityException('story');
   }
 }

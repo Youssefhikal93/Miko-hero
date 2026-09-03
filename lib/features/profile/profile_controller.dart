@@ -6,8 +6,10 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
+import 'package:miko_hero/core/models/local_identity.dart';
 import 'package:miko_hero/core/models/reading_badge.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
+import 'package:miko_hero/core/storage/library_transaction.dart';
 
 /// Supplies profile commands without exposing persistence details to widgets.
 final profileControllerProvider = Provider<ProfileController>(
@@ -29,20 +31,21 @@ class ProfileController {
     if (!draft.gender.isSpecified) {
       throw ArgumentError.value(draft.gender, 'gender');
     }
-    final current = _currentState;
-    final savedProfile = _profileFromDraft(current, profileId, draft);
-    final savedProfiles = _upsertProfile(current.profiles, savedProfile);
-    await _persistProfiles(current, savedProfiles, savedProfile.id);
+    final savedProfile = _profileFromDraft(_currentState, profileId, draft);
+    await _library.mutateProfiles(
+      (profiles) => _upsertProfile(profiles, savedProfile),
+      activeProfileId: savedProfile.id,
+    );
   }
 
   /// Makes one existing child active without modifying their saved settings.
   Future<void> activateProfile(String profileId) async {
-    final current = _currentState;
-    _requireProfile(current, profileId);
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveActiveProfileId(profileId);
-    _commit(
-      current.withProfiles(current.profiles, savedActiveProfileId: profileId),
+    _requireProfile(_currentState, profileId);
+    // Returning the very list it was handed is how the transaction is told to
+    // write the active identity alone and leave the profiles untouched.
+    await _library.mutateProfiles(
+      (profiles) => profiles,
+      activeProfileId: profileId,
     );
   }
 
@@ -51,9 +54,8 @@ class ProfileController {
     if (!isValidProfileThemeColorValue(themeColorValue)) {
       throw ArgumentError.value(themeColorValue, 'themeColorValue');
     }
-    final current = _currentState;
-    final profile = _requireProfile(current, profileId);
-    await _saveProfile(current, profile.withThemeColor(themeColorValue));
+    final profile = _requireProfile(_currentState, profileId);
+    await _saveProfile(profile.withThemeColor(themeColorValue));
   }
 
   /// Saves story defaults and safety boundaries only for one child profile.
@@ -61,15 +63,11 @@ class ProfileController {
     String profileId,
     ChildStoryPreferences preferences,
   ) async {
-    final current = _currentState;
-    final profile = _requireProfile(current, profileId);
+    final profile = _requireProfile(_currentState, profileId);
     final validatedPreferences = ChildStoryPreferences.fromJson(
       preferences.toJson(),
     );
-    await _saveProfile(
-      current,
-      profile.withStoryPreferences(validatedPreferences),
-    );
+    await _saveProfile(profile.withStoryPreferences(validatedPreferences));
   }
 
   /// Saves the prose size and easy-reading font of one child's reader.
@@ -77,10 +75,9 @@ class ProfileController {
     String profileId,
     ChildReadingSettings settings,
   ) async {
-    final current = _currentState;
-    final profile = _requireProfile(current, profileId);
+    final profile = _requireProfile(_currentState, profileId);
     final validatedSettings = ChildReadingSettings.fromJson(settings.toJson());
-    await _saveProfile(current, profile.withReadingSettings(validatedSettings));
+    await _saveProfile(profile.withReadingSettings(validatedSettings));
   }
 
   /// Counts one story as finished and reports a badge earned by doing so.
@@ -92,13 +89,12 @@ class ProfileController {
     String profileId,
     String storyId,
   ) async {
-    final current = _currentState;
-    final profile = _requireProfile(current, profileId);
+    final profile = _requireProfile(_currentState, profileId);
     final savedProfile = profile.withFinishedStory(storyId);
     if (savedProfile.finishedStoryCount == profile.finishedStoryCount) {
       return null;
     }
-    await _saveProfile(current, savedProfile);
+    await _saveProfile(savedProfile);
     return ReadingBadge.reachedAt(savedProfile.finishedStoryCount);
   }
 
@@ -107,45 +103,47 @@ class ProfileController {
   /// Keeps badges honest: a story that no longer exists on this device stops
   /// counting for every profile that had finished it.
   Future<void> forgetFinishedStory(String storyId) async {
-    final current = _currentState;
-    var changed = false;
-    final savedProfiles = current.profiles
-        .map((profile) {
-          final savedProfile = profile.withoutFinishedStory(storyId);
-          if (!identical(savedProfile, profile)) changed = true;
-          return savedProfile;
-        })
-        .toList(growable: false);
-    if (!changed) return;
-    await _persistProfileList(
-      current,
-      List<ChildProfile>.unmodifiable(savedProfiles),
+    final hadFinished = _currentState.profiles.any(
+      (profile) => !identical(profile.withoutFinishedStory(storyId), profile),
+    );
+    // A story no child ever finished changes no profile, so the whole
+    // transaction is skipped rather than rewriting the family unchanged.
+    if (!hadFinished) return;
+    await _library.mutateProfiles(
+      (profiles) => profiles
+          .map((profile) => profile.withoutFinishedStory(storyId))
+          .toList(growable: false),
     );
   }
 
   /// Saves the castle, frame, backdrop, and symbol of one child's kingdom.
   Future<void> setKingdomTheme(String profileId, KingdomTheme theme) async {
-    final current = _currentState;
-    final profile = _requireProfile(current, profileId);
+    final profile = _requireProfile(_currentState, profileId);
     final validatedTheme = KingdomTheme.fromJson(theme.toJson());
-    await _saveProfile(current, profile.withKingdomTheme(validatedTheme));
+    await _saveProfile(profile.withKingdomTheme(validatedTheme));
   }
 
   /// Persists a Girl/Boy choice and activates the selected story hero.
   Future<void> selectProfile(String profileId, ChildGender gender) async {
     if (!gender.isSpecified) throw ArgumentError.value(gender, 'gender');
-    final current = _currentState;
-    final profile = _requireProfile(current, profileId);
-    final savedProfiles = profile.gender == gender
-        ? current.profiles
-        : _upsertProfile(current.profiles, profile.withGender(gender));
-    await _persistProfileSelection(current, savedProfiles, profileId);
+    final profile = _requireProfile(_currentState, profileId);
+    await _library.mutateProfiles(
+      // An unchanged Girl/Boy choice leaves the list identical, which is how
+      // the transaction is told to persist the activation alone.
+      (profiles) => profile.gender == gender
+          ? profiles
+          : _upsertProfile(profiles, profile.withGender(gender)),
+      activeProfileId: profileId,
+    );
   }
 
   /// Reads the loaded snapshot or preserves the provider's loading error.
   AppState get _currentState {
     return _ref.read(appControllerProvider).requireValue;
   }
+
+  /// The one seam that writes the family and then publishes it.
+  LibraryTransaction get _library => _ref.read(libraryTransactionProvider);
 
   /// Rebuilds a profile from validated form input and its existing palette.
   ChildProfile _profileFromDraft(
@@ -205,61 +203,9 @@ class ProfileController {
   }
 
   /// Persists one changed profile while keeping the active child unchanged.
-  Future<void> _saveProfile(AppState current, ChildProfile savedProfile) {
-    return _persistProfileList(
-      current,
-      _upsertProfile(current.profiles, savedProfile),
-    );
-  }
-
-  /// Persists a complete profile list and publishes it only once stored.
-  Future<void> _persistProfileList(
-    AppState current,
-    List<ChildProfile> savedProfiles,
-  ) async {
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveProfiles(savedProfiles);
-    _commit(
-      current.withProfiles(
-        savedProfiles,
-        savedActiveProfileId: current.activeProfileId,
-      ),
-    );
-  }
-
-  /// Persists profile content and active identity before publishing both.
-  Future<void> _persistProfiles(
-    AppState current,
-    List<ChildProfile> savedProfiles,
-    String activeProfileId,
-  ) async {
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveProfiles(savedProfiles);
-    await repository.saveActiveProfileId(activeProfileId);
-    _commit(
-      current.withProfiles(
-        savedProfiles,
-        savedActiveProfileId: activeProfileId,
-      ),
-    );
-  }
-
-  /// Avoids rewriting unchanged profiles while still persisting activation.
-  Future<void> _persistProfileSelection(
-    AppState current,
-    List<ChildProfile> savedProfiles,
-    String activeProfileId,
-  ) async {
-    final repository = await _ref.read(localRepositoryProvider.future);
-    if (!identical(savedProfiles, current.profiles)) {
-      await repository.saveProfiles(savedProfiles);
-    }
-    await repository.saveActiveProfileId(activeProfileId);
-    _commit(
-      current.withProfiles(
-        savedProfiles,
-        savedActiveProfileId: activeProfileId,
-      ),
+  Future<void> _saveProfile(ChildProfile savedProfile) {
+    return _library.mutateProfiles(
+      (profiles) => _upsertProfile(profiles, savedProfile),
     );
   }
 
@@ -291,18 +237,10 @@ class ProfileController {
 
   /// Creates a collision-free device-local identity at explicit profile save.
   String _newProfileId(List<ChildProfile> profiles) {
-    final timePart = DateTime.now().toUtc().microsecondsSinceEpoch;
-    final baseId = 'profile-$timePart';
-    var candidateId = baseId;
-    var suffix = 1;
-    while (profiles.any((profile) => profile.id == candidateId)) {
-      candidateId = '$baseId-${suffix++}';
-    }
-    return candidateId;
-  }
-
-  /// Publishes only snapshots whose storage operations have completed.
-  void _commit(AppState persistedState) {
-    _ref.read(appControllerProvider.notifier).commit(persistedState);
+    return newLocalId(
+      prefix: 'profile',
+      createdAt: DateTime.now(),
+      takenIds: profiles.map((profile) => profile.id),
+    );
   }
 }
