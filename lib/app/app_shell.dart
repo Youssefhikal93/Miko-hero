@@ -128,11 +128,15 @@ class _MobileShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+        indicatorColor: Colors.transparent,
         onDestinationSelected: (index) {
           context.go(destinations[index].route);
         },
-        destinations: destinations.map(_bottomDestination).toList(),
+        destinations: <Widget>[
+          for (var index = 0; index < destinations.length; index++)
+            _bottomDestination(destinations[index], index == selectedIndex),
+        ],
       ),
     );
   }
@@ -149,11 +153,81 @@ class _MobileShell extends StatelessWidget {
     ];
   }
 
-  /// Adapts shared route data to Material's compact navigation destination.
-  NavigationDestination _bottomDestination(_NavigationDestination destination) {
+  /// Adapts shared route data to an icon-only destination with an active dot.
+  ///
+  /// The printed label is empty because the bar carries icons alone; the
+  /// destination is still named for screen readers and hover text through its
+  /// own semantics label and tooltip, both in the interface language.
+  NavigationDestination _bottomDestination(
+    _NavigationDestination destination,
+    bool selected,
+  ) {
     return NavigationDestination(
-      icon: Icon(destination.icon),
-      label: destination.label,
+      icon: Semantics(
+        label: destination.label,
+        child: _BottomDestinationIcon(
+          icon: destination.icon,
+          route: destination.route,
+          selected: selected,
+        ),
+      ),
+      label: '',
+      tooltip: destination.label,
+    );
+  }
+}
+
+/// Bottom-bar icon stacked over the dot that marks the current destination.
+class _BottomDestinationIcon extends StatelessWidget {
+  /// Creates the icon for one compact destination.
+  const _BottomDestinationIcon({
+    required this.icon,
+    required this.route,
+    required this.selected,
+  });
+
+  final IconData icon;
+  final String route;
+  final bool selected;
+
+  @override
+  /// Keeps every icon on the same baseline by reserving the dot's space.
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon),
+        const SizedBox(height: 4),
+        if (selected)
+          _ActiveDot(route: route)
+        else
+          const SizedBox.square(dimension: _ActiveDot.diameter),
+      ],
+    );
+  }
+}
+
+/// Dot printed under the active destination in the active child's accent.
+class _ActiveDot extends StatelessWidget {
+  /// Creates the dot for the destination at [route].
+  const _ActiveDot({required this.route});
+
+  /// Width and height of the dot, matching the design reference.
+  static const diameter = 5.0;
+
+  final String route;
+
+  @override
+  /// Names the dot by route so the marked destination is unambiguous.
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey<String>('nav-dot-$route'),
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        shape: BoxShape.circle,
+      ),
     );
   }
 }

@@ -48,7 +48,7 @@ Rules that every change must respect:
 | `lib/app/iam_hero_app.dart` | Root `MaterialApp.router` widget; binds the persisted locale and active-profile theme to the routed application, and asks for the one automatic library synchronization that follows an app start. |
 | `lib/app/app_controller.dart` | Loads the complete persisted `AppState` on startup and commits snapshots that feature controllers have already persisted. Also the composition root: hosts the repository and service providers and the `storyGeneratorProvider`, which follows the parent's saved generator mode and falls back to the demo only while those settings are still loading. |
 | `lib/app/app_router.dart` | go_router configuration: all routes, the shell wrapper, and parent-PIN gating for parent-only destinations (`/settings`, `/kingdom`, `/profiles`, `/review`, `/generation`). |
-| `lib/app/app_shell.dart` | Responsive navigation frame around every route: app bar plus drawer and bottom navigation on mobile, extended rail on desktop widths (≥ 900 px). |
+| `lib/app/app_shell.dart` | Responsive navigation frame around every route: app bar plus drawer and bottom navigation on mobile, extended rail on desktop widths (≥ 900 px). The five destinations, their icons, and their routes are declared once and shared by all three. The bottom bar prints no labels — each destination is an icon over a dot that appears only under the active one, in the active child's accent — and keeps its localized name in its semantics label and tooltip; the drawer and the rail stay labelled. |
 | `lib/app/app_theme.dart` | The shared visual system: the named redesign palette tokens (`night`, `tile`, `sunken`, `candle`, `candleLight`, `onCandle`, `light`, `frost`, `muted`, `mutedDeep`, `hairline`, `hairlineWarm`) every component theme reads from — cards, fields, chips, buttons, app bar, dialogs, and the bottom bar, rail, and drawer; the per-child color schemes (rose for girls, cyan for boys, plus saved custom colors) that stay the accent on rings, indicators, and selected states; the Outfit interface typography, whose `wght` axis is pinned per style because the bundled variable file defaults to its thinnest instance; and the reader's bedtime prose, surface, and warm page wash. `interfaceFontFamilyFor` is the one place the Arabic fallback is decided, following `AppLanguage.usesLatinScript` exactly as story prose does. |
 
 ## Domain models — `lib/core/models/`
@@ -217,7 +217,7 @@ Rules that every change must respect:
 | `screen_layout.dart` | Width-constrained page scaffold, the hero panel — a flat tile ringed by the active child's accent rather than a gradient surface — and section headings. Accepts an optional per-page backdrop gradient, used by My Kingdom for the active child's chosen flavor. Also `MosaicGrid` and `MosaicTile`, the shared mosaic every redesigned screen is laid out on: two columns on a phone and three from `desktopBreakpoint` (900 px, where the navigation shell also becomes a desktop frame), tiles asking for one or two columns, a span wider than the grid narrowed to it, row widths that always add up to the available width so nothing overflows sideways, and no scrolling of its own so it composes inside each page's scroll view. |
 | `story_card.dart` | The story tile in three shapes: `StoryCardVariant.large` (cover, title, page count and date, favourite heart, Demo badge), `small` (cover and title) and `wide` (cover thumbnail, title, meta, overflow). Every variant is one full-size tap target that opens the story, and the large and wide shapes carry the favorite, collections, illustrate, share, and delete commands their surrounding feature allows in a single overflow menu, each running the feature's own callback so parent gating stays where it lives. The card renders only what it is given: a feature that allows nothing gets no overflow control. Also `StoryCover`, the single-book cover the parent review screen uses, and `StoryDemoBadge`. |
 | `encryption_password_dialog.dart` | The password prompt shared by encrypted backups and single-story files, with per-file localized wording, optional confirmation field, the shared minimum length, and controllers that discard the secret with the modal. |
-| `reading_text_style.dart` | Resolves story prose typography from one child's reading comfort by scaling the theme body size and requesting the easy-reading family only for Latin script. Shared by the reader and the review preview. |
+| `reading_text_style.dart` | `readingProseStyle` resolves book typography from one child's reading comfort: a 1.15× step above the interface body size with 1.6 line height, then the saved text-size scale; Newsreader for Latin script, the optional easy-reading family when selected, and the existing Arabic body face unchanged. Shared by the reader and the review preview. |
 | `reading_badge_view.dart` | The bounded Material icon and localized name of one reading badge, shared by My Kingdom and the reader's congratulation message. |
 | `local_ai_messages.dart` | One localized sentence per typed bridge failure and per generation stage, shared by the creation screen, the generation center, and the AI connection card. The bridge's own English text is never shown. |
 
@@ -239,7 +239,57 @@ Rules that every change must respect:
 | `assets/fonts/Baloo2-Variable.ttf` | Rounded storybook **display** face for exported titles, dedications and badges in English, Swedish and Somali. |
 | `assets/fonts/Amiri-Bold.ttf` | Arabic **display** face for the same headings. Two faces rather than one because the PDF renderer shapes Arabic into Presentation Forms-B code points, which the rounded Arabic candidates do not carry — see `assets/fonts/README.md`. |
 | `assets/fonts/AtkinsonHyperlegible-Regular.ttf` | Latin-script easy-reading font used only by the optional per-child reader setting; regular weight only. |
-| `assets/fonts/OFL.txt`, `OFL-Outfit.txt`, `OFL-AtkinsonHyperlegible.txt`, `OFL-Baloo2.txt`, `OFL-Amiri.txt`, `README.md` | SIL Open Font License texts and provenance notes for the bundled fonts, including where each file came from, the measured glyph-coverage reasoning behind the display pair, and why the interface falls back to Naskh for Arabic. |
+| `assets/fonts/Newsreader-Variable.ttf` | Latin-script serif used for story prose in the reader and parent review preview when easy reading is off. Variable `opsz` 6–72 and `wght` 200–800 face whose default instance is 16pt regular at weight 400. |
+| `assets/fonts/OFL.txt`, `OFL-Outfit.txt`, `OFL-AtkinsonHyperlegible.txt`, `OFL-Newsreader.txt`, `OFL-Baloo2.txt`, `OFL-Amiri.txt`, `README.md` | SIL Open Font License texts and provenance notes for the bundled fonts, including where each file came from, the measured glyph-coverage reasoning behind the display pair, and why the interface falls back to Naskh for Arabic. |
+| `assets/brand/iam_hero_mark.svg` | The one drawn brand mark: an open book in candle amber with cream pages and a candle flame rising from the gutter, on the night backdrop of the redesign palette. No text, no photograph, no child data. Drawn so every painted point stays inside the circle Android and the web maskable spec are allowed to crop to, which is why one drawing serves as icon, adaptive foreground and splash logo. Deliberately **not** listed under `flutter: assets:` — nothing at runtime reads it. |
+| `assets/brand/generated/app_icon.png`, `app_icon_foreground.png`, `app_icon_monochrome.png`, `splash.png`, `splash_android_12.png` | The PNG masters rasterized from that SVG, one per shape the platform generators need (opaque icon, adaptive foreground, themed silhouette, splash logo, Android 12 splash icon). Generated — never hand-edited — and committed so a fresh checkout builds every platform without running the renderer. |
+
+## App icons and splash screens — `assets/brand/`, `web/`, `android/`, `ios/`
+
+One drawing becomes every launcher icon and every launch screen, and every
+launch surface shows the same night background, so no platform ever flashes
+white before the first Flutter frame. Both generators are dev dependencies
+configured entirely inside `pubspec.yaml`; neither is imported by any Dart
+code, and no splash-removal call was needed in `lib/`.
+
+Regenerate with, in this order:
+
+```sh
+flutter test tool/render_brand_assets.dart  # SVG      -> PNG masters
+dart run flutter_launcher_icons             # masters  -> launcher icons
+dart run flutter_native_splash:create       # masters  -> splash screens
+git restore ios/Runner.xcodeproj/project.pbxproj ios/Runner/Info.plist
+```
+
+That last line is not optional. `flutter_launcher_icons` writes the AppIcon
+set name over the unrelated boolean `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`,
+and `flutter_native_splash` re-indents the whole `Info.plist` to add a
+`UIStatusBarHidden` that is already the default. Neither change is needed by
+the icons or the splash. `flutter_native_splash` also re-serializes
+`web/index.html`; it finds its own blocks by element id, so the hand-written
+parts survive, but the whitespace needs tidying again afterwards.
+
+To change a colour: edit it in `assets/brand/iam_hero_mark.svg` and in the
+`iam_hero_brand_palette` anchors in `pubspec.yaml` (both generator blocks alias
+them), then run the commands above.
+
+| Path | Responsibility |
+| --- | --- |
+| `tool/render_brand_assets.dart` | The renderer: reads the SVG, takes the night colour from its `id="backdrop"` rectangle, drops its `id="glow"` halo for the themed icon, and writes each master at the size and scale that platform crops to. Shaped as a test so it can borrow the Flutter test engine as a headless rasterizer, which keeps regeneration free of an image editor and of any machine-specific tool path. `flutter test` with no arguments only globs `test/`, so it never runs with the suite. |
+| `web/index.html` | The night background and the mark are in the `<head>` style the browser applies before anything loads, so the page is never white. Two blocks are hand-written and survive regeneration: the `theme-color` meta and `<script id="brand-splash-handoff">`, which drops the splash on the engine's `flutter-first-frame` event. The generated `removeSplashFromWeb()` is called by nothing on purpose — its only caller is the package's runtime Dart API, which would turn a build-time tool into a runtime dependency, and it would clear the night background as it went. |
+| `web/manifest.json` | PWA install metadata: `theme_color` and `background_color` are the night colour, and the icon list carries 192, 512 and both maskable sizes. Colours and icon list are written by the generator; name, description and orientation are not touched. |
+| `web/favicon.png`, `web/icons/Icon-192.png`, `Icon-512.png`, `Icon-maskable-192.png`, `Icon-maskable-512.png` | Generated from the opaque master. The maskable pair is the same drawing resized, which is safe because the mark is authored inside the maskable safe circle. |
+| `web/splash/img/light-1x..4x.png`, `dark-1x..4x.png` | The loading mark for the page splash, 256 to 1024 px. Light and dark are the same night design by choice. |
+| `android/app/src/main/res/mipmap-*/ic_launcher.png` | Legacy launcher bitmaps, 48 to 192 px. The `ic_launcher` name, the manifest and the application id are unchanged. |
+| `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `values/colors.xml` | Android 8+ adaptive icon: the night `ic_launcher_background` colour as the background layer, the mark as the inset foreground and monochrome layers. |
+| `android/app/src/main/res/drawable-*/ic_launcher_foreground.png`, `ic_launcher_monochrome.png` | Those two layers per density. The monochrome one is the halo-free silhouette, because Android 13+ keeps only its alpha and tints it. |
+| `android/app/src/main/res/drawable*/launch_background.xml`, `drawable*/background.png`, `drawable-*/splash.png` | Pre-Android-12 splash: the night background filled, the mark centred, with `-night` and `-v21` variants of the same night design. |
+| `android/app/src/main/res/drawable-*/android12splash.png`, `values-v31/styles.xml`, `values-night-v31/styles.xml` | Android 12+ splash, which the system draws from the window theme: `windowSplashScreenBackground` and `windowSplashScreenIconBackgroundColor` night, `windowSplashScreenAnimatedIcon` the mark drawn inside the 768 px circle the system crops to. |
+| `android/app/src/main/res/values/styles.xml`, `values-night/styles.xml` | The pre-12 `LaunchTheme`, plus the fullscreen, cutout and force-dark items the splash generator adds. `NormalTheme` is left as Flutter shipped it. |
+| `ios/Runner/Assets.xcassets/AppIcon.appiconset/` | The full iOS AppIcon set from the opaque master, 20 pt to 1024 pt. |
+| `ios/Runner/Assets.xcassets/LaunchImage.imageset/` | The launch mark at 1x, 2x and 3x (256 to 768 px), light and dark the same. |
+| `ios/Runner/Assets.xcassets/LaunchBackground.imageset/` | A one-pixel night image the storyboard stretches over the whole launch view. |
+| `ios/Runner/Base.lproj/LaunchScreen.storyboard` | The launch screen: night background image behind the centred mark. The view's own `backgroundColor` is hand-set to night as well, so the first pixels are never white; the generator only rewrites the subviews and constraints, so that edit survives. |
 
 ## Tests — `test/`
 
