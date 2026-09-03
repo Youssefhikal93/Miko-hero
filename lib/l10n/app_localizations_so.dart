@@ -24,20 +24,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get settings => 'Dejinta';
 
   @override
-  String get welcomeTitle => 'Tacabur cusub ayaa halkan ka bilaabmaya';
-
-  @override
-  String get welcomeBody =>
-      'Abuur sheekooyin gaar ah oo sawir leh, ilmo kastana uu halyeyga noqdo.';
-
-  @override
   String get createFirstStory => 'Abuur sheekada ugu horreysa';
-
-  @override
-  String get createAnotherStory => 'Abuur sheeko kale';
-
-  @override
-  String get recentStories => 'Sheekooyinkii u dambeeyay';
 
   @override
   String get profileIncompleteTitle => 'Ku dar bog halyey';
@@ -48,6 +35,58 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get setUpProfile => 'Ku dar bog';
+
+  @override
+  String get readingAs => 'Waxaad u akhrinaysaa';
+
+  @override
+  String get greetingMorning => 'Subax wanaagsan.';
+
+  @override
+  String get greetingAfternoon => 'Galab wanaagsan.';
+
+  @override
+  String get greetingEvening => 'Fiid wanaagsan.';
+
+  @override
+  String get greetingNight => 'Habeen wanaagsan.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title weli waxay sugaysaa in la dhammaystiro.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'Sheekooyin cusub waxay sugayaan in waalid akhriyo.';
+
+  @override
+  String get greetingCreateStory => 'Sheekada caawa weli lama qorin.';
+
+  @override
+  String get keepReading => 'Sii wad akhriska';
+
+  @override
+  String get newStory => 'Sheeko cusub';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned ka $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Qoraallo dib-u-eegis sugaya: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Waalidiinta keliya · khaanadda kama muuqato';
+
+  @override
+  String get onTheShelf => 'Khaanadda buugta';
+
+  @override
+  String get seeAll => 'Arag dhammaan';
 
   @override
   String get editProfile => 'Wax ka beddel bogga halyeyga';
@@ -160,19 +199,57 @@ class AppLocalizationsSo extends AppLocalizations {
   String get photoRequired => 'Dooro sawir tixraac ah.';
 
   @override
-  String get createStoryTitle => 'Abuur sheeko';
+  String get createStoryTitle => 'Sheeko cusub';
 
   @override
-  String get chooseHeroProfile => 'Dooro bogga halyeyga';
+  String get whoIsTheHero => 'Yaa ah halyeyga?';
 
   @override
-  String get selectHeroProfile => 'Dooro ilmo';
+  String get add => 'Ku dar';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'Maxaa dhacaya?';
+
+  @override
+  String get lessonHint => 'Iyo casharka ay barayso';
+
+  @override
+  String get howLong => 'Intee le\'eg?';
+
+  @override
+  String get pages => 'bog';
+
+  @override
+  String get lookAndLanguage => 'Muuqaalka iyo luqadda';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Qor sheekada';
+
+  @override
+  String get demoGeneratorLabel => 'Tijaabo';
+
+  @override
+  String get localAiGeneratorLabel => 'AI maxalli ah';
 
   @override
   String get profileSelectionRequired => 'Dooro ilmaha noqonaya halyeyga.';
-
-  @override
-  String get storyLanguage => 'Luqadda sheekada';
 
   @override
   String get theme => 'Mawduuca tacaburka';
@@ -184,25 +261,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get moral => 'Casharka ama qiimaha';
 
   @override
-  String get moralHint => 'Tusaale: naxariis iyo geesinimo';
-
-  @override
-  String get storyLength => 'Dhererka sheekada';
-
-  @override
-  String get illustrationStyle => 'Qaabka sawirrada';
-
-  @override
-  String get shortLength => 'Gaaban · 6 bog';
-
-  @override
-  String get mediumLength => 'Dhexdhexaad · 8 bog';
-
-  @override
-  String get longLength => 'Dheer · 10 bog';
-
-  @override
-  String get pictureBookStyle => 'Buug sawir jilicsan';
+  String get pictureBookStyle => 'Buug sawir';
 
   @override
   String get watercolorStyle => 'Midab-biyood';
@@ -211,14 +270,8 @@ class AppLocalizationsSo extends AppLocalizations {
   String get threeDStyle => '3D midabbo badan';
 
   @override
-  String get generateStory => 'Abuur sheeko tijaabo ah';
-
-  @override
   String get demoModeNotice =>
       'Habka tijaabadu wuxuu abuuraa sheeko tusaale ah oo si cad loo calaamadeeyay, PC la\'aan iyo AI la\'aan. Ku beddel abuuraha sheekada AI-ga maxalliga ah ee goobaha si loogu qoro PC-ga qoyska.';
-
-  @override
-  String get profileNeeded => 'Marka hore ku dar ugu yaraan hal bog halyey.';
 
   @override
   String get themeRequired => 'Sharax mawduuca tacaburka.';
@@ -237,11 +290,20 @@ class AppLocalizationsSo extends AppLocalizations {
   String get storyCreated => 'Sheekadu waa diyaar';
 
   @override
-  String get libraryTitle => 'Maktabadda sheekooyinka qoyska';
+  String get libraryTitle => 'Khaanadda buugaagta';
 
   @override
-  String get librarySubtitle =>
-      'Sheekooyinka dhammaystiran waxaa lagu kaydiyaa qalabkan oo keliya.';
+  String get librarySubtitle => 'Waxaa lagu kaydiyaa qalabkan oo keliya';
+
+  @override
+  String get libraryStoredWithPc =>
+      'Waa la isku waafajiyaa kombiyuutarka qoyska';
+
+  @override
+  String get searchStoryTitles => 'Raadi cinwaannada';
+
+  @override
+  String get clearStorySearch => 'Nadiifi raadinta';
 
   @override
   String get emptyLibraryTitle => 'Khaanadda buugtu way sugaysaa';
@@ -282,6 +344,9 @@ class AppLocalizationsSo extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'Bogga $current ee $total';
   }
+
+  @override
+  String get readToMe => 'Ii akhri';
 
   @override
   String get playNarration => 'Daar akhriska';
@@ -753,6 +818,14 @@ class AppLocalizationsSo extends AppLocalizations {
   String get noDrafts => 'Sheeko dib-u-eegis sugaysa ma jirto.';
 
   @override
+  String get moreStoryActions => 'Ficillo kale oo sheekada';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count bogag';
+  }
+
+  @override
   String get addFavorite => 'Ku dar kuwa la jecel yahay';
 
   @override
@@ -786,10 +859,9 @@ class AppLocalizationsSo extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'Kala saar khaanaddan';
-
-  @override
-  String get allStories => 'Dhammaan sheekooyinka';
+  String allStoriesCount(int count) {
+    return 'Dhammaan $count';
+  }
 
   @override
   String get favoriteStories => 'Kuwa la jecel yahay';
@@ -797,6 +869,10 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get noStoriesInFilter =>
       'Weli sheeko ku habboon kala-saarkan ma jirto.';
+
+  @override
+  String get noStoriesMatchSearch =>
+      'Khaanaddan kuma jiro cinwaan raadintaas u dhigma.';
 
   @override
   String get generationCenterTitle => 'Xarunta samaynta maxalliga ah';
@@ -886,6 +962,32 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get exportPdfPhotoNotice =>
       'PDF-ka la kaydiyay sir kuma jiro oo app-ka wuu ka baxayaa.';
+
+  @override
+  String pdfForHero(String name) {
+    return 'loogu talagalay $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'Buuggan waxaa iska leh $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'Waxaa la sameeyay $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'Bogga $number ee $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'Wadnaha sheekadan';
+
+  @override
+  String get pdfTheEnd => 'Dhammaad';
 
   @override
   String get narrationSettings => 'Dejinta akhrinta codka';
@@ -1323,9 +1425,6 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'Sheekooyinka waxaa qora AI-ga PC-ga qoyska. PC-ga, buundadiisa iyo moodelkiisu waa inay shaqaynayaan.';
-
-  @override
-  String get generateLocalAiStory => 'Ku samee sheekada PC-ga';
 
   @override
   String get localAiSubmitting => 'Codsiga waxaa loo dirayaa PC-ga…';

@@ -77,19 +77,42 @@ typedef FakeOllamaResponder =
       CancellationToken cancellation,
     );
 
+/// Scripted behaviour of one fake Ollama unload call.
+typedef FakeOllamaUnloadResponder =
+    Future<void> Function(OllamaUnloadRequest request);
+
 /// A fake [OllamaStoryClient] scripted per test.
 ///
 /// This is the only mocked boundary in the generation tests: everything
 /// between the HTTP endpoint and this client is the real implementation.
 class FakeOllamaStoryClient implements OllamaStoryClient {
   /// Creates a client driven by [responder].
-  FakeOllamaStoryClient(this.responder);
+  FakeOllamaStoryClient(this.responder, {this.unloadResponder});
 
   /// Answers every call with [payload] inside an Ollama envelope.
   factory FakeOllamaStoryClient.answering(String payload) {
     return FakeOllamaStoryClient(
       (OllamaGenerateRequest request, CancellationToken cancellation) async =>
           ollamaEnvelope(payload),
+    );
+  }
+
+  /// Answers the outline pass with [outline] and the page pass with [story].
+  ///
+  /// Generation is two calls now, so a fake that answers both with the same
+  /// payload would only ever exercise the first one. The pass is recognized by
+  /// the schema the bridge asked for, exactly as a real model would see it.
+  factory FakeOllamaStoryClient.writing({
+    required String story,
+    String? outline,
+    int pageCount = 6,
+    FakeOllamaUnloadResponder? unloadResponder,
+  }) {
+    final plan = outline ?? outlinePayload(pageCount: pageCount);
+    return FakeOllamaStoryClient(
+      (OllamaGenerateRequest request, CancellationToken cancellation) async =>
+          ollamaEnvelope(isOutlineRequest(request) ? plan : story),
+      unloadResponder: unloadResponder,
     );
   }
 
@@ -101,11 +124,29 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
     );
   }
 
+  /// Requests whose schema asked for page beats — the outline pass.
+  List<OllamaGenerateRequest> get outlineRequests =>
+      requests.where(isOutlineRequest).toList(growable: false);
+
+  /// Requests whose schema asked for finished pages — the page pass.
+  List<OllamaGenerateRequest> get pageRequests => requests
+      .where((request) => !isOutlineRequest(request))
+      .toList(growable: false);
+
   /// Behaviour invoked for every call.
   final FakeOllamaResponder responder;
 
+  /// Optional behaviour invoked for every unload call.
+  final FakeOllamaUnloadResponder? unloadResponder;
+
   /// Requests seen by this client, in call order (for assertions).
   final List<OllamaGenerateRequest> requests = <OllamaGenerateRequest>[];
+
+  /// Unload requests seen by this client, in call order (for assertions).
+  final List<OllamaUnloadRequest> unloadRequests = <OllamaUnloadRequest>[];
+
+  /// Generation and unload requests in their original call order.
+  final List<Object> allRequests = <Object>[];
 
   @override
   Future<OllamaGenerateResponse> generate(
@@ -113,7 +154,15 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
     required CancellationToken cancellation,
   }) {
     requests.add(request);
+    allRequests.add(request);
     return responder(request, cancellation);
+  }
+
+  @override
+  Future<void> unload(OllamaUnloadRequest request) {
+    unloadRequests.add(request);
+    allRequests.add(request);
+    return unloadResponder?.call(request) ?? Future<void>.value();
   }
 }
 
@@ -266,6 +315,43 @@ Uint8List minimalJpegBytes() {
     0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
     0xFF, 0xD9, // EOI
   ]);
+}
+
+/// Whether [request] is the outline pass rather than the page pass.
+///
+/// Read off the requested JSON schema, which is the only difference a model
+/// would see between the two calls.
+bool isOutlineRequest(OllamaGenerateRequest request) {
+  final properties = request.format['properties'];
+  return properties is Map<String, Object?> && properties.containsKey('beats');
+}
+
+/// A schema-valid outline answer with [pageCount] beats.
+///
+/// [includeHeroAppearance] can be turned off to reproduce a model that plans
+/// the pages but forgets what the hero looks like.
+String outlinePayload({
+  required int pageCount,
+  String title = 'Nour and the Sea Lanterns',
+  String heroAppearance =
+      'short curly black hair, mustard-yellow raincoat, red boots, '
+      'carries a small brass lantern',
+  String Function(int pageNumber)? summary,
+  bool includeHeroAppearance = true,
+}) {
+  return jsonEncode(<String, Object?>{
+    'title': title,
+    if (includeHeroAppearance) 'heroAppearance': heroAppearance,
+    'beats': List<Object?>.generate(
+      pageCount,
+      (index) => <String, Object?>{
+        'pageNumber': index + 1,
+        'summary':
+            summary?.call(index + 1) ??
+            'Beat ${index + 1}: Nour moves one step closer to the lanterns.',
+      },
+    ),
+  });
 }
 
 /// Wraps a model answer in the non-streaming `/api/generate` envelope.

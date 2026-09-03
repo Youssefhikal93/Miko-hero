@@ -24,20 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
-  String get welcomeTitle => 'A new adventure starts here';
-
-  @override
-  String get welcomeBody =>
-      'Create private, illustrated stories where each child becomes the hero.';
-
-  @override
   String get createFirstStory => 'Create a first story';
-
-  @override
-  String get createAnotherStory => 'Create another story';
-
-  @override
-  String get recentStories => 'Recent stories';
 
   @override
   String get profileIncompleteTitle => 'Add a hero profile';
@@ -48,6 +35,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get setUpProfile => 'Add a profile';
+
+  @override
+  String get readingAs => 'Reading as';
+
+  @override
+  String get greetingMorning => 'Good morning.';
+
+  @override
+  String get greetingAfternoon => 'Good afternoon.';
+
+  @override
+  String get greetingEvening => 'Good evening.';
+
+  @override
+  String get greetingNight => 'Good night.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title is waiting to be finished.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'New stories are waiting for a parent to read them.';
+
+  @override
+  String get greetingCreateStory =>
+      'Tonight\'s story has not been written yet.';
+
+  @override
+  String get keepReading => 'Keep reading';
+
+  @override
+  String get newStory => 'New story';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned of $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Drafts waiting for review: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Parent only · hidden from the shelf';
+
+  @override
+  String get onTheShelf => 'On the shelf';
+
+  @override
+  String get seeAll => 'See all';
 
   @override
   String get editProfile => 'Edit hero profile';
@@ -160,19 +200,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoRequired => 'Choose a reference photo.';
 
   @override
-  String get createStoryTitle => 'Create a story';
+  String get createStoryTitle => 'New story';
 
   @override
-  String get chooseHeroProfile => 'Choose a hero profile';
+  String get whoIsTheHero => 'Who is the hero';
 
   @override
-  String get selectHeroProfile => 'Select a child';
+  String get add => 'Add';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'What happens';
+
+  @override
+  String get lessonHint => 'And the lesson it teaches';
+
+  @override
+  String get howLong => 'How long';
+
+  @override
+  String get pages => 'pages';
+
+  @override
+  String get lookAndLanguage => 'Look and language';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Write the story';
+
+  @override
+  String get demoGeneratorLabel => 'Demo';
+
+  @override
+  String get localAiGeneratorLabel => 'Local AI';
 
   @override
   String get profileSelectionRequired => 'Choose which child will be the hero.';
-
-  @override
-  String get storyLanguage => 'Story language';
 
   @override
   String get theme => 'Adventure theme';
@@ -184,25 +262,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moral => 'Lesson or value';
 
   @override
-  String get moralHint => 'For example: kindness and courage';
-
-  @override
-  String get storyLength => 'Story length';
-
-  @override
-  String get illustrationStyle => 'Illustration style';
-
-  @override
-  String get shortLength => 'Short · 6 pages';
-
-  @override
-  String get mediumLength => 'Medium · 8 pages';
-
-  @override
-  String get longLength => 'Long · 10 pages';
-
-  @override
-  String get pictureBookStyle => 'Soft picture book';
+  String get pictureBookStyle => 'Picture book';
 
   @override
   String get watercolorStyle => 'Watercolor';
@@ -211,14 +271,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get threeDStyle => 'Colorful 3D';
 
   @override
-  String get generateStory => 'Generate demo story';
-
-  @override
   String get demoModeNotice =>
       'Demo mode creates a clearly marked sample story with no PC and no AI. Switch the story generator to Local AI in settings to write on your family PC.';
-
-  @override
-  String get profileNeeded => 'Add at least one hero profile first.';
 
   @override
   String get themeRequired => 'Describe the adventure theme.';
@@ -237,11 +291,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyCreated => 'The story is ready';
 
   @override
-  String get libraryTitle => 'Family story library';
+  String get libraryTitle => 'The shelf';
 
   @override
-  String get librarySubtitle =>
-      'Completed stories are stored only on this device.';
+  String get librarySubtitle => 'Stored only on this device';
+
+  @override
+  String get libraryStoredWithPc => 'Synced with the family PC';
+
+  @override
+  String get searchStoryTitles => 'Search titles';
+
+  @override
+  String get clearStorySearch => 'Clear search';
 
   @override
   String get emptyLibraryTitle => 'The bookshelf is waiting';
@@ -282,6 +344,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'Page $current of $total';
   }
+
+  @override
+  String get readToMe => 'Read to me';
 
   @override
   String get playNarration => 'Play narration';
@@ -750,6 +815,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noDrafts => 'No stories are waiting for review.';
 
   @override
+  String get moreStoryActions => 'More story actions';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count pages';
+  }
+
+  @override
   String get addFavorite => 'Add to favorites';
 
   @override
@@ -783,16 +856,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'Filter this shelf';
-
-  @override
-  String get allStories => 'All stories';
+  String allStoriesCount(int count) {
+    return 'All $count';
+  }
 
   @override
   String get favoriteStories => 'Favorites';
 
   @override
   String get noStoriesInFilter => 'No stories match this filter yet.';
+
+  @override
+  String get noStoriesMatchSearch =>
+      'No title on this shelf matches that search.';
 
   @override
   String get generationCenterTitle => 'Local generation center';
@@ -880,6 +956,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportPdfPhotoNotice =>
       'A saved PDF is not encrypted and leaves the app.';
+
+  @override
+  String pdfForHero(String name) {
+    return 'for $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'This book belongs to $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'Made on $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'Page $number of $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'The heart of this story';
+
+  @override
+  String get pdfTheEnd => 'The End';
 
   @override
   String get narrationSettings => 'Narration settings';
@@ -1310,9 +1412,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'Stories are written by the AI on your family PC. The PC, its bridge, and its model must be running.';
-
-  @override
-  String get generateLocalAiStory => 'Generate story on the PC';
 
   @override
   String get localAiSubmitting => 'Sending the request to the PC…';

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Responsive navigation frame retained around every application route.
 class AppShell extends StatelessWidget {
@@ -21,7 +23,7 @@ class AppShell extends StatelessWidget {
     final selectedIndex = _selectedIndex(location);
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= 900) {
+        if (constraints.maxWidth >= desktopBreakpoint) {
           return _DesktopShell(
             destinations: destinations,
             selectedIndex: selectedIndex,
@@ -112,14 +114,26 @@ class _MobileShell extends StatelessWidget {
   final int selectedIndex;
   final Widget child;
 
+  /// Routes whose page paints its own header, so the shell adds none.
+  ///
+  /// Home, the shelf, the creation form and the reader each open with their
+  /// own title row in the redesign; a shell bar above it would be a second
+  /// header on a phone. Every other route keeps the bar and its menu button.
+  static const _selfHeadedRoutes = <String>['/create', '/library', '/story/'];
+
+  bool get _paintsOwnHeader {
+    if (location == '/') return true;
+    return _selfHeadedRoutes.any(location.startsWith);
+  }
+
   @override
-  /// Keeps the menu button visible inside profile editors and story readers.
+  /// Keeps the menu button visible inside profile editors and settings.
+  ///
+  /// The app bar carries no exit of its own: the reader prints its own close
+  /// beside the hero, so a second one here would be the same command twice.
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Iam - hero'),
-        actions: _readerActions(context),
-      ),
+      appBar: _paintsOwnHeader ? null : AppBar(title: const Text('Iam - hero')),
       drawer: _AppDrawer(
         destinations: destinations,
         selectedIndex: selectedIndex,
@@ -127,32 +141,94 @@ class _MobileShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+        indicatorColor: Colors.transparent,
         onDestinationSelected: (index) {
           context.go(destinations[index].route);
         },
-        destinations: destinations.map(_bottomDestination).toList(),
+        destinations: <Widget>[
+          for (var index = 0; index < destinations.length; index++)
+            _bottomDestination(destinations[index], index == selectedIndex),
+        ],
       ),
     );
   }
 
-  /// Adds a library exit while the global drawer remains the leading action.
-  List<Widget> _readerActions(BuildContext context) {
-    if (!location.startsWith('/story/')) return const <Widget>[];
-    return <Widget>[
-      IconButton(
-        tooltip: AppLocalizations.of(context).library,
-        onPressed: () => context.go('/library'),
-        icon: const Icon(Icons.close_rounded),
-      ),
-    ];
-  }
-
-  /// Adapts shared route data to Material's compact navigation destination.
-  NavigationDestination _bottomDestination(_NavigationDestination destination) {
+  /// Adapts shared route data to an icon-only destination with an active dot.
+  ///
+  /// The printed label is empty because the bar carries icons alone; the
+  /// destination is still named for screen readers and hover text through its
+  /// own semantics label and tooltip, both in the interface language.
+  NavigationDestination _bottomDestination(
+    _NavigationDestination destination,
+    bool selected,
+  ) {
     return NavigationDestination(
-      icon: Icon(destination.icon),
-      label: destination.label,
+      icon: Semantics(
+        label: destination.label,
+        child: _BottomDestinationIcon(
+          icon: destination.icon,
+          route: destination.route,
+          selected: selected,
+        ),
+      ),
+      label: '',
+      tooltip: destination.label,
+    );
+  }
+}
+
+/// Bottom-bar icon stacked over the dot that marks the current destination.
+class _BottomDestinationIcon extends StatelessWidget {
+  /// Creates the icon for one compact destination.
+  const _BottomDestinationIcon({
+    required this.icon,
+    required this.route,
+    required this.selected,
+  });
+
+  final IconData icon;
+  final String route;
+  final bool selected;
+
+  @override
+  /// Keeps every icon on the same baseline by reserving the dot's space.
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon),
+        const SizedBox(height: 4),
+        if (selected)
+          _ActiveDot(route: route)
+        else
+          const SizedBox.square(dimension: _ActiveDot.diameter),
+      ],
+    );
+  }
+}
+
+/// Dot printed under the active destination in the active child's accent.
+class _ActiveDot extends StatelessWidget {
+  /// Creates the dot for the destination at [route].
+  const _ActiveDot({required this.route});
+
+  /// Width and height of the dot, matching the design reference.
+  static const diameter = 5.0;
+
+  final String route;
+
+  @override
+  /// Names the dot by route so the marked destination is unambiguous.
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey<String>('nav-dot-$route'),
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
@@ -213,8 +289,8 @@ class _DesktopShell extends StatelessWidget {
           Container(
             width: 270,
             decoration: const BoxDecoration(
-              color: Color(0xFF0F121A),
-              border: Border(right: BorderSide(color: Color(0xFF262A37))),
+              color: AppTheme.sunken,
+              border: Border(right: BorderSide(color: AppTheme.hairline)),
             ),
             child: SafeArea(
               child: Column(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
@@ -9,13 +10,28 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/device_narration_service.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 
-/// Opens the platform preference store once per provider container.
+/// Supplies protected storage for the bridge's bearer credential.
+///
+/// Phones and desktops get the platform's protected store; the web build keeps
+/// the value in preferences, because a browser has nothing more protected to
+/// offer and the web plugin failed silently in release builds.
+final bridgeCredentialStorageProvider = Provider<BridgeCredentialStorage>((
+  ref,
+) {
+  if (kIsWeb) return const PreferencesBridgeCredentialStorage();
+  return const SecureBridgeCredentialStorage();
+});
+
+/// Opens the platform stores once per provider container.
 final localRepositoryProvider = FutureProvider<LocalRepository>((ref) {
-  return LocalRepository.open();
+  return LocalRepository.open(
+    bridgeCredentialStorage: ref.watch(bridgeCredentialStorageProvider),
+  );
 });
 
 /// Supplies how often a job running on the PC is polled.

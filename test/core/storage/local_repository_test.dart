@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miko_hero/core/ai_connection/bridge_credential.dart';
 import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
@@ -10,6 +11,7 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
@@ -21,6 +23,140 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
+
+  test('a fresh install has no bridge credential', () async {
+    final storage = InMemoryBridgeCredentialStorage();
+    final repository = await LocalRepository.open(
+      bridgeCredentialStorage: storage,
+    );
+
+    expect(await repository.readBridgeCredential(), isNull);
+    expect(storage.value, isNull);
+  });
+
+  test(
+    'a plaintext bridge credential migrates once to secure storage',
+    () async {
+      final credential = BridgeCredential(
+        deviceToken: 'legacy-device-token',
+        deviceName: 'Family tablet',
+        pairedAtUtc: DateTime.utc(2026, 8, 22),
+      );
+      final encodedCredential = jsonEncode(credential.toJson());
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'bridge_device': encodedCredential,
+      });
+      final storage = InMemoryBridgeCredentialStorage();
+      final repository = await LocalRepository.open(
+        bridgeCredentialStorage: storage,
+      );
+
+      final migrated = await repository.readBridgeCredential();
+
+      expect(migrated?.deviceToken, credential.deviceToken);
+      expect(storage.value, encodedCredential);
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.containsKey('bridge_device'), isFalse);
+    },
+  );
+
+  test(
+    'a protected store that throws leaves the device readable as unpaired',
+    () async {
+      final repository = await LocalRepository.open(
+        bridgeCredentialStorage: _ThrowingBridgeCredentialStorage(),
+      );
+
+      expect(await repository.readBridgeCredential(), isNull);
+    },
+  );
+
+  test(
+    'a protected store that throws keeps the plaintext credential in place',
+    () async {
+      final credential = BridgeCredential(
+        deviceToken: 'legacy-device-token',
+        deviceName: 'Family tablet',
+        pairedAtUtc: DateTime.utc(2026, 8, 22),
+      );
+      final encodedCredential = jsonEncode(credential.toJson());
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'bridge_device': encodedCredential,
+      });
+      final repository = await LocalRepository.open(
+        bridgeCredentialStorage: _ThrowingBridgeCredentialStorage(),
+      );
+
+      final read = await repository.readBridgeCredential();
+
+      expect(read?.deviceToken, credential.deviceToken);
+      final preferences = await SharedPreferences.getInstance();
+      expect(
+        preferences.getString('bridge_device'),
+        encodedCredential,
+        reason: 'the only working copy must survive a broken store',
+      );
+    },
+  );
+
+  test('the preferences-backed store round-trips and migrates', () async {
+    final credential = BridgeCredential(
+      deviceToken: 'web-device-token',
+      deviceName: 'Family laptop',
+      pairedAtUtc: DateTime.utc(2026, 9, 3),
+    );
+    final encodedCredential = jsonEncode(credential.toJson());
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'bridge_device': encodedCredential,
+    });
+    const storage = PreferencesBridgeCredentialStorage();
+    final repository = await LocalRepository.open(
+      bridgeCredentialStorage: storage,
+    );
+
+    expect(
+      (await repository.readBridgeCredential())?.deviceToken,
+      credential.deviceToken,
+    );
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.containsKey('bridge_device'), isFalse);
+    expect(preferences.getString('bridge_device_store'), encodedCredential);
+
+    await repository.removeBridgeCredential();
+
+    expect(await storage.read(), isNull);
+    expect(await repository.readBridgeCredential(), isNull);
+  });
+
+  test(
+    'bridge credential reads, writes, and deletes use secure storage',
+    () async {
+      final storage = InMemoryBridgeCredentialStorage();
+      final repository = await LocalRepository.open(
+        bridgeCredentialStorage: storage,
+      );
+      final credential = BridgeCredential(
+        deviceToken: 'secure-device-token',
+        deviceName: 'Family tablet',
+        pairedAtUtc: DateTime.utc(2026, 8, 22),
+      );
+
+      await repository.saveBridgeCredential(credential);
+
+      expect(storage.value, isNotNull);
+      expect(
+        (await repository.readBridgeCredential())?.deviceToken,
+        credential.deviceToken,
+      );
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.containsKey('bridge_device'), isFalse);
+
+      await repository.removeBridgeCredential();
+
+      expect(storage.value, isNull);
+      expect(await repository.readBridgeCredential(), isNull);
+    },
+  );
 
   test(
     'multiple profiles and their stories survive a repository reopen',
@@ -465,4 +601,18 @@ StoryBook _story({
       ],
     ),
   );
+}
+
+/// Stands in for a platform store whose plugin is missing or refuses to run.
+class _ThrowingBridgeCredentialStorage implements BridgeCredentialStorage {
+  @override
+  Future<String?> read() async => throw UnsupportedError('no secure context');
+
+  @override
+  Future<void> write(String value) async {
+    throw UnsupportedError('no secure context');
+  }
+
+  @override
+  Future<void> delete() async => throw UnsupportedError('no secure context');
 }

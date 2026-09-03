@@ -6,10 +6,12 @@ import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generated_story.dart';
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
 import 'package:iam_hero_bridge/src/generation/generation_job.dart';
+import 'package:iam_hero_bridge/src/generation/language_purity.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_draft.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
+import 'package:iam_hero_bridge/src/generation/story_outline.dart';
 import 'package:iam_hero_bridge/src/generation/story_prompt.dart';
 import 'package:uuid/uuid.dart';
 
@@ -21,6 +23,8 @@ typedef GenerationLogSink = void Function(String message);
 
 /// How many finished jobs stay readable before the oldest are dropped.
 const int maxRetainedFinishedJobs = 100;
+
+const Duration _ollamaUnloadTimeout = Duration(seconds: 5);
 
 /// Runs story generation jobs strictly one at a time.
 ///
@@ -208,30 +212,92 @@ class StoryGenerationQueue {
     try {
       await _runJobOnGpu(jobId);
     } finally {
-      lease.release();
+      try {
+        await _unloadOllama(jobId);
+        final finished = _jobs[jobId];
+        if (finished != null && finished.status.isTerminal) {
+          _settle(finished);
+        }
+      } finally {
+        lease.release();
+      }
     }
   }
 
+  Future<void> _unloadOllama(String jobId) async {
+    try {
+      await _client.unload(
+        OllamaUnloadRequest(
+          baseUrl: _config.ollamaBaseUrl,
+          model: _config.ollamaModel,
+          timeout: _ollamaUnloadTimeout,
+        ),
+      );
+      _log('job $jobId Ollama model unloaded');
+    } catch (_) {
+      _log('job $jobId Ollama unload failed');
+    }
+  }
+
+  /// Runs one job's attempts, both passes, inside the held GPU lease.
+  ///
+  /// Every attempt is one whole story: the outline pass runs only until an
+  /// outline has been accepted, and from then on each retry re-sends that same
+  /// approved outline. Both passes therefore share one attempt counter — a job
+  /// with the default `maxGenerationAttempts` of 3 makes at most four model
+  /// calls (one outline plus three page passes), and an outline the model keeps
+  /// getting wrong costs the same three attempts and never reaches pass two.
   Future<void> _runJobOnGpu(String jobId) async {
     final start = _clock().toUtc();
     final token = _tokens[jobId] ?? CancellationToken();
     final request = _jobs[jobId]!.request;
     final attempts = _config.maxGenerationAttempts;
     GenerationFailure? failure;
+    StoryOutline? outline;
 
     for (var attempt = 1; attempt <= attempts; attempt++) {
       if (token.isCancelled) {
         _settleCancelled(jobId, start);
         return;
       }
-      _transition(
-        jobId,
-        status: GenerationJobStatus.generating,
-        progress: 'Writing the story (attempt $attempt of $attempts).',
-      );
-      _log('job $jobId generating attempt=$attempt/$attempts');
       try {
-        final response = await _callOllama(request, token);
+        if (outline == null) {
+          _transition(
+            jobId,
+            status: GenerationJobStatus.generating,
+            progress: 'Planning the story (attempt $attempt of $attempts).',
+          );
+          _log('job $jobId outlining attempt=$attempt/$attempts');
+          final planned = await _callOllama(
+            token,
+            prompt: buildStoryOutlinePrompt(request),
+            format: storyOutlineResponseSchema(request.pageCount),
+          );
+          if (token.isCancelled) {
+            _settleCancelled(jobId, start);
+            return;
+          }
+          final parsed = parseStoryOutline(
+            readOllamaResponseText(planned.bodyText),
+            expectedPageCount: request.pageCount,
+          );
+          _requirePureLanguage(request, <String>[
+            parsed.title,
+            for (final beat in parsed.beats) beat.summary,
+          ]);
+          outline = parsed;
+        }
+        _transition(
+          jobId,
+          status: GenerationJobStatus.generating,
+          progress: 'Writing the story (attempt $attempt of $attempts).',
+        );
+        _log('job $jobId generating attempt=$attempt/$attempts');
+        final response = await _callOllama(
+          token,
+          prompt: buildStoryPagesPrompt(request, outline),
+          format: storyResponseSchema(request.pageCount),
+        );
         if (token.isCancelled) {
           _settleCancelled(jobId, start);
           return;
@@ -241,10 +307,15 @@ class StoryGenerationQueue {
           status: GenerationJobStatus.validating,
           progress: 'Checking the story.',
         );
-        final draft = parseStoryDraft(
+        final parsedDraft = parseStoryDraft(
           readOllamaResponseText(response.bodyText),
           expectedPageCount: request.pageCount,
         );
+        _requirePureLanguage(request, <String>[
+          parsedDraft.title,
+          for (final page in parsedDraft.pages) page.text,
+        ]);
+        final draft = withHeroAppearance(parsedDraft, outline.heroAppearance);
         if (token.isCancelled) {
           _settleCancelled(jobId, start);
           return;
@@ -293,15 +364,38 @@ class StoryGenerationQueue {
     );
   }
 
-  Future<OllamaGenerateResponse> _callOllama(
+  /// Refuses a model answer that is not written in the requested script.
+  ///
+  /// Defense in depth behind the prompt, and deliberately reported as invalid
+  /// model output so it consumes a retry exactly like a wrong page count. The
+  /// message carries counts only, never a word of the story.
+  void _requirePureLanguage(
     StoryGenerationRequest request,
-    CancellationToken token,
-  ) async {
+    Iterable<String> texts,
+  ) {
+    final verdict = checkLanguagePurity(
+      language: request.language,
+      texts: texts,
+    );
+    final String? failure = verdict.failure;
+    if (failure != null) {
+      throw GenerationException(
+        GenerationFailureCode.invalidModelOutput,
+        failure,
+      );
+    }
+  }
+
+  Future<OllamaGenerateResponse> _callOllama(
+    CancellationToken token, {
+    required String prompt,
+    required Map<String, Object?> format,
+  }) async {
     final call = OllamaGenerateRequest(
       baseUrl: _config.ollamaBaseUrl,
       model: _config.ollamaModel,
-      prompt: buildStoryPrompt(request),
-      format: storyResponseSchema(request.pageCount),
+      prompt: prompt,
+      format: format,
       timeout: _config.generationTimeout,
     );
     final OllamaGenerateResponse response;
@@ -356,7 +450,6 @@ class StoryGenerationQueue {
     );
     _jobs[jobId] = finished;
     _log('job $jobId completed in ${_elapsedMs(start)} ms');
-    _settle(finished);
   }
 
   void _fail(String jobId, GenerationFailure failure, DateTime start) {
@@ -372,13 +465,10 @@ class StoryGenerationQueue {
       'job $jobId failed code=${failure.code.wireCode} '
       'after ${_elapsedMs(start)} ms',
     );
-    _settle(finished);
   }
 
   void _settleCancelled(String jobId, DateTime start) {
-    final current = _jobs[jobId]!;
     _log('job $jobId stopped after ${_elapsedMs(start)} ms');
-    _settle(current);
   }
 
   void _settle(GenerationJob job) {

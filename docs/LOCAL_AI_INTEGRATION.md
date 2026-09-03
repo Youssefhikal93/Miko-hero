@@ -2,11 +2,12 @@
 
 This document defines the constraints for the Ollama and ComfyUI phases.
 
-Text generation is connected: `LocalAiStoryGenerator` talks to the PC bridge
+Both halves are connected. `LocalAiStoryGenerator` talks to the PC bridge
 through `core/ai_connection`, device pairing exists, and the parent selects the
-generator in the settings AI connection card. ComfyUI illustrations and local
-image-file persistence are still unimplemented, so the reader keeps its
-gradient placeholder.
+generator in the settings AI connection card. Page illustrations are drawn by
+ComfyUI on the PC through `core/illustrations` and cached locally (files, or
+IndexedDB on the web); the reader shows its gradient placeholder only for demo
+stories and for pages the PC has not drawn yet.
 
 ## Existing application boundary
 
@@ -72,8 +73,12 @@ stories will not need migrating.
 
 ## Security constraints
 
-- Bind the PC service to localhost or the private home network by default.
-- Add device pairing before allowing requests from phones or tablets.
+- Bind the PC service to loopback or the private home network; the bridge
+  refuses a public bind address at startup. Internet exposure goes through a
+  reverse proxy that terminates HTTPS and forwards to loopback (Tailscale
+  Funnel, see `REMOTE_FAMILY_ACCESS.md`), never through port forwarding.
+- Allow browser calls only from exact, explicitly listed origins.
+- Require device pairing before any request from phones, tablets, or browsers.
 - Never embed an unrestricted service token in the Flutter bundle.
 - Validate photo type, decoded size, request size, and model output at the
   process boundary.

@@ -8,14 +8,17 @@ stories with a local Ollama model, illustrates them with a local ComfyUI
 install, synchronizes both to every paired device, deletes them everywhere on
 request, and writes password-encrypted backups of the whole library.
 
-> ## ⚠️ Never expose this service to the internet
+> ## ⚠️ Never expose the bridge listener directly to the internet
 >
 > The bridge has no TLS, no accounts, and no hardening against hostile
-> traffic. It is designed for a trusted home network only.
-> **Never port-forward it on your router, never expose it via a tunnel or
-> reverse proxy to the public internet.** By default it binds to
-> `127.0.0.1` and is unreachable from other machines; change `bindAddress`
-> only if you understand the consequences.
+> traffic. It is designed to listen only on loopback, a private/LAN or
+> link-local address, or a Tailscale address. The bridge refuses wildcard,
+> public, and hostname bind addresses other than `localhost`.
+> **Never port-forward the listener on your router.** If remote access is
+> required, keep `bindAddress` on `127.0.0.1` and terminate public HTTPS in a
+> narrowly configured proxy or tunnel that forwards to the loopback listener.
+> Add the public web app's origin (not the bridge URL unless it also serves the
+> app) explicitly to `allowedWebOrigins` using `https://`.
 
 ## Requirements
 
@@ -51,16 +54,16 @@ printed. All machine-specific values live in this file; nothing is hardcoded.
 
 | Field           | Default                 | Meaning                                   |
 | --------------- | ----------------------- | ----------------------------------------- |
-| `bindAddress`   | `127.0.0.1`             | Interface the HTTP server binds to        |
+| `bindAddress`   | `127.0.0.1`             | Interface the HTTP server binds to. Startup accepts only `localhost`, `127.0.0.0/8`, `::1`, private IPv4 (`10/8`, `172.16/12`, `192.168/16`), link-local (`169.254/16`, `fe80::/10`), private IPv6 (`fc00::/7`), or Tailscale (`100.64/10`). Wildcard, public, and other hostname addresses are refused. |
 | `port`          | `8765`                  | TCP port of the HTTP server               |
 | `libraryPath`   | `<cwd>/iam_hero_library`| Root folder of the master library         |
 | `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API          |
 | `comfyUiBaseUrl`| `http://127.0.0.1:8188` | Base URL of the local ComfyUI API         |
-| `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories         |
-| `generationTimeoutSeconds` | `600`        | Budget for one generation call (30–3600)  |
+| `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories. `gemma3:4b` is the floor, not a recommendation — see [`docs/STORY_QUALITY_UPGRADE.md`](../docs/STORY_QUALITY_UPGRADE.md) |
+| `generationTimeoutSeconds` | `900`        | Budget for **one** generation call (30–3600); a job makes two |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
 | `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800)   |
-| `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Loopback origins (`localhost`, `127.0.0.1`, any port) are always allowed; list LAN origins such as `http://192.168.1.20:8765` explicitly. Never list a public internet origin. |
+| `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Every entry must be an exact origin: scheme + host + optional port, with no wildcard, credentials, path, query, fragment, or trailing slash. Loopback origins (`localhost`, `127.0.0.0/8`, `[::1]`, any port) are always allowed. `http://` is accepted only for loopback and the private/LAN, link-local, and Tailscale ranges accepted by `bindAddress`; every public origin must be listed explicitly with `https://`. |
 | `illustration`  | see below               | How pages are rendered. Optional as a whole |
 
 Example `bridge_config.json`:
@@ -72,8 +75,8 @@ Example `bridge_config.json`:
   "libraryPath": "D:/FamilyData/iam_hero_library",
   "ollamaBaseUrl": "http://127.0.0.1:11434",
   "comfyUiBaseUrl": "http://127.0.0.1:8188",
-  "ollamaModel": "gemma3:4b",
-  "generationTimeoutSeconds": 600,
+  "ollamaModel": "qwen3:8b",
+  "generationTimeoutSeconds": 900,
   "maxGenerationAttempts": 3,
   "illustrationTimeoutSeconds": 300,
   "allowedWebOrigins": []
@@ -223,15 +226,26 @@ Queues one story generation job. Body:
   "theme": "A lantern festival by the sea",
   "moral": "Sharing a small light makes it bigger",
   "pageCount": 6,
-  "illustrationStyle": "pictureBook"
+  "illustrationStyle": "pictureBook",
+  "favoriteTopics": "sea turtles and paper boats",
+  "recurringWorld": "the Lantern Harbour"
 }
 ```
 
-Every field is required. `genderContext` is `girl` or `boy` (the app's
-unspecified state never reaches here), `languageCode` is `ar`, `en`, `sv`
-or `so`, `pageCount` is `6`, `8` or `10`, and `illustrationStyle` is
-`pictureBook`, `watercolor` or `colorful3d`. Anything else is rejected with
-`400 invalid_field` before a job exists. On success:
+Every field except the last two is required. `genderContext` is `girl` or
+`boy` (the app's unspecified state never reaches here), `languageCode` is
+`ar`, `en`, `sv` or `so`, `pageCount` is `6`, `8` or `10`, and
+`illustrationStyle` is `pictureBook`, `watercolor` or `colorful3d`. Anything
+else is rejected with `400 invalid_field` before a job exists.
+
+`favoriteTopics` and `recurringWorld` are **optional** (≤ 240 characters
+each) and carry the child's saved story preferences. Absent, `null` and blank
+all mean the same thing — nothing was filled in — and the prompt then says
+nothing about them at all. A present value of the wrong type or over the
+limit is still `400 invalid_field`. A device that never sends them keeps
+working unchanged.
+
+On success:
 
 ```json
 { "jobId": "…", "queuePosition": 1 }
@@ -709,6 +723,31 @@ in FIFO order and every other job waits with a reported position. Jobs live
 in memory only — the durable, restartable queue is the app's, and a bridge
 restart deliberately clears in-flight work.
 
+### Two passes: plan, then write
+
+A story is written in **two model calls**, because a small model asked to
+invent and write a whole book at once produces six unrelated scenes with the
+moral announced on the last page.
+
+1. **Outline pass.** A deliberately tiny schema: a working title, exactly one
+   beat per page, and a one-line **hero appearance sheet** — clothing colours,
+   hair, one recurring prop. The prompt asks for a real arc: a warm ordinary
+   opening, a challenge or discovery growing through the middle, and a last
+   page resolved by something the child themself chose or did.
+2. **Page pass.** The approved outline is embedded verbatim in the prompt, so
+   the pages tell that plan rather than a new story. Beat N becomes page N.
+
+The appearance sheet is appended to every page's `illustrationScene` (em-dash
+separated, inside the existing 2000-character cap), which is what makes the
+hero wear the same clothes on page one and page ten when ComfyUI draws them.
+It is invented by the model and the prompt forbids describing a photograph or
+a real person.
+
+The prompt also carries the reader's age into a concrete reading level
+(sentence length and vocabulary bands for ≤4, ≤7, ≤10 and older), asks for the
+child's name only where it reads naturally rather than in every sentence, and
+weaves in `favoriteTopics` and `recurringWorld` when they were sent.
+
 ### Job lifecycle
 
 ```text
@@ -719,9 +758,14 @@ queued ──▶ generating ──▶ validating ──▶ completed
 
 - **queued** — accepted, waiting for the worker; reports `queuePosition`.
 - **generating** — `POST /api/generate` is in flight against the configured
-  model with `"stream": false` and a JSON schema in `format`. The body is
-  sent as explicit UTF-8 bytes with `Content-Type: application/json;
-  charset=utf-8`, because Arabic corrupts otherwise.
+  model with `"stream": false`, `"think": false` and a JSON schema in
+  `format`. Thinking is off because reasoning models such as `qwen3.5:*`
+  otherwise return the JSON in Ollama's `thinking` field and an empty
+  `response`, which reads as `invalid_model_output`. Both passes
+  live in this state; `progress` reads `Planning the story…` and then
+  `Writing the story…`. The body is sent as explicit UTF-8 bytes with
+  `Content-Type: application/json; charset=utf-8`, because Arabic corrupts
+  otherwise.
 - **validating** — the answer must be a JSON object with a non-empty title,
   exactly the requested number of pages, page numbers running 1..N in
   order, and non-empty text plus an English illustration scene on every
@@ -732,14 +776,48 @@ queued ──▶ generating ──▶ validating ──▶ completed
   fails the job fails as `library_write_failed` and no rows remain.
 - **failed / cancelled** — no story, no partial rows, ever.
 
+After any running job reaches one of those terminal states, the bridge asks
+Ollama to unload the configured model before releasing the shared GPU lease.
+
+### Language purity
+
+Both passes are checked against the script the story was requested in, and a
+violation is reported as `invalid_model_output` — so it costs a retry exactly
+like a wrong page count.
+
+- For `ar`, at least 95 % of the **letters** in the title and pages must be
+  Arabic script. English prose, a Latin sentence dropped into Arabic, and
+  transliterated Arabic are all refused.
+- For `en`, `sv` and `so`, **no** Arabic-script letter is accepted at all and
+  at least 95 % of the letters must be Latin.
+- Digits (ASCII, Arabic-Indic and Eastern Arabic-Indic), punctuation,
+  whitespace and Arabic vowel marks are not letters and never count.
+
+Not 100 %, on purpose: an invented creature's name is not a language failure.
+This is script-level defense in depth behind the prompt, not a spellchecker —
+correct grammar is the model's job, and the reason the model choice matters.
+Scene descriptions are exempt, because they are deliberately English.
+
 ### Retry policy
 
 A job gets `maxGenerationAttempts` attempts (default 3 = one try plus two
-retries). **Only invalid model output is retried** — the whole generation
-runs again from the prompt. A missing Ollama, a timeout, or a failed
-library write fails the job immediately: retrying a ten-minute timeout
-three times would just make the parent wait half an hour for the same
-answer.
+retries), and **both passes share that one counter**:
+
+- An attempt runs the outline pass only until an outline has been accepted.
+  From then on every retry re-sends that same approved plan, so a retry
+  reproduces the story instead of drifting into a different one.
+- With the default of 3 a job therefore makes at most **four** model calls:
+  one outline plus three page passes.
+- An outline the model keeps getting wrong consumes the same three attempts
+  and pass two never runs at all.
+
+**Only invalid model output is retried** — including a failed language-purity
+check. A missing Ollama, a timeout, or a failed library write fails the job
+immediately: retrying a fifteen-minute timeout three times would just make the
+parent wait three quarters of an hour for the same answer.
+
+`generationTimeoutSeconds` is the budget for **one** call, not for the job, so
+two passes cannot exhaust one timeout between them.
 
 Typed failure codes: `invalid_request`, `ollama_unavailable`,
 `ollama_timeout`, `invalid_model_output`, `library_write_failed`,
@@ -947,8 +1025,9 @@ and wrong attempts are capped at five.
   the only outbound traffic is health probes, story generation and
   illustration rendering against the configured local Ollama/ComfyUI URLs.
 - **Bounded generation**: one job at a time, a configurable timeout per
-  call (default 10 minutes), a capped number of attempts, and cancellation
-  that aborts the in-flight request instead of orphaning it.
+  call (default 15 minutes; a job makes two calls), a capped number of
+  attempts shared by both passes, and cancellation that aborts the in-flight
+  request instead of orphaning it.
 - **Bounded rendering**: one page at a time behind the same one-GPU lock, a
   configurable per-page timeout (default 5 minutes) that interrupts the
   abandoned render so the card is freed, a 16 MB ceiling on a downloaded

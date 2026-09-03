@@ -8,6 +8,11 @@ import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
+import 'package:miko_hero/core/generation/story_generator.dart';
+import 'package:miko_hero/core/models/app_language.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Verifies localized application behavior from the user's point of view.
@@ -25,7 +30,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Iam - hero'), findsWidgets);
+    expect(find.text('Add a hero profile'), findsOneWidget);
     expect(find.text('Add a profile'), findsWidgets);
     expect(find.text('Sign in'), findsNothing);
   });
@@ -40,15 +45,24 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
     await tester.pumpAndSettle();
 
-    final welcome = find.text('مغامرة جديدة تبدأ هنا');
-    expect(welcome, findsOneWidget);
-    expect(Directionality.of(tester.element(welcome)), TextDirection.rtl);
+    final prompt = find.text('أضف ملف بطل');
+    expect(prompt, findsOneWidget);
+    expect(Directionality.of(tester.element(prompt)), TextDirection.rtl);
   });
 
   testWidgets('Somali selection keeps localized Material controls available', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
+          ),
+        ],
+        child: const IamHeroApp(),
+      ),
+    );
     await tester.pumpAndSettle();
     appRouter.go('/settings');
     await tester.pumpAndSettle();
@@ -89,6 +103,66 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('the bottom bar shows icons the family can still name', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'active_profile_id': 'miko',
+      'child_profiles': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'miko',
+          'name': 'Miko',
+          'age': 7,
+          'photoBase64': _transparentPixel,
+          'gender': 'girl',
+          'themeColorValue': AppTheme.girlPink.toARGB32(),
+        },
+      ]),
+    });
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
+          ),
+        ],
+        child: const IamHeroApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final bar = find.byType(NavigationBar);
+    expect(bar, findsOneWidget);
+    for (final label in _destinationLabels.values) {
+      expect(
+        find.descendant(of: bar, matching: find.text(label)),
+        findsNothing,
+      );
+    }
+    _expectActiveDot(tester, '/', accent: AppTheme.girlPink);
+
+    for (final route in <String>[
+      '/create',
+      '/library',
+      '/kingdom',
+      '/settings',
+      '/',
+    ]) {
+      await tester.tap(
+        find.descendant(
+          of: bar,
+          matching: find.bySemanticsLabel(
+            RegExp('^${_destinationLabels[route]}'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      _expectActiveDot(tester, route, accent: AppTheme.girlPink);
+    }
+    semantics.dispose();
   });
 
   testWidgets('each hero restores the custom color saved in My Kingdom', (
@@ -256,34 +330,39 @@ void main() {
               currentTime: () => fixedTime,
             ),
           ),
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
+          ),
         ],
         child: const IamHeroApp(),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Create another story'));
+    await tester.tap(find.text('New story'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Choose a hero profile'), findsOneWidget);
-    final profileSelector = find.byKey(
-      const ValueKey<String>('story-profile-selector'),
-    );
-    await tester.ensureVisible(profileSelector);
-    await tester.tap(profileSelector);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Abbas hero').last);
+    expect(find.text('Who is the hero'), findsOneWidget);
+    final abbasCard = find.byKey(const ValueKey<String>('story-hero-abbas'));
+    await tester.ensureVisible(abbasCard);
+    await tester.tap(abbasCard);
     await tester.pumpAndSettle();
     expect(find.text('Is this hero a girl or a boy?'), findsOneWidget);
     await tester.tap(find.text('Boy'));
     await tester.pumpAndSettle();
-    final storyTitle = find.text('Create a story');
+    final storyTitle = find.text('New story');
     expect(
       Theme.of(tester.element(storyTitle)).colorScheme.primary,
       AppTheme.boyCyan,
     );
-    await tester.enterText(find.byType(TextFormField).at(0), 'a moon garden');
-    await tester.enterText(find.byType(TextFormField).at(1), 'kindness');
-    final generateButton = find.text('Generate demo story');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('story-theme')),
+      'a moon garden',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('story-moral')),
+      'kindness',
+    );
+    final generateButton = find.text('Write the story');
     await tester.ensureVisible(generateButton);
     await tester.tap(generateButton);
     await tester.pumpAndSettle();
@@ -306,16 +385,172 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
 
     expect(find.text('Miko hero'), findsOneWidget);
     expect(find.text('Abbas hero'), findsOneWidget);
-    expect(find.text("a moon garden: Abbas's Adventure"), findsNothing);
-    await tester.tap(find.text('Abbas hero'));
-    await tester.pumpAndSettle();
+    // The shelf opens on the child the app is reading as, which writing this
+    // story made Abbas; Miko's chip is the empty shelf beside it.
     expect(find.text("a moon garden: Abbas's Adventure"), findsWidgets);
+    await tester.tap(find.text('Miko hero'));
+    await tester.pumpAndSettle();
+    expect(find.text("a moon garden: Abbas's Adventure"), findsNothing);
   });
+
+  testWidgets('tap choices reach the controller as the existing request', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'child_profiles': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'miko',
+          'name': 'Miko',
+          'age': 7,
+          'photoBase64': _transparentPixel,
+          'gender': 'girl',
+        },
+      ]),
+    });
+    final generator = _RecordingStoryGenerator();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storyGeneratorProvider.overrideWithValue(generator),
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
+          ),
+        ],
+        child: const IamHeroApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    appRouter.go('/create');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('story-hero-miko')));
+    await tester.pumpAndSettle();
+    expect(find.text('7 · Girl'), findsOneWidget);
+    expect(find.text('Is this hero a girl or a boy?'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('story-theme')),
+      'a moon garden',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('story-moral')),
+      'kindness',
+    );
+    final eightPages = find.byKey(
+      const ValueKey<String>('story-length-medium'),
+    );
+    await tester.ensureVisible(eightPages);
+    await tester.tap(eightPages);
+    await tester.pumpAndSettle();
+    final swedish = find.byKey(const ValueKey<String>('story-language-sv'));
+    await tester.ensureVisible(swedish);
+    await tester.tap(swedish);
+    await tester.pumpAndSettle();
+    final submit = find.byKey(const ValueKey<String>('story-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(generator.requests, hasLength(1));
+    final request = generator.requests.single;
+    expect(request.profileId, 'miko');
+    expect(request.heroName, 'Miko');
+    expect(request.gender, ChildGender.girl);
+    expect(request.theme, 'a moon garden');
+    expect(request.moral, 'kindness');
+    expect(request.presentation.length, StoryLength.medium);
+    expect(request.presentation.language, AppLanguage.swedish);
+    expect(request.presentation.style, IllustrationStyle.pictureBook);
+  });
+
+  testWidgets('the header names the saved Local AI generator, never the demo', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'child_profiles': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'miko',
+          'name': 'Miko',
+          'age': 7,
+          'photoBase64': _transparentPixel,
+          'gender': 'girl',
+        },
+      ]),
+      'ai_connection': jsonEncode(<String, String>{
+        'mode': 'localAi',
+        'baseUrl': 'http://127.0.0.1:8765',
+      }),
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
+          ),
+        ],
+        child: const IamHeroApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    appRouter.go('/create');
+    await tester.pumpAndSettle();
+
+    expect(find.text('New story'), findsOneWidget);
+    expect(find.text('Local AI'), findsOneWidget);
+    expect(find.text('Demo'), findsNothing);
+  });
+}
+
+class _RecordingStoryGenerator implements StoryGenerator {
+  final DemoStoryGenerator _delegate = DemoStoryGenerator(
+    latency: Duration.zero,
+    currentTime: _fixedGenerationTime,
+  );
+
+  final List<StoryRequest> requests = <StoryRequest>[];
+
+  @override
+  Future<StoryBook> generate(StoryRequest request) {
+    requests.add(request);
+    return _delegate.generate(request);
+  }
+}
+
+DateTime _fixedGenerationTime() => DateTime.utc(2026, 8, 17, 12);
+
+/// English name every bottom destination keeps for accessibility tooling.
+const _destinationLabels = <String, String>{
+  '/': 'Home',
+  '/create': 'Create',
+  '/library': 'Library',
+  '/kingdom': 'My Kingdom',
+  '/settings': 'Settings',
+};
+
+/// Fails unless the dot marks [route] alone, drawn in the child's [accent].
+void _expectActiveDot(
+  WidgetTester tester,
+  String route, {
+  required Color accent,
+}) {
+  for (final candidate in _destinationLabels.keys) {
+    final dot = find.byKey(ValueKey<String>('nav-dot-$candidate'));
+    if (candidate != route) {
+      expect(dot, findsNothing);
+      continue;
+    }
+    expect(dot, findsOneWidget);
+    final decoration = tester.widget<Container>(dot).decoration;
+    expect((decoration! as BoxDecoration).color, accent);
+    expect(Theme.of(tester.element(dot)).colorScheme.primary, accent);
+  }
 }
 
 const _transparentPixel =

@@ -24,20 +24,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settings => 'Inställningar';
 
   @override
-  String get welcomeTitle => 'Ett nytt äventyr börjar här';
-
-  @override
-  String get welcomeBody =>
-      'Skapa privata, illustrerade berättelser där varje barn blir hjälten.';
-
-  @override
   String get createFirstStory => 'Skapa en första berättelse';
-
-  @override
-  String get createAnotherStory => 'Skapa en ny berättelse';
-
-  @override
-  String get recentStories => 'Senaste berättelser';
 
   @override
   String get profileIncompleteTitle => 'Lägg till en hjälteprofil';
@@ -48,6 +35,58 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get setUpProfile => 'Lägg till profil';
+
+  @override
+  String get readingAs => 'Läser som';
+
+  @override
+  String get greetingMorning => 'God morgon.';
+
+  @override
+  String get greetingAfternoon => 'God eftermiddag.';
+
+  @override
+  String get greetingEvening => 'God kväll.';
+
+  @override
+  String get greetingNight => 'God natt.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title väntar på att bli utläst.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'Nya berättelser väntar på att en förälder läser dem.';
+
+  @override
+  String get greetingCreateStory => 'Kvällens berättelse är inte skriven än.';
+
+  @override
+  String get keepReading => 'Fortsätt läsa';
+
+  @override
+  String get newStory => 'Ny berättelse';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned av $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Utkast som väntar på granskning: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Endast för föräldrar · syns inte på hyllan';
+
+  @override
+  String get onTheShelf => 'På hyllan';
+
+  @override
+  String get seeAll => 'Visa alla';
 
   @override
   String get editProfile => 'Redigera hjälteprofil';
@@ -160,20 +199,58 @@ class AppLocalizationsSv extends AppLocalizations {
   String get photoRequired => 'Välj ett referensfoto.';
 
   @override
-  String get createStoryTitle => 'Skapa en berättelse';
+  String get createStoryTitle => 'Ny berättelse';
 
   @override
-  String get chooseHeroProfile => 'Välj en hjälteprofil';
+  String get whoIsTheHero => 'Vem är hjälten?';
 
   @override
-  String get selectHeroProfile => 'Välj ett barn';
+  String get add => 'Lägg till';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'Vad händer?';
+
+  @override
+  String get lessonHint => 'Och lärdomen den förmedlar';
+
+  @override
+  String get howLong => 'Hur lång?';
+
+  @override
+  String get pages => 'sidor';
+
+  @override
+  String get lookAndLanguage => 'Utseende och språk';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Skriv berättelsen';
+
+  @override
+  String get demoGeneratorLabel => 'Demo';
+
+  @override
+  String get localAiGeneratorLabel => 'Lokal AI';
 
   @override
   String get profileSelectionRequired =>
       'Välj vilket barn som ska vara hjälten.';
-
-  @override
-  String get storyLanguage => 'Berättelsens språk';
 
   @override
   String get theme => 'Äventyrets tema';
@@ -185,25 +262,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get moral => 'Lärdom eller värde';
 
   @override
-  String get moralHint => 'Till exempel: vänlighet och mod';
-
-  @override
-  String get storyLength => 'Berättelsens längd';
-
-  @override
-  String get illustrationStyle => 'Illustrationsstil';
-
-  @override
-  String get shortLength => 'Kort · 6 sidor';
-
-  @override
-  String get mediumLength => 'Mellan · 8 sidor';
-
-  @override
-  String get longLength => 'Lång · 10 sidor';
-
-  @override
-  String get pictureBookStyle => 'Mjuk bilderbok';
+  String get pictureBookStyle => 'Bilderbok';
 
   @override
   String get watercolorStyle => 'Akvarell';
@@ -212,14 +271,8 @@ class AppLocalizationsSv extends AppLocalizations {
   String get threeDStyle => 'Färgstark 3D';
 
   @override
-  String get generateStory => 'Skapa demoberättelse';
-
-  @override
   String get demoModeNotice =>
       'Demoläget skapar en tydligt markerad exempelberättelse helt utan dator och utan AI. Byt berättelsegenerator till Lokal AI i inställningarna för att skriva på familjens dator.';
-
-  @override
-  String get profileNeeded => 'Lägg först till minst en hjälteprofil.';
 
   @override
   String get themeRequired => 'Beskriv äventyrets tema.';
@@ -238,11 +291,19 @@ class AppLocalizationsSv extends AppLocalizations {
   String get storyCreated => 'Berättelsen är klar';
 
   @override
-  String get libraryTitle => 'Familjens berättelsebibliotek';
+  String get libraryTitle => 'Bokhyllan';
 
   @override
-  String get librarySubtitle =>
-      'Färdiga berättelser lagras endast på den här enheten.';
+  String get librarySubtitle => 'Lagras endast på den här enheten';
+
+  @override
+  String get libraryStoredWithPc => 'Synkad med familjens dator';
+
+  @override
+  String get searchStoryTitles => 'Sök titlar';
+
+  @override
+  String get clearStorySearch => 'Rensa sökningen';
 
   @override
   String get emptyLibraryTitle => 'Bokhyllan väntar';
@@ -281,6 +342,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'Sida $current av $total';
   }
+
+  @override
+  String get readToMe => 'Läs för mig';
 
   @override
   String get playNarration => 'Spela berättarröst';
@@ -755,6 +819,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get noDrafts => 'Inga berättelser väntar på granskning.';
 
   @override
+  String get moreStoryActions => 'Fler åtgärder för berättelsen';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count sidor';
+  }
+
+  @override
   String get addFavorite => 'Lägg till som favorit';
 
   @override
@@ -788,16 +860,18 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'Filtrera bokhyllan';
-
-  @override
-  String get allStories => 'Alla berättelser';
+  String allStoriesCount(int count) {
+    return 'Alla $count';
+  }
 
   @override
   String get favoriteStories => 'Favoriter';
 
   @override
   String get noStoriesInFilter => 'Inga berättelser matchar filtret ännu.';
+
+  @override
+  String get noStoriesMatchSearch => 'Ingen titel på hyllan matchar sökningen.';
 
   @override
   String get generationCenterTitle => 'Lokalt skapandecenter';
@@ -887,6 +961,32 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get exportPdfPhotoNotice =>
       'En sparad PDF är inte krypterad och lämnar appen.';
+
+  @override
+  String pdfForHero(String name) {
+    return 'till $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'Den här boken tillhör $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'Skapad $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'Sida $number av $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'Berättelsens hjärta';
+
+  @override
+  String get pdfTheEnd => 'Slut';
 
   @override
   String get narrationSettings => 'Berättarinställningar';
@@ -1324,9 +1424,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'Berättelserna skrivs av AI:n på familjens dator. Datorn, dess brygga och dess modell måste vara igång.';
-
-  @override
-  String get generateLocalAiStory => 'Skapa berättelse på datorn';
 
   @override
   String get localAiSubmitting => 'Skickar förfrågan till datorn…';

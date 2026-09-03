@@ -9,6 +9,7 @@ import 'package:miko_hero/core/ai_connection/bridge_client.dart';
 import 'package:miko_hero/core/ai_connection/bridge_credential.dart';
 import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/settings/library_sync_controller.dart';
@@ -273,7 +274,10 @@ Future<ProviderContainer> _pairedContainer(
   _FakeIllustratedBridge bridge,
   InMemoryIllustrationStore store,
 ) async {
-  final repository = await LocalRepository.open();
+  final credentialStorage = InMemoryBridgeCredentialStorage();
+  final repository = await LocalRepository.open(
+    bridgeCredentialStorage: credentialStorage,
+  );
   await repository.saveProfiles(const <ChildProfile>[
     ChildProfile(
       id: 'miko',
@@ -301,6 +305,7 @@ Future<ProviderContainer> _pairedContainer(
   final container = ProviderContainer(
     overrides: [
       bridgeHttpClientProvider.overrideWithValue(bridge.httpClient),
+      bridgeCredentialStorageProvider.overrideWithValue(credentialStorage),
       illustrationStoreProvider.overrideWithValue(store),
     ],
   );

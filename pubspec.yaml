@@ -36,6 +36,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^3.0.0
+  flutter_secure_storage: ^10.3.1
   flutter_tts: ^4.2.3
   go_router: ^16.0.0
   http: ^1.6.0
@@ -61,6 +62,20 @@ dev_dependencies:
   # a preference store that fails mid-write and prove the restore rollback.
   shared_preferences_platform_interface: ^2.4.2
 
+  # Already resolved through pdf, which shapes Arabic with it before drawing.
+  # Declared so the font test can shape the exact strings the export prints and
+  # prove every resulting glyph exists in the bundled display face.
+  bidi: ^2.0.13
+
+  # Build-time only, all three. They rasterize and cut up the brand mark in
+  # assets/brand/ and are never imported by the app, so nothing here reaches a
+  # release binary: flutter_svg is used by tool/render_brand_assets.dart to turn
+  # the SVG into the PNG masters, and the two generators cut those masters into
+  # per-platform icons and splash screens.
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
+  flutter_svg: ^2.3.0
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -79,13 +94,33 @@ flutter:
   assets:
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoNaskhArabic-Regular.ttf
+    # Storybook display faces used only by the offline PDF export: Baloo 2 for
+    # the Latin story languages, Amiri Bold for Arabic. See
+    # assets/fonts/README.md for why two faces rather than one.
+    - assets/fonts/Baloo2-Variable.ttf
+    - assets/fonts/Amiri-Bold.ttf
 
-  # Bundled for the optional per-child easy-reading font in the story reader.
-  # Latin script only; Arabic prose keeps the interface font.
   fonts:
+    # The interface typeface. One variable file carrying the whole weight
+    # range; the shared theme pins the axis, because the font's default
+    # instance is its thinnest weight. See assets/fonts/README.md.
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-Variable.ttf
+    # Interface fallback for Arabic, which Outfit has no glyphs for. The file
+    # is the one the offline PDF export already bundles.
+    - family: NotoNaskhArabic
+      fonts:
+        - asset: assets/fonts/NotoNaskhArabic-Regular.ttf
+    # Bundled for the optional per-child easy-reading font in the story reader.
+    # Latin script only; Arabic prose keeps the interface font.
     - family: AtkinsonHyperlegible
       fonts:
         - asset: assets/fonts/AtkinsonHyperlegible-Regular.ttf
+    # Book-like serif for Latin-script story prose in the reader and review.
+    - family: Newsreader
+      fonts:
+        - asset: assets/fonts/Newsreader-Variable.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -122,3 +157,72 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ---------------------------------------------------------------------------
+# Brand mark: app icons and splash screens
+#
+# One drawing, assets/brand/iam_hero_mark.svg, becomes every launcher icon and
+# every splash screen. The PNG masters under assets/brand/generated/ are cut
+# from it by tool/render_brand_assets.dart; the two blocks below only slice
+# those masters per platform. Nothing here is a runtime dependency.
+#
+# To change a colour: edit it in the SVG and in the palette below (the YAML
+# anchors are aliased by both generators), then re-run the commands in the
+# "App icons and splash screens" section of docs/CODEBASE.md.
+# ---------------------------------------------------------------------------
+
+# Read by no tool directly; it exists so the redesign palette is written once
+# and aliased everywhere it is needed below.
+iam_hero_brand_palette:
+  # Night background, the only colour any launch surface ever shows.
+  night: &night "#0A0D18"
+
+flutter_launcher_icons:
+  # The opaque master: the mark on the night background, edge to edge.
+  image_path: assets/brand/generated/app_icon.png
+
+  # Legacy launcher bitmaps for every density, keeping the ic_launcher name so
+  # the manifest and the application id are untouched.
+  android: true
+  min_sdk_android: 24
+  # Android 8+ adaptive icon: the mark as the foreground layer over a flat
+  # night background layer, so the launcher may crop it to any shape.
+  adaptive_icon_background: *night
+  adaptive_icon_foreground: assets/brand/generated/app_icon_foreground.png
+  # Android 13+ themed icon: the same silhouette without its halo, tinted by
+  # the system.
+  adaptive_icon_monochrome: assets/brand/generated/app_icon_monochrome.png
+
+  ios: true
+  # iOS refuses translucent app icons; the master is opaque already, this only
+  # guarantees it stays that way.
+  remove_alpha_ios: true
+
+  web:
+    generate: true
+    image_path: assets/brand/generated/app_icon.png
+    background_color: *night
+    theme_color: *night
+
+flutter_native_splash:
+  # Pre-Android-12, iOS and web: the mark centred on the night background.
+  color: *night
+  image: assets/brand/generated/splash.png
+  # The app is dark by design, so the dark variants are the same night screen
+  # rather than a second design that could flash light.
+  color_dark: *night
+  image_dark: assets/brand/generated/splash.png
+
+  android: true
+  ios: true
+  web: true
+
+  # Android 12+ draws the splash itself from the window theme: a background
+  # colour plus one icon that it crops to a circle.
+  android_12:
+    color: *night
+    image: assets/brand/generated/splash_android_12.png
+    icon_background_color: *night
+    color_dark: *night
+    image_dark: assets/brand/generated/splash_android_12.png
+    icon_background_color_dark: *night

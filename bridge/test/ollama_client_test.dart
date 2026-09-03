@@ -105,7 +105,32 @@ void main() {
       reason: 'Arabic must survive the transport unchanged',
     );
     expect(decoded['stream'], isFalse);
+    expect(
+      decoded['think'],
+      isFalse,
+      reason:
+          'thinking models otherwise put the JSON in `thinking` and '
+          'leave `response` empty',
+    );
     expect(decoded['model'], 'gemma3:4b');
+    expect(decoded.containsKey('keep_alive'), isFalse);
+  });
+
+  test('unloading sends only the model and zero keep-alive', () async {
+    final stub = await _StubOllama.start();
+    addTearDown(stub.close);
+
+    await const IoOllamaStoryClient().unload(
+      OllamaUnloadRequest(
+        baseUrl: stub.baseUrl,
+        model: 'qwen3.5:9b',
+        timeout: const Duration(seconds: 10),
+      ),
+    );
+
+    final decoded =
+        jsonDecode(utf8.decode(stub.receivedBody))! as Map<String, Object?>;
+    expect(decoded, <String, Object?>{'model': 'qwen3.5:9b', 'keep_alive': 0});
   });
 
   test('cancelling aborts the in-flight request', () async {

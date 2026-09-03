@@ -132,35 +132,11 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
-  /// No description provided for @welcomeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'A new adventure starts here'**
-  String get welcomeTitle;
-
-  /// No description provided for @welcomeBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Create private, illustrated stories where each child becomes the hero.'**
-  String get welcomeBody;
-
   /// No description provided for @createFirstStory.
   ///
   /// In en, this message translates to:
   /// **'Create a first story'**
   String get createFirstStory;
-
-  /// No description provided for @createAnotherStory.
-  ///
-  /// In en, this message translates to:
-  /// **'Create another story'**
-  String get createAnotherStory;
-
-  /// No description provided for @recentStories.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent stories'**
-  String get recentStories;
 
   /// No description provided for @profileIncompleteTitle.
   ///
@@ -179,6 +155,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a profile'**
   String get setUpProfile;
+
+  /// No description provided for @readingAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading as'**
+  String get readingAs;
+
+  /// No description provided for @greetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning.'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon.'**
+  String get greetingAfternoon;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening.'**
+  String get greetingEvening;
+
+  /// No description provided for @greetingNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Good night.'**
+  String get greetingNight;
+
+  /// No description provided for @greetingContinueStory.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is waiting to be finished.'**
+  String greetingContinueStory(String title);
+
+  /// No description provided for @greetingDraftsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'New stories are waiting for a parent to read them.'**
+  String get greetingDraftsWaiting;
+
+  /// No description provided for @greetingCreateStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Tonight\'s story has not been written yet.'**
+  String get greetingCreateStory;
+
+  /// No description provided for @keepReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep reading'**
+  String get keepReading;
+
+  /// No description provided for @newStory.
+  ///
+  /// In en, this message translates to:
+  /// **'New story'**
+  String get newStory;
+
+  /// No description provided for @readingBadgesEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'{earned} of {total}'**
+  String readingBadgesEarned(int earned, int total);
+
+  /// No description provided for @draftsWaitingForReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts waiting for review: {count}'**
+  String draftsWaitingForReview(int count);
+
+  /// No description provided for @draftsWaitingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent only · hidden from the shelf'**
+  String get draftsWaitingHint;
+
+  /// No description provided for @onTheShelf.
+  ///
+  /// In en, this message translates to:
+  /// **'On the shelf'**
+  String get onTheShelf;
+
+  /// No description provided for @seeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get seeAll;
 
   /// No description provided for @editProfile.
   ///
@@ -387,32 +453,104 @@ abstract class AppLocalizations {
   /// No description provided for @createStoryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Create a story'**
+  /// **'New story'**
   String get createStoryTitle;
 
-  /// No description provided for @chooseHeroProfile.
+  /// No description provided for @whoIsTheHero.
   ///
   /// In en, this message translates to:
-  /// **'Choose a hero profile'**
-  String get chooseHeroProfile;
+  /// **'Who is the hero'**
+  String get whoIsTheHero;
 
-  /// No description provided for @selectHeroProfile.
+  /// No description provided for @add.
   ///
   /// In en, this message translates to:
-  /// **'Select a child'**
-  String get selectHeroProfile;
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @heroAgeGender.
+  ///
+  /// In en, this message translates to:
+  /// **'{age} · {gender}'**
+  String heroAgeGender(int age, String gender);
+
+  /// No description provided for @whatHappens.
+  ///
+  /// In en, this message translates to:
+  /// **'What happens'**
+  String get whatHappens;
+
+  /// No description provided for @lessonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'And the lesson it teaches'**
+  String get lessonHint;
+
+  /// No description provided for @howLong.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get howLong;
+
+  /// No description provided for @pages.
+  ///
+  /// In en, this message translates to:
+  /// **'pages'**
+  String get pages;
+
+  /// No description provided for @lookAndLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Look and language'**
+  String get lookAndLanguage;
+
+  /// No description provided for @storyLanguageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get storyLanguageEnglish;
+
+  /// No description provided for @storyLanguageArabic.
+  ///
+  /// In en, this message translates to:
+  /// **'العربية'**
+  String get storyLanguageArabic;
+
+  /// No description provided for @storyLanguageSwedish.
+  ///
+  /// In en, this message translates to:
+  /// **'Svenska'**
+  String get storyLanguageSwedish;
+
+  /// No description provided for @storyLanguageSomali.
+  ///
+  /// In en, this message translates to:
+  /// **'Soomaali'**
+  String get storyLanguageSomali;
+
+  /// No description provided for @writeTheStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Write the story'**
+  String get writeTheStory;
+
+  /// No description provided for @demoGeneratorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo'**
+  String get demoGeneratorLabel;
+
+  /// No description provided for @localAiGeneratorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Local AI'**
+  String get localAiGeneratorLabel;
 
   /// No description provided for @profileSelectionRequired.
   ///
   /// In en, this message translates to:
   /// **'Choose which child will be the hero.'**
   String get profileSelectionRequired;
-
-  /// No description provided for @storyLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Story language'**
-  String get storyLanguage;
 
   /// No description provided for @theme.
   ///
@@ -432,46 +570,10 @@ abstract class AppLocalizations {
   /// **'Lesson or value'**
   String get moral;
 
-  /// No description provided for @moralHint.
-  ///
-  /// In en, this message translates to:
-  /// **'For example: kindness and courage'**
-  String get moralHint;
-
-  /// No description provided for @storyLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Story length'**
-  String get storyLength;
-
-  /// No description provided for @illustrationStyle.
-  ///
-  /// In en, this message translates to:
-  /// **'Illustration style'**
-  String get illustrationStyle;
-
-  /// No description provided for @shortLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Short · 6 pages'**
-  String get shortLength;
-
-  /// No description provided for @mediumLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Medium · 8 pages'**
-  String get mediumLength;
-
-  /// No description provided for @longLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Long · 10 pages'**
-  String get longLength;
-
   /// No description provided for @pictureBookStyle.
   ///
   /// In en, this message translates to:
-  /// **'Soft picture book'**
+  /// **'Picture book'**
   String get pictureBookStyle;
 
   /// No description provided for @watercolorStyle.
@@ -486,23 +588,11 @@ abstract class AppLocalizations {
   /// **'Colorful 3D'**
   String get threeDStyle;
 
-  /// No description provided for @generateStory.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate demo story'**
-  String get generateStory;
-
   /// No description provided for @demoModeNotice.
   ///
   /// In en, this message translates to:
   /// **'Demo mode creates a clearly marked sample story with no PC and no AI. Switch the story generator to Local AI in settings to write on your family PC.'**
   String get demoModeNotice;
-
-  /// No description provided for @profileNeeded.
-  ///
-  /// In en, this message translates to:
-  /// **'Add at least one hero profile first.'**
-  String get profileNeeded;
 
   /// No description provided for @themeRequired.
   ///
@@ -537,14 +627,32 @@ abstract class AppLocalizations {
   /// No description provided for @libraryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Family story library'**
+  /// **'The shelf'**
   String get libraryTitle;
 
   /// No description provided for @librarySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Completed stories are stored only on this device.'**
+  /// **'Stored only on this device'**
   String get librarySubtitle;
+
+  /// No description provided for @libraryStoredWithPc.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced with the family PC'**
+  String get libraryStoredWithPc;
+
+  /// No description provided for @searchStoryTitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Search titles'**
+  String get searchStoryTitles;
+
+  /// No description provided for @clearStorySearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearStorySearch;
 
   /// No description provided for @emptyLibraryTitle.
   ///
@@ -617,6 +725,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {current} of {total}'**
   String pageProgress(int current, int total);
+
+  /// No description provided for @readToMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Read to me'**
+  String get readToMe;
 
   /// No description provided for @playNarration.
   ///
@@ -1434,6 +1548,18 @@ abstract class AppLocalizations {
   /// **'No stories are waiting for review.'**
   String get noDrafts;
 
+  /// No description provided for @moreStoryActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More story actions'**
+  String get moreStoryActions;
+
+  /// No description provided for @storyPageCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pages'**
+  String storyPageCount(int count);
+
   /// No description provided for @addFavorite.
   ///
   /// In en, this message translates to:
@@ -1488,17 +1614,11 @@ abstract class AppLocalizations {
   /// **'Each collection name must be {max} characters or fewer.'**
   String collectionNameTooLong(int max);
 
-  /// No description provided for @filterStories.
+  /// No description provided for @allStoriesCount.
   ///
   /// In en, this message translates to:
-  /// **'Filter this shelf'**
-  String get filterStories;
-
-  /// No description provided for @allStories.
-  ///
-  /// In en, this message translates to:
-  /// **'All stories'**
-  String get allStories;
+  /// **'All {count}'**
+  String allStoriesCount(int count);
 
   /// No description provided for @favoriteStories.
   ///
@@ -1511,6 +1631,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No stories match this filter yet.'**
   String get noStoriesInFilter;
+
+  /// No description provided for @noStoriesMatchSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'No title on this shelf matches that search.'**
+  String get noStoriesMatchSearch;
 
   /// No description provided for @generationCenterTitle.
   ///
@@ -1673,6 +1799,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A saved PDF is not encrypted and leaves the app.'**
   String get exportPdfPhotoNotice;
+
+  /// No description provided for @pdfForHero.
+  ///
+  /// In en, this message translates to:
+  /// **'for {name}'**
+  String pdfForHero(String name);
+
+  /// No description provided for @pdfBelongsTo.
+  ///
+  /// In en, this message translates to:
+  /// **'This book belongs to {name}'**
+  String pdfBelongsTo(String name);
+
+  /// No description provided for @pdfMadeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Made on {date}'**
+  String pdfMadeOn(String date);
+
+  /// No description provided for @pdfPageBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {number} of {total}'**
+  String pdfPageBadge(int number, int total);
+
+  /// No description provided for @pdfMoralHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'The heart of this story'**
+  String get pdfMoralHeading;
+
+  /// No description provided for @pdfTheEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'The End'**
+  String get pdfTheEnd;
 
   /// No description provided for @narrationSettings.
   ///
@@ -2435,12 +2597,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stories are written by the AI on your family PC. The PC, its bridge, and its model must be running.'**
   String get localAiModeNotice;
-
-  /// No description provided for @generateLocalAiStory.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate story on the PC'**
-  String get generateLocalAiStory;
 
   /// No description provided for @localAiSubmitting.
   ///

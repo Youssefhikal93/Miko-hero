@@ -24,19 +24,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settings => 'الإعدادات';
 
   @override
-  String get welcomeTitle => 'مغامرة جديدة تبدأ هنا';
-
-  @override
-  String get welcomeBody => 'أنشئ قصصًا خاصة ومصورة يصبح فيها كل طفل هو البطل.';
-
-  @override
   String get createFirstStory => 'أنشئ القصة الأولى';
-
-  @override
-  String get createAnotherStory => 'أنشئ قصة جديدة';
-
-  @override
-  String get recentStories => 'أحدث القصص';
 
   @override
   String get profileIncompleteTitle => 'أضف ملف بطل';
@@ -47,6 +35,57 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get setUpProfile => 'إضافة ملف';
+
+  @override
+  String get readingAs => 'القراءة باسم';
+
+  @override
+  String get greetingMorning => 'صباح الخير.';
+
+  @override
+  String get greetingAfternoon => 'طاب نهارك.';
+
+  @override
+  String get greetingEvening => 'مساء الخير.';
+
+  @override
+  String get greetingNight => 'طابت ليلتك.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title تنتظر أن تُكمَل.';
+  }
+
+  @override
+  String get greetingDraftsWaiting => 'قصص جديدة تنتظر أن يقرأها أحد الوالدين.';
+
+  @override
+  String get greetingCreateStory => 'قصة هذه الليلة لم تُكتب بعد.';
+
+  @override
+  String get keepReading => 'تابع القراءة';
+
+  @override
+  String get newStory => 'قصة جديدة';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned من $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'مسودات بانتظار المراجعة: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'للوالدين فقط · لا تظهر على الرف';
+
+  @override
+  String get onTheShelf => 'على الرف';
+
+  @override
+  String get seeAll => 'عرض الكل';
 
   @override
   String get editProfile => 'تعديل ملف البطل';
@@ -158,19 +197,57 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photoRequired => 'اختر صورة مرجعية.';
 
   @override
-  String get createStoryTitle => 'إنشاء قصة';
+  String get createStoryTitle => 'قصة جديدة';
 
   @override
-  String get chooseHeroProfile => 'اختر ملف البطل';
+  String get whoIsTheHero => 'من هو البطل؟';
 
   @override
-  String get selectHeroProfile => 'اختر طفلًا';
+  String get add => 'إضافة';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'ماذا يحدث؟';
+
+  @override
+  String get lessonHint => 'والدرس الذي تعلّمه';
+
+  @override
+  String get howLong => 'ما طولها؟';
+
+  @override
+  String get pages => 'صفحات';
+
+  @override
+  String get lookAndLanguage => 'الشكل واللغة';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'اكتب القصة';
+
+  @override
+  String get demoGeneratorLabel => 'تجريبي';
+
+  @override
+  String get localAiGeneratorLabel => 'ذكاء اصطناعي محلي';
 
   @override
   String get profileSelectionRequired => 'اختر الطفل الذي سيكون بطل القصة.';
-
-  @override
-  String get storyLanguage => 'لغة القصة';
 
   @override
   String get theme => 'موضوع المغامرة';
@@ -182,25 +259,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get moral => 'الدرس أو القيمة';
 
   @override
-  String get moralHint => 'مثال: اللطف والشجاعة';
-
-  @override
-  String get storyLength => 'طول القصة';
-
-  @override
-  String get illustrationStyle => 'أسلوب الرسوم';
-
-  @override
-  String get shortLength => 'قصيرة · 6 صفحات';
-
-  @override
-  String get mediumLength => 'متوسطة · 8 صفحات';
-
-  @override
-  String get longLength => 'طويلة · 10 صفحات';
-
-  @override
-  String get pictureBookStyle => 'كتاب مصور ناعم';
+  String get pictureBookStyle => 'كتاب مصور';
 
   @override
   String get watercolorStyle => 'ألوان مائية';
@@ -209,14 +268,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get threeDStyle => 'ثلاثي الأبعاد ملون';
 
   @override
-  String get generateStory => 'إنشاء قصة تجريبية';
-
-  @override
   String get demoModeNotice =>
       'ينشئ الوضع التجريبي قصة نموذجية مميزة بوضوح دون كمبيوتر ودون ذكاء اصطناعي. غيّر مولّد القصص إلى الذكاء الاصطناعي المحلي في الإعدادات للكتابة على كمبيوتر العائلة.';
-
-  @override
-  String get profileNeeded => 'أضف ملف بطل واحدًا على الأقل أولًا.';
 
   @override
   String get themeRequired => 'صف موضوع المغامرة.';
@@ -234,10 +287,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get storyCreated => 'القصة جاهزة';
 
   @override
-  String get libraryTitle => 'مكتبة قصص العائلة';
+  String get libraryTitle => 'الرف';
 
   @override
-  String get librarySubtitle => 'تُحفظ القصص المكتملة على هذا الجهاز فقط.';
+  String get librarySubtitle => 'محفوظة على هذا الجهاز فقط';
+
+  @override
+  String get libraryStoredWithPc => 'متزامنة مع حاسوب العائلة';
+
+  @override
+  String get searchStoryTitles => 'ابحث في العناوين';
+
+  @override
+  String get clearStorySearch => 'مسح البحث';
 
   @override
   String get emptyLibraryTitle => 'رف الكتب بانتظارك';
@@ -276,6 +338,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'الصفحة $current من $total';
   }
+
+  @override
+  String get readToMe => 'اقرأ لي';
 
   @override
   String get playNarration => 'تشغيل السرد';
@@ -740,6 +805,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noDrafts => 'لا توجد قصص بانتظار المراجعة.';
 
   @override
+  String get moreStoryActions => 'إجراءات أخرى للقصة';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count صفحات';
+  }
+
+  @override
   String get addFavorite => 'إضافة إلى المفضلة';
 
   @override
@@ -773,16 +846,18 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get filterStories => 'تصفية هذا الرف';
-
-  @override
-  String get allStories => 'كل القصص';
+  String allStoriesCount(int count) {
+    return 'الكل $count';
+  }
 
   @override
   String get favoriteStories => 'المفضلة';
 
   @override
   String get noStoriesInFilter => 'لا توجد قصص تطابق هذا المرشح بعد.';
+
+  @override
+  String get noStoriesMatchSearch => 'لا يوجد عنوان في هذا الرف يطابق البحث.';
 
   @override
   String get generationCenterTitle => 'مركز التوليد المحلي';
@@ -870,6 +945,32 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get exportPdfPhotoNotice =>
       'ملف PDF المحفوظ غير مشفّر ويخرج من التطبيق.';
+
+  @override
+  String pdfForHero(String name) {
+    return 'إلى $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'هذا الكتاب يخص $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'صُنع في $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'صفحة $number من $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'قلب هذه القصة';
+
+  @override
+  String get pdfTheEnd => 'النهاية';
 
   @override
   String get narrationSettings => 'إعدادات القراءة الصوتية';
@@ -1295,9 +1396,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'يكتب القصص الذكاء الاصطناعي على كمبيوتر العائلة. يجب أن يكون الكمبيوتر وجسره ونموذجه قيد التشغيل.';
-
-  @override
-  String get generateLocalAiStory => 'إنشاء القصة على الكمبيوتر';
 
   @override
   String get localAiSubmitting => 'جارٍ إرسال الطلب إلى الكمبيوتر…';

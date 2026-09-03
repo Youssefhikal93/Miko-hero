@@ -11,6 +11,13 @@ const int maximumDraftPageTextLength = 5000;
 /// Longest accepted illustration scene description from the model.
 const int maximumDraftSceneLength = 2000;
 
+/// Separator between the segments of one stored scene description.
+///
+/// The same em dash the app's stored pages already use, so appending the hero
+/// appearance sheet produces a scene the device still parses as one scene plus
+/// its bridge identities.
+const String sceneSegmentSeparator = ' — ';
+
 /// One validated page of model output.
 class StoryDraftPage {
   /// Creates a validated page.
@@ -146,6 +153,57 @@ StoryDraft parseStoryDraft(
     title: title,
     pages: List<StoryDraftPage>.unmodifiable(pages),
   );
+}
+
+/// Returns [draft] with [heroAppearance] appended to every page's scene.
+///
+/// This is what keeps the hero in the same clothes from page one to page ten:
+/// the appearance sheet is invented once, in the outline pass, and every scene
+/// description carries it into the renderer. Pure, so it is trivially testable
+/// and cannot reorder or rewrite the pages.
+///
+/// A scene with no room left inside [maximumDraftSceneLength] keeps the
+/// appearance it can fit and loses the rest; a scene with essentially no room
+/// is returned untouched, because half a word of costume is worse than none.
+StoryDraft withHeroAppearance(StoryDraft draft, String heroAppearance) {
+  final appearance = heroAppearance.trim();
+  if (appearance.isEmpty) {
+    return draft;
+  }
+  return StoryDraft(
+    title: draft.title,
+    pages: List<StoryDraftPage>.unmodifiable(
+      draft.pages.map(
+        (page) => StoryDraftPage(
+          pageNumber: page.pageNumber,
+          text: page.text,
+          illustrationScene: _appendAppearance(
+            page.illustrationScene,
+            appearance,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Smallest amount of appearance text worth appending to a scene.
+const int _minimumAppendedAppearance = 24;
+
+/// Appends [appearance] to [scene] without breaking the stored length cap.
+String _appendAppearance(String scene, String appearance) {
+  if (scene.contains(appearance)) {
+    return scene;
+  }
+  final available =
+      maximumDraftSceneLength - scene.length - sceneSegmentSeparator.length;
+  if (available < _minimumAppendedAppearance) {
+    return scene;
+  }
+  final fitted = appearance.length <= available
+      ? appearance
+      : appearance.substring(0, available).trimRight();
+  return '$scene$sceneSegmentSeparator$fitted';
 }
 
 Object? _decodeJson(String raw, String failureMessage) {

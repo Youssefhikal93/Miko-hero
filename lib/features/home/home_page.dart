@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_state.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/features/home/home_greeting.dart';
+import 'package:miko_hero/features/home/home_hero_switcher.dart';
+import 'package:miko_hero/features/home/home_tiles.dart';
+import 'package:miko_hero/features/library/story_library_page.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
-/// Personalized dashboard for profile setup and recent family stories.
+/// The family's first screen: who is reading, what to read next, what is new.
 class HomePage extends ConsumerWidget {
   /// Creates the routed home destination.
   const HomePage({super.key});
@@ -31,123 +38,102 @@ class _HomeContent extends StatelessWidget {
 
   final AppState state;
 
+  /// Covers the shelf strip shows before the library takes over.
+  static const _shelfStripLength = 6;
+
   @override
-  /// Composes the welcome panel, profile prompt, and recent story grid.
+  /// Puts the profile prompt before everything else for a family with none.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
+    if (state.profiles.isEmpty) {
+      return ScreenLayout(child: _ProfileSetupPrompt(text: text));
+    }
+    final activeProfile = state.activeProfile;
+    final keepReading = keepReadingStory(state, activeProfile);
+    final draftCount = state.draftStories.length;
     return ScreenLayout(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _WelcomePanel(state: state),
-          const SizedBox(height: 30),
-          if (state.profiles.isEmpty) _ProfilePrompt(text: text),
-          if (state.profiles.isNotEmpty)
-            _RecentStories(state: state, text: text),
+          HomeHeroHeader(
+            profiles: state.profiles,
+            activeProfile: activeProfile,
+          ),
+          const SizedBox(height: 20),
+          _Greeting(
+            greeting: homeGreeting(text, homeTimeOfDay(DateTime.now())),
+            line: homeGreetingLine(
+              text,
+              keepReading: keepReading,
+              hasDrafts: draftCount > 0,
+            ),
+          ),
+          const SizedBox(height: 18),
+          MosaicGrid(
+            tiles: _tiles(
+              activeProfile: activeProfile,
+              keepReading: keepReading,
+              draftCount: draftCount,
+            ),
+          ),
+          ..._shelf(context, text, activeProfile, keepReading),
         ],
       ),
     );
   }
-}
 
-/// High-emphasis introduction and primary story action.
-class _WelcomePanel extends StatelessWidget {
-  /// Creates a welcome panel tailored to profile completion state.
-  const _WelcomePanel({required this.state});
-
-  final AppState state;
-
-  @override
-  /// Adapts the call to action while retaining one responsive composition.
-  Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    final profileReady = state.profiles.isNotEmpty;
-    return AccentPanel(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final copy = _welcomeCopy(context, text, profileReady);
-          if (constraints.maxWidth < 660) return copy;
-          return Row(
-            children: <Widget>[
-              Expanded(flex: 3, child: copy),
-              const SizedBox(width: 28),
-              const Expanded(flex: 2, child: _HeroEmblem()),
-            ],
-          );
-        },
-      ),
-    );
+  /// Builds only the tiles this family's real state has something to say with.
+  ///
+  /// Home offers no secondary command on a book, so no tile here carries an
+  /// overflow control: favourites, sharing, and deletion stay on the shelf and
+  /// in the parent surfaces that own them.
+  List<MosaicTile> _tiles({
+    required ChildProfile? activeProfile,
+    required StoryBook? keepReading,
+    required int draftCount,
+  }) {
+    return <MosaicTile>[
+      if (keepReading != null)
+        MosaicTile(span: 2, child: HomeKeepReadingTile(story: keepReading)),
+      const MosaicTile(child: HomeNewStoryTile()),
+      if (activeProfile != null)
+        MosaicTile(child: HomeReadingBadgesTile(profile: activeProfile)),
+      if (draftCount > 0)
+        MosaicTile(span: 2, child: HomeDraftsRow(draftCount: draftCount)),
+    ];
   }
 
-  /// Builds localized copy and routes to the next required user action.
-  Widget _welcomeCopy(
+  /// Adds the shelf strip only when the active child has covers left to show.
+  ///
+  /// The book already featured on the keep-reading tile is left out, so the
+  /// strip is the rest of the shelf rather than a second look at the same
+  /// cover.
+  List<Widget> _shelf(
     BuildContext context,
     AppLocalizations text,
-    bool profileReady,
+    ChildProfile? activeProfile,
+    StoryBook? keepReading,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          'Iam - hero',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          text.welcomeTitle,
-          style: Theme.of(context).textTheme.displaySmall,
-        ),
-        const SizedBox(height: 12),
-        Text(text.welcomeBody, style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(height: 24),
-        FilledButton.icon(
-          onPressed: () =>
-              context.go(profileReady ? '/create' : '/profiles/new'),
-          icon: const Icon(Icons.auto_awesome_rounded),
-          label: Text(
-            profileReady ? text.createAnotherStory : text.setUpProfile,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Abstract hero artwork that does not expose or bundle any child's photo.
-class _HeroEmblem extends StatelessWidget {
-  /// Creates static placeholder art with no family image dependency.
-  const _HeroEmblem();
-
-  @override
-  /// Uses layered shapes to provide visual identity before real illustrations exist.
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return AspectRatio(
-      aspectRatio: 1.2,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: <Color>[colors.secondary, colors.primary],
-          ),
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: const Icon(
-          Icons.auto_stories_rounded,
-          size: 92,
-          color: Colors.white,
-        ),
-      ),
-    );
+    if (activeProfile == null) return const <Widget>[];
+    final covers = state
+        .storiesForProfile(activeProfile.id)
+        .where((story) => story.id != keepReading?.id)
+        .take(_shelfStripLength)
+        .toList(growable: false);
+    if (covers.isEmpty) return const <Widget>[];
+    return <Widget>[
+      const SizedBox(height: 24),
+      _ShelfHeading(text: text, profileId: activeProfile.id),
+      const SizedBox(height: 12),
+      _ShelfStrip(covers: covers),
+    ];
   }
 }
 
 /// Setup prompt shown only before a private profile exists.
-class _ProfilePrompt extends StatelessWidget {
+class _ProfileSetupPrompt extends StatelessWidget {
   /// Creates localized setup guidance.
-  const _ProfilePrompt({required this.text});
+  const _ProfileSetupPrompt({required this.text});
 
   final AppLocalizations text;
 
@@ -157,26 +143,26 @@ class _ProfilePrompt extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Icon(Icons.face_retouching_natural_rounded, size: 38),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    text.profileIncompleteTitle,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(text.profileIncompleteBody),
-                ],
-              ),
+            Icon(
+              Icons.face_retouching_natural_rounded,
+              size: 38,
+              color: Theme.of(context).colorScheme.primary,
             ),
-            IconButton(
+            const SizedBox(height: 14),
+            Text(
+              text.profileIncompleteTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(text.profileIncompleteBody),
+            const SizedBox(height: 20),
+            FilledButton.icon(
               onPressed: () => context.go('/profiles/new'),
-              icon: const Icon(Icons.arrow_forward_rounded),
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: Text(text.setUpProfile),
             ),
           ],
         ),
@@ -185,87 +171,102 @@ class _ProfilePrompt extends StatelessWidget {
   }
 }
 
-/// Recent-book section or an empty-library invitation for completed profiles.
-class _RecentStories extends StatelessWidget {
-  /// Creates the section from a loaded state snapshot and localized copy.
-  const _RecentStories({required this.state, required this.text});
+/// Greeting by time of day over one line about what is actually waiting.
+class _Greeting extends StatelessWidget {
+  /// Creates the two-line greeting from already-localized copy.
+  const _Greeting({required this.greeting, required this.line});
 
-  final AppState state;
-  final AppLocalizations text;
+  final String greeting;
+  final String line;
 
   @override
-  /// Shows at most three books to keep the home page focused.
+  /// Keeps both lines in one paragraph so they wrap as a single sentence pair.
   Widget build(BuildContext context) {
-    final approvedStories = state.approvedStories;
-    if (approvedStories.isEmpty) {
-      return _EmptyLibrary(text: text);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final style = Theme.of(context).textTheme.headlineMedium;
+    return Text.rich(
+      TextSpan(
+        children: <InlineSpan>[
+          TextSpan(text: '$greeting\n'),
+          TextSpan(
+            text: line,
+            style: const TextStyle(color: AppTheme.mutedDeep),
+          ),
+        ],
+      ),
+      style: style?.copyWith(height: 1.2),
+    );
+  }
+}
+
+/// "On the shelf" over the link that hands the rest to the library.
+class _ShelfHeading extends StatelessWidget {
+  /// Creates the strip heading and its library link.
+  const _ShelfHeading({required this.text, required this.profileId});
+
+  final AppLocalizations text;
+
+  /// Child whose shelf the strip is showing, named in the library route.
+  final String profileId;
+
+  @override
+  /// Sends the family to the shelf they were already looking at.
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        SectionHeading(title: text.recentStories),
-        const SizedBox(height: 18),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth >= 900
-                ? (constraints.maxWidth - 32) / 3
-                : constraints.maxWidth;
-            return Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: approvedStories.take(3).map((story) {
-                return SizedBox(
-                  width: width,
-                  child: StoryCard(
-                    story: story,
-                    actions: StoryCardActions(
-                      open: () => context.go('/story/${story.id}'),
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
+        Expanded(
+          child: Text(
+            text.onTheShelf.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 13,
+              letterSpacing: 1.3,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.mutedDeep,
+            ),
+          ),
+        ),
+        TextButton(
+          key: const ValueKey<String>('home-see-all'),
+          onPressed: () => context.go(libraryRouteForChild(profileId)),
+          child: Text(text.seeAll),
         ),
       ],
     );
   }
 }
 
-/// Empty library state with a direct path to story creation.
-class _EmptyLibrary extends StatelessWidget {
-  /// Creates the invitation from localized copy.
-  const _EmptyLibrary({required this.text});
+/// Horizontal run of the active child's most recent approved covers.
+class _ShelfStrip extends StatelessWidget {
+  /// Creates the strip from covers already filtered to one child.
+  const _ShelfStrip({required this.covers});
 
-  final AppLocalizations text;
+  final List<StoryBook> covers;
+
+  /// Width of one cover in the strip.
+  static const _coverWidth = 148.0;
 
   @override
-  /// Keeps an empty state actionable instead of presenting a blank shelf.
+  /// Scrolls sideways so a long shelf never pushes the page down.
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          children: <Widget>[
-            Icon(
-              Icons.menu_book_outlined,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: <Widget>[
+          for (final story in covers)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 12),
+              child: SizedBox(
+                width: _coverWidth,
+                child: StoryCard(
+                  story: story,
+                  variant: StoryCardVariant.small,
+                  actions: StoryCardActions(
+                    open: () => context.go('/story/${story.id}'),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 14),
-            Text(
-              text.emptyLibraryTitle,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(text.emptyLibraryBody, textAlign: TextAlign.center),
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: () => context.go('/create'),
-              child: Text(text.createFirstStory),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

@@ -1,5 +1,11 @@
 # Illustration quality upgrade — steps for the AI PC
 
+> **Status: completed on the AI PC, September 2026** (issues #5, #6, #24).
+> Live configuration: `dreamshaper_8` checkpoint, `coolkids-v2` LoRA,
+> RealESRGAN upscale to 1024², peak VRAM about 3.4 GB; a six-page book renders
+> in roughly 72 s. The bridge now unloads the Ollama model before rendering.
+> The steps below are kept as the record of that setup.
+
 This document is a self-contained work order for an agent (or a person) on
 the **AI PC** — the machine that runs Ollama, ComfyUI, and the Iam-hero
 bridge. Everything that could be done in code is **already implemented and
@@ -39,6 +45,8 @@ not configurable and must stay that way.
 ## Step 1 — pull the latest code and rebuild the bridge
 
 ```
+git fetch origin
+git checkout dev   # this work lives on dev, never main
 git pull
 cd bridge && dart pub get
 ```
@@ -93,7 +101,9 @@ refused at startup with a clear message — fix and restart.
    `v1-5-pruned-emaonly-fp16.safetensors`, render the same story again
    (seeds are deterministic), and compare with the owner.
 5. Watch GPU memory during a run. If ComfyUI runs out of memory with
-   `targetSize` 1024, drop it to 768 — still far better than 512.
+   `targetSize` 1024, drop it to 768 — still far better than 512. The bridge
+   unloads its Ollama model before ComfyUI starts, so no manual unload is
+   needed.
 6. If `faceDetail` was enabled: confirm the first render actually completes —
    the FaceDetailer wiring follows the Impact Pack's documented inputs but
    was never run against a real install; a `missing_custom_node` error means

@@ -132,6 +132,8 @@ class LocalAiStoryGenerator implements CancellableStoryGenerator {
       moral: request.moral,
       pageCount: request.presentation.length.pageCount,
       illustrationStyle: request.presentation.style.name,
+      favoriteTopics: request.prompt.preferences.favoriteThings,
+      recurringWorld: request.prompt.preferences.recurringWorld,
     );
   }
 

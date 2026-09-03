@@ -14,6 +14,7 @@ import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/narration/narration_options.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
+import 'package:miko_hero/shared/reading_text_style.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Verifies the reading comfort and bedtime mode a child actually sees.
@@ -33,12 +34,13 @@ void main() {
     final themeSize = _themeProseSize(tester);
     expect(
       _proseStyle(tester).fontSize,
-      themeSize * ReaderTextSize.extraLarge.scale,
+      themeSize * 1.15 * ReaderTextSize.extraLarge.scale,
     );
     expect(_proseStyle(tester).fontSize, greaterThan(themeSize));
+    expect(_proseStyle(tester).height, 1.6);
   });
 
-  testWidgets('the default text size follows the shared typography', (
+  testWidgets('English prose uses the bundled serif at reading metrics', (
     tester,
   ) async {
     _seed();
@@ -46,15 +48,21 @@ void main() {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    expect(_proseStyle(tester).fontSize, _themeProseSize(tester));
-    expect(_proseStyle(tester).fontFamily, isNot(easyReadingFontFamily));
-    expect(_proseStyle(tester).fontFamily, _themeProseFontFamily(tester));
+    expect(_proseStyle(tester).fontSize, _themeProseSize(tester) * 1.15);
+    expect(_proseStyle(tester).fontFamily, newsreaderFontFamily);
+    expect(_proseStyle(tester).height, 1.6);
   });
 
   test('the easy-reading font is bundled with the app', () async {
     final font = await rootBundle.load(
       'assets/fonts/AtkinsonHyperlegible-Regular.ttf',
     );
+
+    expect(font.lengthInBytes, greaterThan(1000));
+  });
+
+  test('the Newsreader family is bundled with the app', () async {
+    final font = await rootBundle.load('assets/fonts/Newsreader-Variable.ttf');
 
     expect(font.lengthInBytes, greaterThan(1000));
   });
@@ -86,8 +94,9 @@ void main() {
     expect(_proseStyle(tester).fontFamily, _themeProseFontFamily(tester));
     expect(
       _proseStyle(tester).fontSize,
-      _themeProseSize(tester) * ReaderTextSize.large.scale,
+      _themeProseSize(tester) * 1.15 * ReaderTextSize.large.scale,
     );
+    expect(_proseStyle(tester).height, 1.6);
   });
 
   testWidgets('the review preview uses the same reading comfort', (
@@ -115,8 +124,9 @@ void main() {
     expect(preview.style!.fontFamily, easyReadingFontFamily);
     expect(
       preview.style!.fontSize,
-      themeStyle.fontSize! * ReaderTextSize.large.scale,
+      themeStyle.fontSize! * 1.15 * ReaderTextSize.large.scale,
     );
+    expect(preview.style!.height, 1.6);
   });
 
   testWidgets('bedtime mode warms the page and dims the prose', (tester) async {
@@ -266,9 +276,9 @@ Future<void> _dismissNotice(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Opens the reader's narration choices dialog.
+/// Opens the reader's narration choices dialog from its sleep-timer icon.
 Future<void> _openNarrationSettings(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Narration settings'));
+  await tester.tap(find.byTooltip('Sleep timer'));
   await tester.pumpAndSettle();
 }
 

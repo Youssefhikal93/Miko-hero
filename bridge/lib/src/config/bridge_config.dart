@@ -38,11 +38,15 @@ class BridgeConfig {
   /// Default Ollama model used for story generation.
   static const String defaultOllamaModel = 'gemma3:4b';
 
-  /// Default wall-clock budget for one story generation call: 10 minutes.
+  /// Default wall-clock budget for one story generation call: 15 minutes.
   ///
-  /// A small local GPU needs minutes for a ten-page story, so this is
-  /// generous on purpose — but always bounded.
-  static const int defaultGenerationTimeoutSeconds = 600;
+  /// The budget is per model call, and a job makes two: a small outline call
+  /// and the call that writes the pages. Raised from ten minutes when the
+  /// two-pass pipeline landed, because the recommended larger models — the
+  /// ones that actually write correct Arabic — take noticeably longer per call
+  /// on a 4 GB card than the 4B floor model does. Generous on purpose, but
+  /// always bounded.
+  static const int defaultGenerationTimeoutSeconds = 900;
 
   /// Default number of generation attempts per job (one try plus two
   /// retries) before the job fails.
@@ -108,10 +112,10 @@ class BridgeConfig {
   /// Additional web origins (scheme + host + optional port, no path) whose
   /// browser pages may call the bridge, e.g. `http://192.168.1.20:8765`.
   ///
-  /// Loopback origins (`localhost`, `127.0.0.1`, `[::1]` on any port) are
+  /// Loopback origins (`localhost`, `127.0.0.0/8`, `[::1]` on any port) are
   /// always allowed so a web app opened on the PC itself just works; every
-  /// other origin must be listed here explicitly. Never list a public
-  /// internet origin — the bridge is for the private home network only.
+  /// other origin must be listed here explicitly. Public web origins must use
+  /// HTTPS so bearer tokens never cross the public internet in plaintext.
   final List<String> allowedWebOrigins;
 
   /// How illustrations are rendered: checkpoint, size, sampler, LoRA chain,
@@ -153,8 +157,7 @@ class BridgeConfig {
   /// [FormatException] with a precise message.
   factory BridgeConfig.fromJson(Map<String, Object?> json) {
     return BridgeConfig(
-      bindAddress:
-          _readNonEmptyString(json, 'bindAddress') ?? defaultBindAddress,
+      bindAddress: _readBindAddress(json, 'bindAddress') ?? defaultBindAddress,
       port: _readPort(json),
       libraryPath:
           _readNonEmptyString(json, 'libraryPath') ?? defaultLibraryPath(),
@@ -215,27 +218,89 @@ class BridgeConfig {
     }
     final origins = <String>[];
     for (final entry in value) {
-      if (entry is! String || entry.trim().isEmpty) {
-        throw FormatException('Field "$key" must contain only origin strings.');
-      }
-      final origin = entry.trim();
-      final uri = Uri.tryParse(origin);
-      if (uri == null ||
-          (uri.scheme != 'http' && uri.scheme != 'https') ||
-          uri.host.isEmpty ||
-          uri.path.isNotEmpty && uri.path != '/' ||
-          uri.hasQuery ||
-          uri.hasFragment) {
+      if (entry is! String || entry.isEmpty || entry != entry.trim()) {
         throw FormatException(
-          'Field "$key" entry "$origin" must be a bare origin such as '
-          '"http://192.168.1.20:8765" with no path.',
+          'Bridge config field "$key" must contain only exact origin '
+          'strings.',
         );
       }
-      origins.add(
-        origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin,
-      );
+      final origin = entry;
+      final uri = Uri.tryParse(origin);
+      if (uri == null ||
+          origin.contains('*') ||
+          (uri.scheme != 'http' && uri.scheme != 'https') ||
+          uri.host.isEmpty ||
+          uri.userInfo.isNotEmpty ||
+          uri.path.isNotEmpty ||
+          uri.hasQuery ||
+          uri.hasFragment ||
+          !_hasExactOriginAuthority(origin, uri)) {
+        throw FormatException(
+          'Bridge config field "$key" entry "$origin" must be an exact '
+          'http(s) origin (scheme, host, and optional port only; no wildcard, '
+          'path, query, fragment, credentials, or trailing slash).',
+        );
+      }
+      if (uri.scheme == 'http' && !_isPrivateOrLoopbackHost(uri.host)) {
+        throw FormatException(
+          'Bridge config field "$key" entry "$origin" must use https '
+          'because its host is not loopback or private/LAN.',
+        );
+      }
+      origins.add(origin);
     }
     return List<String>.unmodifiable(origins);
+  }
+
+  static String? _readBindAddress(Map<String, Object?> json, String key) {
+    final value = _readNonEmptyString(json, key);
+    if (value == null) return null;
+    if (!_isPrivateOrLoopbackHost(value)) {
+      throw FormatException(
+        'Bridge config field "$key" must be "localhost" or a loopback, '
+        'private/LAN, link-local, or Tailscale IP address; wildcard, public, '
+        'and other hostname addresses are refused.',
+      );
+    }
+    return value;
+  }
+
+  static bool _hasExactOriginAuthority(String origin, Uri uri) {
+    final separator = origin.indexOf('://');
+    if (separator < 0) return false;
+    final authority = origin.substring(separator + 3);
+    if (authority.isEmpty || authority.endsWith(':')) return false;
+    try {
+      final port = uri.hasPort ? uri.port : null;
+      return port == null || port >= 1 && port <= 65535;
+    } on FormatException {
+      return false;
+    }
+  }
+
+  static bool _isPrivateOrLoopbackHost(String host) {
+    if (host.toLowerCase() == 'localhost') return true;
+    final address = InternetAddress.tryParse(host);
+    if (address == null) return false;
+    final bytes = address.rawAddress;
+    if (address.type == InternetAddressType.IPv4) {
+      return bytes[0] == 127 ||
+          bytes[0] == 10 ||
+          bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31 ||
+          bytes[0] == 192 && bytes[1] == 168 ||
+          bytes[0] == 169 && bytes[1] == 254 ||
+          bytes[0] == 100 && bytes[1] >= 64 && bytes[1] <= 127;
+    }
+    return _isIpv6Loopback(bytes) ||
+        (bytes[0] & 0xfe) == 0xfc ||
+        bytes[0] == 0xfe && (bytes[1] & 0xc0) == 0x80;
+  }
+
+  static bool _isIpv6Loopback(List<int> bytes) {
+    for (var index = 0; index < bytes.length - 1; index++) {
+      if (bytes[index] != 0) return false;
+    }
+    return bytes.last == 1;
   }
 
   /// Builds a fully-default configuration rooted at [workingDirectory].
