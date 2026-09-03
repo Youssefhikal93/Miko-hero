@@ -45,11 +45,14 @@ encrypted end to end between the browser and this machine.
 ## Prerequisites checklist
 
 - [ ] The bridge runs and works on this PC (see `bridge/README.md`).
-- [ ] The **dev staging** web app is deployed and its exact URL is known
-      (`https://<app>.vercel.app` — scheme + host, no path). It must be the
-      deployment built from the `dev` branch, not the production site built
-      from `main`: the bridge on this PC runs dev-branch code, so the app
-      talking to it has to be built from the same branch.
+- [ ] The web app is deployed and its exact URL is known. It is live at
+      `https://iam-hero.vercel.app` (scheme + host, no path). This is the
+      build from `main`, while the bridge on this PC runs `dev` code. That
+      pairing is verified compatible: the newer request fields are optional
+      and omitted when empty, and the bridge returns no new fields. Until
+      `dev` is merged, a remote reader gets the older app — no picture-book
+      PDF and no two-pass stories — but pairing, generation, and offline
+      reading all work.
 - [ ] Admin rights on this PC to install Tailscale.
 - [ ] A free Tailscale account (Google/Microsoft/GitHub sign-in works).
 
