@@ -74,6 +74,8 @@ handled and what is genuinely the model's job.
 ## Step 1 — pull the latest code and restart the bridge
 
 ```
+git fetch origin
+git checkout dev   # this work lives on dev, never main
 git pull
 cd bridge && dart pub get
 ```

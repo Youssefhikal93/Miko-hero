@@ -39,6 +39,8 @@ not configurable and must stay that way.
 ## Step 1 — pull the latest code and rebuild the bridge
 
 ```
+git fetch origin
+git checkout dev   # this work lives on dev, never main
 git pull
 cd bridge && dart pub get
 ```

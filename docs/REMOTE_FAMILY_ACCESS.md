@@ -1,4 +1,4 @@
-# Remote family access over the internet — complete guide (branch: tunnel)
+# Remote family access over the internet — complete guide (branch: `dev`)
 
 A self-contained work order for an agent (or a person) on the **AI PC** — the
 machine that runs the Iam-hero bridge, Ollama, and ComfyUI.
@@ -45,8 +45,11 @@ encrypted end to end between the browser and this machine.
 ## Prerequisites checklist
 
 - [ ] The bridge runs and works on this PC (see `bridge/README.md`).
-- [ ] The web app is deployed and its exact URL is known
-      (`https://<app>.vercel.app` — scheme + host, no path).
+- [ ] The **dev staging** web app is deployed and its exact URL is known
+      (`https://<app>.vercel.app` — scheme + host, no path). It must be the
+      deployment built from the `dev` branch, not the production site built
+      from `main`: the bridge on this PC runs dev-branch code, so the app
+      talking to it has to be built from the same branch.
 - [ ] Admin rights on this PC to install Tailscale.
 - [ ] A free Tailscale account (Google/Microsoft/GitHub sign-in works).
 
