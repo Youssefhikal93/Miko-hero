@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/story_artwork.dart';
 
 /// Shape one story takes inside the shared mosaic.
 enum StoryCardVariant {
@@ -599,28 +599,16 @@ class _StoryCoverArt extends ConsumerWidget {
   @override
   /// Paints the cached page image over its stable fallback gradient.
   Widget build(BuildContext context, WidgetRef ref) {
-    final cover = _coverBytes(ref);
+    final cover = StoryArtwork.coverOf(ref, story);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        DecoratedBox(decoration: BoxDecoration(gradient: _gradient())),
+        DecoratedBox(
+          decoration: BoxDecoration(gradient: StoryArtwork.gradientOf(story)),
+        ),
         if (cover != null) _coverImage(cover),
       ],
     );
-  }
-
-  /// Reads the cached first-page image of a PC story, or null for anything else.
-  Uint8List? _coverBytes(WidgetRef ref) {
-    if (!BridgeStoryProvenance.marksStory(story)) return null;
-    final pages = story.content.pages;
-    if (pages.isEmpty) return null;
-    final provenance = BridgeStoryProvenance.fromSceneDescription(
-      pages.first.sceneDescription,
-    );
-    if (provenance == null) return null;
-    return ref
-        .watch(illustrationBytesProvider(provenance.illustrationId))
-        .value;
   }
 
   /// Paints the drawn cover behind the tile content, dimmed for readability.
@@ -633,22 +621,5 @@ class _StoryCoverArt extends ConsumerWidget {
       colorBlendMode: BlendMode.darken,
       gaplessPlayback: true,
     );
-  }
-
-  /// Selects a stable palette corresponding to the requested visual style.
-  LinearGradient _gradient() {
-    final primary = AppTheme.primaryFor(story.content.request.gender);
-    final secondary = AppTheme.secondaryFor(story.content.request.gender);
-    return switch (story.content.request.presentation.style) {
-      IllustrationStyle.pictureBook => LinearGradient(
-        colors: <Color>[primary, secondary],
-      ),
-      IllustrationStyle.watercolor => LinearGradient(
-        colors: <Color>[secondary, primary.withValues(alpha: 0.78)],
-      ),
-      IllustrationStyle.colorful3d => LinearGradient(
-        colors: <Color>[primary, secondary, const Color(0xFF5545D9)],
-      ),
-    };
   }
 }

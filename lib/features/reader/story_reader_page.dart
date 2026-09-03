@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -24,6 +23,7 @@ import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
 import 'package:miko_hero/shared/reading_badge_view.dart';
 import 'package:miko_hero/shared/reading_text_style.dart';
+import 'package:miko_hero/shared/story_artwork.dart';
 
 /// Full-screen illustrated reader with free device narration.
 class StoryReaderPage extends ConsumerStatefulWidget {
@@ -496,11 +496,11 @@ class _PageIllustration extends ConsumerWidget {
   /// for artwork simply looks like the book it already was. Demo stories keep
   /// their DEMO chip, and the page number stays on top in both cases.
   Widget build(BuildContext context, WidgetRef ref) {
-    final illustration = _illustrationBytes(ref);
+    final illustration = StoryArtwork.pageOf(ref, page);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: _pageGradient(),
+        gradient: StoryArtwork.gradientOf(story),
         borderRadius: BorderRadius.circular(28),
       ),
       child: Stack(
@@ -546,17 +546,6 @@ class _PageIllustration extends ConsumerWidget {
     );
   }
 
-  /// Reads this page's cached picture, or null while it has none to show.
-  Uint8List? _illustrationBytes(WidgetRef ref) {
-    final provenance = BridgeStoryProvenance.fromSceneDescription(
-      page.sceneDescription,
-    );
-    if (provenance == null) return null;
-    return ref
-        .watch(illustrationBytesProvider(provenance.illustrationId))
-        .value;
-  }
-
   /// Fills the page with the drawn picture inside the same rounded frame.
   Widget _drawnPage(Uint8List bytes) {
     return ClipRRect(
@@ -585,23 +574,6 @@ class _PageIllustration extends ConsumerWidget {
             : null,
       ),
     );
-  }
-
-  /// Keeps placeholder art stable for each selected illustration style.
-  LinearGradient _pageGradient() {
-    final primary = AppTheme.primaryFor(story.content.request.gender);
-    final secondary = AppTheme.secondaryFor(story.content.request.gender);
-    return switch (story.content.request.presentation.style) {
-      IllustrationStyle.pictureBook => LinearGradient(
-        colors: <Color>[primary, secondary],
-      ),
-      IllustrationStyle.watercolor => LinearGradient(
-        colors: <Color>[secondary, primary.withValues(alpha: 0.78)],
-      ),
-      IllustrationStyle.colorful3d => LinearGradient(
-        colors: <Color>[primary, secondary, const Color(0xFF8A31CB)],
-      ),
-    };
   }
 }
 

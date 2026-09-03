@@ -18,9 +18,7 @@ import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
-
-/// Violet closing the colorful-3D swatch, used nowhere else in the interface.
-const _swatchViolet = Color(0xFF8A31CB);
+import 'package:miko_hero/shared/story_artwork.dart';
 
 /// Tap-first story request form backed by the parent's selected generator.
 class StoryCreationPage extends ConsumerWidget {
@@ -487,22 +485,11 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   }
 
   /// Suggests one illustration direction with color alone, never a photo.
+  ///
+  /// Reads the shared artwork table for the hero chosen so far, so the card a
+  /// parent taps carries the colours the finished story will actually wear.
   List<Color> _styleSwatch(IllustrationStyle style) {
-    return switch (style) {
-      IllustrationStyle.pictureBook => const <Color>[
-        AppTheme.boyCyan,
-        AppTheme.boyBlue,
-      ],
-      IllustrationStyle.watercolor => <Color>[
-        AppTheme.boyBlue,
-        AppTheme.boyCyan.withValues(alpha: 0.78),
-      ],
-      IllustrationStyle.colorful3d => const <Color>[
-        AppTheme.boyCyan,
-        AppTheme.boyBlue,
-        _swatchViolet,
-      ],
-    };
+    return StoryArtwork.swatchFor(style, _selectedGender);
   }
 }
 
