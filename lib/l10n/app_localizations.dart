@@ -477,8 +477,98 @@ abstract class AppLocalizations {
   /// No description provided for @createStoryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Create a story'**
+  /// **'New story'**
   String get createStoryTitle;
+
+  /// No description provided for @whoIsTheHero.
+  ///
+  /// In en, this message translates to:
+  /// **'Who is the hero'**
+  String get whoIsTheHero;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @heroAgeGender.
+  ///
+  /// In en, this message translates to:
+  /// **'{age} · {gender}'**
+  String heroAgeGender(int age, String gender);
+
+  /// No description provided for @whatHappens.
+  ///
+  /// In en, this message translates to:
+  /// **'What happens'**
+  String get whatHappens;
+
+  /// No description provided for @lessonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'And the lesson it teaches'**
+  String get lessonHint;
+
+  /// No description provided for @howLong.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get howLong;
+
+  /// No description provided for @pages.
+  ///
+  /// In en, this message translates to:
+  /// **'pages'**
+  String get pages;
+
+  /// No description provided for @lookAndLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Look and language'**
+  String get lookAndLanguage;
+
+  /// No description provided for @storyLanguageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get storyLanguageEnglish;
+
+  /// No description provided for @storyLanguageArabic.
+  ///
+  /// In en, this message translates to:
+  /// **'العربية'**
+  String get storyLanguageArabic;
+
+  /// No description provided for @storyLanguageSwedish.
+  ///
+  /// In en, this message translates to:
+  /// **'Svenska'**
+  String get storyLanguageSwedish;
+
+  /// No description provided for @storyLanguageSomali.
+  ///
+  /// In en, this message translates to:
+  /// **'Soomaali'**
+  String get storyLanguageSomali;
+
+  /// No description provided for @writeTheStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Write the story'**
+  String get writeTheStory;
+
+  /// No description provided for @demoGeneratorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo'**
+  String get demoGeneratorLabel;
+
+  /// No description provided for @localAiGeneratorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Local AI'**
+  String get localAiGeneratorLabel;
 
   /// No description provided for @chooseHeroProfile.
   ///
@@ -561,7 +651,7 @@ abstract class AppLocalizations {
   /// No description provided for @pictureBookStyle.
   ///
   /// In en, this message translates to:
-  /// **'Soft picture book'**
+  /// **'Picture book'**
   String get pictureBookStyle;
 
   /// No description provided for @watercolorStyle.
@@ -707,6 +797,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {current} of {total}'**
   String pageProgress(int current, int total);
+
+  /// No description provided for @readToMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Read to me'**
+  String get readToMe;
 
   /// No description provided for @playNarration.
   ///

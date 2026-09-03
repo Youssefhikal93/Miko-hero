@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,62 +14,26 @@ import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
-import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
-/// Guided story request form backed by the explicit local demo generator.
+/// Violet closing the colorful-3D swatch, used nowhere else in the interface.
+const _swatchViolet = Color(0xFF8A31CB);
+
+/// Tap-first story request form backed by the parent's selected generator.
 class StoryCreationPage extends ConsumerWidget {
   /// Creates the routed story-creation destination.
   const StoryCreationPage({super.key});
 
   @override
-  /// Blocks generation until at least one persisted profile is available.
+  /// Observes persisted state and delegates transient states to one boundary.
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(appControllerProvider);
     return AppStateBoundary(
-      state: state,
-      builder: (snapshot) {
-        if (snapshot.profiles.isEmpty) return const _ProfileRequired();
-        return _StoryForm(profiles: snapshot.profiles, locale: snapshot.locale);
-      },
-    );
-  }
-}
-
-/// Direct recovery path when story creation is opened before profile setup.
-class _ProfileRequired extends StatelessWidget {
-  /// Creates a blocking state with one route back to profile setup.
-  const _ProfileRequired();
-
-  @override
-  /// Explains the requirement and routes directly to a new private profile.
-  Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    return ScreenLayout(
-      maxWidth: 620,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            children: <Widget>[
-              const Icon(Icons.person_add_alt_1_rounded, size: 46),
-              const SizedBox(height: 14),
-              Text(
-                text.profileNeeded,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 18),
-              FilledButton(
-                onPressed: () => context.go('/profiles/new'),
-                child: Text(text.setUpProfile),
-              ),
-            ],
-          ),
-        ),
-      ),
+      state: ref.watch(appControllerProvider),
+      builder: (snapshot) =>
+          _StoryForm(profiles: snapshot.profiles, locale: snapshot.locale),
     );
   }
 }
@@ -89,6 +54,7 @@ class _StoryForm extends ConsumerStatefulWidget {
 /// Mutable story request buffer and generation progress state.
 class _StoryFormState extends ConsumerState<_StoryForm> {
   final _formKey = GlobalKey<FormState>();
+  final _heroFieldKey = GlobalKey<FormFieldState<String>>();
   final _themeController = TextEditingController();
   final _moralController = TextEditingController();
   String? _selectedProfileId;
@@ -115,11 +81,14 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   }
 
   @override
-  /// Renders validated inputs and an honest explanation of the active generator.
+  /// Lays the request out as four tapped sections above one written action.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
     final selectedProfile = _profileById(_selectedProfileId);
-    final usesLocalAi = _usesLocalAi;
+    final usesLocalAi = ref
+        .watch(aiConnectionControllerProvider)
+        .value
+        ?.usesLocalAi;
     return ScreenLayout(
       maxWidth: 820,
       child: Form(
@@ -127,14 +96,14 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              text.createStoryTitle,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 20),
-            _profileField(text),
-            if (_selectedProfileId != null) ...<Widget>[
-              const SizedBox(height: 16),
+            _StoryHeader(text: text, usesLocalAi: usesLocalAi),
+            const SizedBox(height: 28),
+            _sectionTitle(text.whoIsTheHero),
+            const SizedBox(height: 10),
+            _heroField(text),
+            if (selectedProfile != null &&
+                !selectedProfile.gender.isSpecified) ...<Widget>[
+              const SizedBox(height: 18),
               GenderSelector(
                 key: ValueKey<String>(_selectedProfileId!),
                 selectedGender: _selectedGender,
@@ -142,24 +111,28 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                 onSelected: _genderSelected,
               ),
             ],
-            const SizedBox(height: 16),
-            _GeneratorNotice(text: text, usesLocalAi: usesLocalAi),
+            const SizedBox(height: 26),
+            _sectionTitle(text.whatHappens),
+            const SizedBox(height: 10),
+            _themeField(text),
+            const SizedBox(height: 10),
+            _moralField(text),
+            const SizedBox(height: 26),
+            _sectionTitle(text.howLong),
+            const SizedBox(height: 10),
+            _lengthField(text),
+            const SizedBox(height: 26),
+            _sectionTitle(text.lookAndLanguage),
+            const SizedBox(height: 10),
+            _styleField(text),
+            const SizedBox(height: 12),
+            _languageField(text),
             if (selectedProfile != null) ...<Widget>[
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               _SavedPreferencesNotice(profile: selectedProfile),
             ],
-            const SizedBox(height: 20),
-            _languageField(text),
-            const SizedBox(height: 16),
-            _themeField(text),
-            const SizedBox(height: 16),
-            _moralField(text),
-            const SizedBox(height: 16),
-            _lengthField(text),
-            const SizedBox(height: 16),
-            _styleField(text),
-            const SizedBox(height: 28),
-            _generateButton(text, usesLocalAi: usesLocalAi),
+            const SizedBox(height: 14),
+            _writeButton(text, generatorKnown: usesLocalAi != null),
             if (_generating) ...<Widget>[
               const SizedBox(height: 22),
               const _GenerationProgress(),
@@ -170,31 +143,74 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     );
   }
 
-  /// Requires the parent to choose which child will star in this story.
-  Widget _profileField(AppLocalizations text) {
-    return DropdownButtonFormField<String>(
-      key: const ValueKey<String>('story-profile-selector'),
-      initialValue: _selectedProfileId,
-      decoration: InputDecoration(labelText: text.chooseHeroProfile),
-      hint: Text(text.selectHeroProfile),
-      items: widget.profiles.map((profile) {
-        return DropdownMenuItem<String>(
-          value: profile.id,
-          child: Text(profile.heroName),
-        );
-      }).toList(),
-      validator: (profileId) {
-        return profileId == null ? text.profileSelectionRequired : null;
-      },
-      onChanged: _generating || _savingProfileSelection
-          ? null
-          : (profileId) => _profileSelected(profileId),
+  /// Names one section in the quiet uppercase label the redesign uses.
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: AppTheme.mutedDeep,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.3,
+      ),
     );
   }
 
+  /// Requires the parent to tap the child who will star in this story.
+  Widget _heroField(AppLocalizations text) {
+    return FormField<String>(
+      key: _heroFieldKey,
+      initialValue: _selectedProfileId,
+      validator: (profileId) =>
+          profileId == null ? text.profileSelectionRequired : null,
+      builder: (field) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                for (final profile in widget.profiles) ...<Widget>[
+                  _HeroCard(
+                    key: ValueKey<String>('story-hero-${profile.id}'),
+                    profile: profile,
+                    gender: _cardGender(profile),
+                    selected: profile.id == _selectedProfileId,
+                    enabled: !_generating && !_savingProfileSelection,
+                    onTap: () => _profileSelected(profile.id),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                _AddHeroCard(
+                  key: const ValueKey<String>('story-add-hero'),
+                  label: text.add,
+                  enabled: !_generating,
+                ),
+              ],
+            ),
+          ),
+          if (field.hasError) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              field.errorText!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Shows a just-made Girl/Boy choice on the card that is missing one.
+  ChildGender _cardGender(ChildProfile profile) {
+    if (profile.id != _selectedProfileId || _selectedGender == null) {
+      return profile.gender;
+    }
+    return _selectedGender!;
+  }
+
   /// Loads a profile's saved choice and applies its theme when already known.
-  void _profileSelected(String? profileId) {
-    if (profileId == null) return;
+  void _profileSelected(String profileId) {
     final profile = widget.profiles.firstWhere(
       (candidate) => candidate.id == profileId,
     );
@@ -204,6 +220,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
       _selectedGender = selectedGender;
       _language = profile.storyPreferences.defaultLanguage;
     });
+    _heroFieldKey.currentState?.didChange(profileId);
     if (selectedGender != null) {
       setState(() => _savingProfileSelection = true);
       unawaited(_persistProfileSelection(profileId, selectedGender));
@@ -247,114 +264,128 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     }
   }
 
-  /// Builds the language selector from the four supported story contracts.
-  Widget _languageField(AppLocalizations text) {
-    return AppLanguageDropdown(
-      selectedLanguage: _language,
-      label: text.storyLanguage,
-      enabled: !_generating,
-      onSelected: (language) => setState(() => _language = language),
-    );
-  }
-
   /// Creates the required free-text adventure theme boundary.
   Widget _themeField(AppLocalizations text) {
     return TextFormField(
+      key: const ValueKey<String>('story-theme'),
       controller: _themeController,
       enabled: !_generating,
       textCapitalization: TextCapitalization.sentences,
-      decoration: InputDecoration(
-        labelText: text.theme,
-        hintText: text.themeHint,
-      ),
-      validator: (theme) {
-        return theme == null || theme.trim().isEmpty
-            ? text.themeRequired
-            : null;
-      },
+      decoration: InputDecoration(hintText: text.themeHint),
+      validator: (theme) =>
+          theme == null || theme.trim().isEmpty ? text.themeRequired : null,
     );
   }
 
   /// Creates the required educational-value input boundary.
   Widget _moralField(AppLocalizations text) {
     return TextFormField(
+      key: const ValueKey<String>('story-moral'),
       controller: _moralController,
       enabled: !_generating,
       textCapitalization: TextCapitalization.sentences,
-      decoration: InputDecoration(
-        labelText: text.moral,
-        hintText: text.moralHint,
-      ),
-      validator: (moral) {
-        return moral == null || moral.trim().isEmpty
-            ? text.moralRequired
-            : null;
-      },
+      decoration: InputDecoration(hintText: text.lessonHint),
+      validator: (moral) =>
+          moral == null || moral.trim().isEmpty ? text.moralRequired : null,
     );
   }
 
-  /// Creates the page-count selector whose values map to exact generator limits.
+  /// Offers the three page counts the generator contract already accepts.
   Widget _lengthField(AppLocalizations text) {
-    return DropdownButtonFormField<StoryLength>(
-      initialValue: _length,
-      decoration: InputDecoration(labelText: text.storyLength),
-      items: StoryLength.values.map((length) {
-        return DropdownMenuItem<StoryLength>(
-          value: length,
-          child: Text(_lengthName(text, length)),
-        );
-      }).toList(),
-      onChanged: _generating
-          ? null
-          : (length) => setState(() => _length = length!),
+    return Row(
+      children: StoryLength.values
+          .map((length) {
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(
+                  end: length == StoryLength.values.last ? 0 : 10,
+                ),
+                child: _LengthSegment(
+                  key: ValueKey<String>('story-length-${length.name}'),
+                  pageCount: length.pageCount,
+                  pagesLabel: text.pages,
+                  selected: _length == length,
+                  enabled: !_generating,
+                  onTap: () => setState(() => _length = length),
+                ),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
-  /// Creates the visual-style selector reserved for future ComfyUI prompts.
+  /// Offers each illustration direction under the swatch it produces.
   Widget _styleField(AppLocalizations text) {
-    return DropdownButtonFormField<IllustrationStyle>(
-      initialValue: _style,
-      decoration: InputDecoration(labelText: text.illustrationStyle),
-      items: IllustrationStyle.values.map((style) {
-        return DropdownMenuItem<IllustrationStyle>(
-          value: style,
-          child: Text(_styleName(text, style)),
-        );
-      }).toList(),
-      onChanged: _generating
-          ? null
-          : (style) => setState(() => _style = style!),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: IllustrationStyle.values
+          .map((style) {
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(
+                  end: style == IllustrationStyle.values.last ? 0 : 10,
+                ),
+                child: _StyleCard(
+                  key: ValueKey<String>('story-style-${style.name}'),
+                  label: _styleName(text, style),
+                  swatch: _styleSwatch(style),
+                  selected: _style == style,
+                  enabled: !_generating,
+                  onTap: () => setState(() => _style = style),
+                ),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
-  /// Prevents duplicate generation and exposes progress inside the primary action.
-  Widget _generateButton(AppLocalizations text, {required bool usesLocalAi}) {
+  /// Offers every story language written in the script that language reads in.
+  Widget _languageField(AppLocalizations text) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: AppLanguage.values
+            .map((language) {
+              return Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: ChoiceChip(
+                  key: ValueKey<String>('story-language-${language.code}'),
+                  label: Text(_storyLanguageName(text, language)),
+                  showCheckmark: false,
+                  selected: _language == language,
+                  onSelected: _generating
+                      ? null
+                      : (_) => setState(() => _language = language),
+                ),
+              );
+            })
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  /// Prevents duplicate generation and waits for the saved generator selection.
+  Widget _writeButton(AppLocalizations text, {required bool generatorKnown}) {
+    final blocked = _generating || _savingProfileSelection || !generatorKnown;
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        onPressed: _generating || _savingProfileSelection
-            ? null
-            : _generateStory,
+        key: const ValueKey<String>('story-submit'),
+        onPressed: blocked ? null : _generateStory,
         icon: _generating
             ? const SizedBox.square(
                 dimension: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.auto_awesome_rounded),
-        label: Text(
-          usesLocalAi ? text.generateLocalAiStory : text.generateStory,
-        ),
+        label: Text(text.writeTheStory),
       ),
     );
   }
 
-  /// Whether the parent selected the AI on the family PC for new stories.
-  bool get _usesLocalAi {
-    return ref.watch(aiConnectionControllerProvider).value?.usesLocalAi ??
-        false;
-  }
-
-  /// Validates the request, persists the demo book, and opens its reader.
+  /// Validates the request, persists the generated draft, and opens its review.
   Future<void> _generateStory() async {
     if (!_formKey.currentState!.validate()) return;
     final profile = _selectedProfile();
@@ -407,7 +438,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
     );
   }
 
-  /// Resolves an optional form selection without assuming a profile exists.
+  /// Resolves an optional card selection without assuming a profile exists.
   ChildProfile? _profileById(String? profileId) {
     if (profileId == null) return null;
     for (final profile in widget.profiles) {
@@ -417,9 +448,6 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   }
 
   /// Shows recoverable local-write or generation failure feedback.
-  ///
-  /// A failure reported by the paired PC keeps its typed reason, so the parent
-  /// learns whether to start the bridge, pair again, or simply retry.
   void _showError(Object error) {
     final text = AppLocalizations.of(context);
     ScaffoldMessenger.of(context)
@@ -429,16 +457,17 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
       );
   }
 
-  /// Returns the translated description of an exact story length.
-  String _lengthName(AppLocalizations text, StoryLength length) {
-    return switch (length) {
-      StoryLength.short => text.shortLength,
-      StoryLength.medium => text.mediumLength,
-      StoryLength.long => text.longLength,
+  /// Names a story language in that language's own script.
+  String _storyLanguageName(AppLocalizations text, AppLanguage language) {
+    return switch (language) {
+      AppLanguage.english => text.storyLanguageEnglish,
+      AppLanguage.arabic => text.storyLanguageArabic,
+      AppLanguage.swedish => text.storyLanguageSwedish,
+      AppLanguage.somali => text.storyLanguageSomali,
     };
   }
 
-  /// Returns the translated label for a future illustration workflow.
+  /// Names one illustration direction in the parent's interface language.
   String _styleName(AppLocalizations text, IllustrationStyle style) {
     return switch (style) {
       IllustrationStyle.pictureBook => text.pictureBookStyle,
@@ -446,107 +475,447 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
       IllustrationStyle.colorful3d => text.threeDStyle,
     };
   }
+
+  /// Suggests one illustration direction with color alone, never a photo.
+  List<Color> _styleSwatch(IllustrationStyle style) {
+    return switch (style) {
+      IllustrationStyle.pictureBook => const <Color>[
+        AppTheme.boyCyan,
+        AppTheme.boyBlue,
+      ],
+      IllustrationStyle.watercolor => <Color>[
+        AppTheme.boyBlue,
+        AppTheme.boyCyan.withValues(alpha: 0.78),
+      ],
+      IllustrationStyle.colorful3d => const <Color>[
+        AppTheme.boyCyan,
+        AppTheme.boyBlue,
+        _swatchViolet,
+      ],
+    };
+  }
 }
 
-/// Visible confirmation that saved per-child prompt rules are being copied.
-class _SavedPreferencesNotice extends StatelessWidget {
-  /// Creates a prompt-context summary for the selected hero.
-  const _SavedPreferencesNotice({required this.profile});
+/// Back control, screen name, and generator identity for the request in hand.
+class _StoryHeader extends StatelessWidget {
+  /// Creates the header above an editable request.
+  const _StoryHeader({required this.text, required this.usesLocalAi});
 
-  final ChildProfile profile;
+  final AppLocalizations text;
+  final bool? usesLocalAi;
 
   @override
-  /// Shows only saved inspiration plus the active safety-rule count.
+  /// Keeps the title beside the pill naming the generator that will run.
   Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    final preferences = profile.storyPreferences;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              text.savedPreferencesInUse(
-                profile.name,
-                preferences.excludedTopics.length,
+    return Row(
+      children: <Widget>[
+        IconButton.filledTonal(
+          onPressed: () => _leave(context),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text.createStoryTitle,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+        const SizedBox(width: 10),
+        _GeneratorPill(text: text, usesLocalAi: usesLocalAi),
+      ],
+    );
+  }
+
+  /// Returns where the parent came from, or home when this was the entry point.
+  void _leave(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+}
+
+/// Compact honest label for the generator this request will actually use.
+class _GeneratorPill extends StatelessWidget {
+  /// Creates the pill, or a spinner while the saved selection is still loading.
+  const _GeneratorPill({required this.text, required this.usesLocalAi});
+
+  final AppLocalizations text;
+  final bool? usesLocalAi;
+
+  @override
+  /// Never claims Demo before the saved Local AI selection has been read.
+  Widget build(BuildContext context) {
+    final localAi = usesLocalAi;
+    if (localAi == null) {
+      return const SizedBox.square(
+        dimension: 32,
+        child: Padding(
+          padding: EdgeInsets.all(8),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    final notice = localAi ? text.localAiModeNotice : text.demoModeNotice;
+    return Tooltip(
+      message: notice,
+      child: Semantics(
+        label: notice,
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.candle.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                localAi ? Icons.memory_rounded : Icons.science_outlined,
+                size: 16,
+                color: AppTheme.candle,
               ),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            if (preferences.favoriteThings.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 6),
-              Text(text.favoriteThingsValue(preferences.favoriteThings)),
+              const SizedBox(width: 6),
+              Text(
+                localAi ? text.localAiGeneratorLabel : text.demoGeneratorLabel,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppTheme.candleLight,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
-            if (preferences.recurringWorld.isNotEmpty) ...<Widget>[
-              const SizedBox(height: 6),
-              Text(text.recurringWorldValue(preferences.recurringWorld)),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Persistent explanation of which generator this request will actually use.
-class _GeneratorNotice extends StatelessWidget {
-  /// Creates the notice for the currently selected generator.
-  const _GeneratorNotice({required this.text, required this.usesLocalAi});
+/// One child profile offered as a direct, single-tap hero choice.
+class _HeroCard extends StatelessWidget {
+  /// Creates a card carrying the child's photo, name, age, and Girl/Boy.
+  const _HeroCard({
+    required this.profile,
+    required this.gender,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+    super.key,
+  });
 
-  final AppLocalizations text;
-
-  /// Whether the paired family PC writes this story instead of the sample.
-  final bool usesLocalAi;
+  final ChildProfile profile;
+  final ChildGender gender;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
 
   @override
-  /// Keeps sample generation from ever being mistaken for connected AI.
+  /// Rings the chosen card in the active accent and keeps the rest quiet.
   Widget build(BuildContext context) {
-    return Card(
-      color: AppTheme.tile,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: AppTheme.hairlineWarm),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(
-              usesLocalAi ? Icons.memory_rounded : Icons.science_outlined,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    usesLocalAi ? text.localAiModeNotice : text.demoModeNotice,
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: () => context.go('/generation'),
-                    icon: const Icon(Icons.monitor_heart_outlined),
-                    label: Text(text.openGenerationCenter),
-                  ),
-                ],
+    final text = AppLocalizations.of(context);
+    final accent = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 100,
+          constraints: const BoxConstraints(minHeight: 128),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? accent.withValues(alpha: 0.1) : null,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: selected ? accent : AppTheme.hairline),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              _HeroAvatar(profile: profile),
+              const SizedBox(height: 8),
+              Text(
+                profile.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: selected ? AppTheme.light : AppTheme.muted,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                _heroDetail(text),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppTheme.mutedDeep),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  /// States the age, and the Girl/Boy context whenever the profile carries one.
+  String _heroDetail(AppLocalizations text) {
+    if (!gender.isSpecified) return text.yearsOld(profile.age);
+    final genderName = gender == ChildGender.girl ? text.girl : text.boy;
+    return text.heroAgeGender(profile.age, genderName);
+  }
+}
+
+/// The child's private profile photo, never leaving this device.
+class _HeroAvatar extends StatelessWidget {
+  /// Creates the round photo used by one hero card.
+  const _HeroAvatar({required this.profile});
+
+  final ChildProfile profile;
+
+  @override
+  /// Falls back to the child's initial when the stored photo cannot be drawn.
+  Widget build(BuildContext context) {
+    final accent = Color(profile.themeColorValue);
+    Widget initial() => ColoredBox(
+      color: accent.withValues(alpha: 0.16),
+      child: Center(
+        child: Text(
+          profile.name.characters.first.toUpperCase(),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: accent,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+    Widget photo;
+    try {
+      photo = Image.memory(
+        base64Decode(profile.photoBase64),
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stackTrace) => initial(),
+      );
+    } on FormatException {
+      photo = initial();
+    }
+    return ClipOval(child: SizedBox.square(dimension: 44, child: photo));
+  }
+}
+
+/// Direct route into the existing profile creation flow.
+class _AddHeroCard extends StatelessWidget {
+  /// Creates the card that adds a hero the family has not set up yet.
+  const _AddHeroCard({required this.label, required this.enabled, super.key});
+
+  final String label;
+  final bool enabled;
+
+  @override
+  /// Opens profile creation without inventing a second way to save a child.
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: enabled ? () => context.go('/profiles/new') : null,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 100,
+          constraints: const BoxConstraints(minHeight: 128),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.hairline),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Icon(
+                Icons.person_add_alt_1_rounded,
+                color: AppTheme.mutedDeep,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: AppTheme.mutedDeep),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One page count in the exact 6/8/10 request contract.
+class _LengthSegment extends StatelessWidget {
+  /// Creates a segment showing the pages this option produces.
+  const _LengthSegment({
+    required this.pageCount,
+    required this.pagesLabel,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+    super.key,
+  });
+
+  final int pageCount;
+  final String pagesLabel;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  /// Prints the number itself, because the count is the whole choice.
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 72,
+          decoration: BoxDecoration(
+            color: selected ? accent.withValues(alpha: 0.12) : null,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: selected ? accent : AppTheme.hairline),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                '$pageCount',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: selected ? accent : AppTheme.muted,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+              Text(
+                pagesLabel,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: selected ? accent : AppTheme.mutedDeep,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Illustration-style choice shown as the colors it will draw in.
+class _StyleCard extends StatelessWidget {
+  /// Creates a style card above its localized name.
+  const _StyleCard({
+    required this.label,
+    required this.swatch,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final List<Color> swatch;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  /// Shows the swatch first so the choice reads without knowing the words.
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: AppTheme.tile,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: selected ? accent : AppTheme.hairline),
+          ),
+          child: Column(
+            children: <Widget>[
+              Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: swatch),
+                ),
+              ),
+              SizedBox(
+                height: 48,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: selected ? AppTheme.light : AppTheme.muted,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Visible confirmation that saved per-child prompt rules are being copied.
+class _SavedPreferencesNotice extends StatelessWidget {
+  /// Creates the notice for the currently chosen hero.
+  const _SavedPreferencesNotice({required this.profile});
+
+  final ChildProfile profile;
+
+  @override
+  /// Names the child and counts the safety exclusions this request carries.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    return Text(
+      text.savedPreferencesInUse(
+        profile.name,
+        profile.storyPreferences.excludedTopics.length,
+      ),
+      style: Theme.of(
+        context,
+      ).textTheme.bodySmall?.copyWith(color: AppTheme.mutedDeep),
     );
   }
 }
 
 /// Accessible progress panel displayed for the complete generation transaction.
 class _GenerationProgress extends ConsumerWidget {
-  /// Creates the panel; its detail line follows the paired PC when there is one.
+  /// Creates the panel shown only while a request is running.
   const _GenerationProgress();
 
   @override
-  /// Announces the active operation while preventing duplicate submission.
+  /// Announces the paired PC's localized stage as the generation advances.
   Widget build(BuildContext context, WidgetRef ref) {
     final text = AppLocalizations.of(context);
     final progress = ref.watch(generationProgressProvider);

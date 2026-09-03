@@ -209,7 +209,54 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photoRequired => 'اختر صورة مرجعية.';
 
   @override
-  String get createStoryTitle => 'إنشاء قصة';
+  String get createStoryTitle => 'قصة جديدة';
+
+  @override
+  String get whoIsTheHero => 'من هو البطل؟';
+
+  @override
+  String get add => 'إضافة';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'ماذا يحدث؟';
+
+  @override
+  String get lessonHint => 'والدرس الذي تعلّمه';
+
+  @override
+  String get howLong => 'ما طولها؟';
+
+  @override
+  String get pages => 'صفحات';
+
+  @override
+  String get lookAndLanguage => 'الشكل واللغة';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'اكتب القصة';
+
+  @override
+  String get demoGeneratorLabel => 'تجريبي';
+
+  @override
+  String get localAiGeneratorLabel => 'ذكاء اصطناعي محلي';
 
   @override
   String get chooseHeroProfile => 'اختر ملف البطل';
@@ -251,7 +298,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get longLength => 'طويلة · 10 صفحات';
 
   @override
-  String get pictureBookStyle => 'كتاب مصور ناعم';
+  String get pictureBookStyle => 'كتاب مصور';
 
   @override
   String get watercolorStyle => 'ألوان مائية';
@@ -327,6 +374,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'الصفحة $current من $total';
   }
+
+  @override
+  String get readToMe => 'اقرأ لي';
 
   @override
   String get playNarration => 'تشغيل السرد';
