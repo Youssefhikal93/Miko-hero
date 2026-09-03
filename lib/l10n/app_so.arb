@@ -222,6 +222,8 @@
   "reviewMoral": "Casharka: {value}",
   "reviewPageNumber": "Bogga {number}",
   "noDrafts": "Sheeko dib-u-eegis sugaysa ma jirto.",
+  "moreStoryActions": "Ficillo kale oo sheekada",
+  "storyPageCount": "{count} bogag",
   "addFavorite": "Ku dar kuwa la jecel yahay",
   "removeFavorite": "Ka saar kuwa la jecel yahay",
   "manageCollections": "Maamul ururinta",
