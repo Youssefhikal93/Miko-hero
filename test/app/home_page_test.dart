@@ -66,7 +66,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('home-new-story')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Create a story'), findsOneWidget);
+    expect(find.text('New story'), findsOneWidget);
+    expect(find.text('Who is the hero'), findsOneWidget);
   });
 
   testWidgets('keep reading opens the newest unfinished book', (tester) async {
