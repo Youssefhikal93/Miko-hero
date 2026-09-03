@@ -5,10 +5,13 @@ import 'package:miko_hero/core/models/story_models.dart';
 
 import '../../support/seeded_device.dart';
 
-/// Verifies what the shelf's chips and its title search actually show.
+/// Verifies that the shelf's chips and its title search are really wired up.
 ///
 /// Everything runs through the real library UI over real preference storage,
-/// with only the platform image cache and the pairing store replaced.
+/// with only the platform image cache and the pairing store replaced. What
+/// each chip and each search *decides* is asserted without a widget in
+/// `shelf_view_test.dart`; these tests prove the taps reach that decision and
+/// that its answer reaches the mosaic.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -62,17 +65,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('The lantern path'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('shelf-filter-favorites')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('The lantern path'), findsOneWidget);
-    expect(find.text('The moon garden'), findsNothing);
   });
 
-  testWidgets('a title search keeps only the books whose title matches', (
+  testWidgets('the search field narrows the shelf and its All count', (
     tester,
   ) async {
     await _storeFamily();
@@ -88,10 +83,9 @@ void main() {
     expect(find.text('The moon garden'), findsNothing);
     expect(find.text('All 1'), findsOneWidget);
 
-    // The prose of a story mentions the moon garden; only titles are searched.
     await tester.enterText(
       find.byKey(const ValueKey<String>('shelf-search')),
-      'glowed',
+      'nothing here',
     );
     await tester.pumpAndSettle();
 

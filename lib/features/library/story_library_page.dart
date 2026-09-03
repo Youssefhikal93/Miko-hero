@@ -7,6 +7,7 @@ import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/kingdom/kingdom_decorations.dart';
+import 'package:miko_hero/features/library/shelf_view.dart';
 import 'package:miko_hero/features/library/story_collections_dialog.dart';
 import 'package:miko_hero/features/library/story_delete_actions.dart';
 import 'package:miko_hero/features/library/story_illustrate_actions.dart';
@@ -69,8 +70,8 @@ class _Shelf extends ConsumerStatefulWidget {
 /// survives leaving the destination, exactly as the tab selection it replaces.
 class _ShelfState extends ConsumerState<_Shelf> {
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedProfileId;
-  String _selectedFilter = _allFilter;
+  String? _tappedProfileId;
+  ShelfFilter _filter = const AllStories();
   String _query = '';
 
   @override
@@ -82,17 +83,21 @@ class _ShelfState extends ConsumerState<_Shelf> {
 
   @override
   /// Composes the header, the two chip rows, and the mosaic beneath them.
+  ///
+  /// Every question about what to show is answered once by [ShelfView.resolve];
+  /// this method only lays the answer out.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
-    final profiles = widget.state.profiles;
-    final profile = _selectedProfile(profiles);
-    final shelf = profile == null
-        ? const <StoryBook>[]
-        : widget.state.storiesForProfile(profile.id);
-    final found = _searchedStories(shelf);
-    final collections = _collectionNames(shelf);
-    final filter = _resolvedFilter(collections);
-    final visible = _filteredStories(found, filter);
+    final view = ShelfView.resolve(
+      profiles: widget.state.profiles,
+      stories: widget.state.stories,
+      filter: _filter,
+      query: _query,
+      requestedProfileId: widget.requestedProfileId,
+      activeProfileId: widget.state.activeProfileId,
+      tappedProfileId: _tappedProfileId,
+    );
+    final profile = view.profile;
     return ScreenLayout(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,111 +112,32 @@ class _ShelfState extends ConsumerState<_Shelf> {
             _EmptyShelf(text: text)
           else ...<Widget>[
             _ChildChips(
-              profiles: profiles,
+              profiles: widget.state.profiles,
               selectedProfileId: profile.id,
               onSelected: (profileId) =>
-                  setState(() => _selectedProfileId = profileId),
+                  setState(() => _tappedProfileId = profileId),
             ),
             const SizedBox(height: 12),
             _FilterChips(
               accent: Color(profile.themeColorValue),
-              collections: collections,
-              selectedFilter: filter,
-              storyCount: found.length,
-              onSelected: (value) => setState(() => _selectedFilter = value),
+              collections: view.collections,
+              selectedFilter: view.filter,
+              storyCount: view.matchingCount,
+              onSelected: (filter) => setState(() => _filter = filter),
             ),
             const SizedBox(height: 18),
-            if (shelf.isEmpty)
+            if (!view.hasBooks)
               _EmptyShelf(text: text)
-            else if (visible.isEmpty)
+            else if (view.stories.isEmpty)
               _NoMatchingStories(isSearching: _query.trim().isNotEmpty)
             else
-              _ShelfMosaic(stories: visible),
+              _ShelfMosaic(stories: view.stories),
           ],
         ],
       ),
     );
   }
-
-  /// Resolves whose shelf is on screen, in order of how explicit the wish was.
-  ///
-  /// A tapped chip wins, then the child the route named, then the child the
-  /// family is currently reading as, and only then the first profile. That is
-  /// what makes Home's "See all" land on the shelf it was already showing,
-  /// without storing anything new. A child deleted while their shelf was open
-  /// simply falls through to the next candidate instead of leaving the page on
-  /// a missing one.
-  ChildProfile? _selectedProfile(List<ChildProfile> profiles) {
-    if (profiles.isEmpty) return null;
-    final wanted = <String?>[
-      _selectedProfileId,
-      widget.requestedProfileId,
-      widget.state.activeProfileId,
-    ];
-    for (final profileId in wanted) {
-      if (profileId == null) continue;
-      for (final profile in profiles) {
-        if (profile.id == profileId) return profile;
-      }
-    }
-    return profiles.first;
-  }
-
-  /// Keeps the books whose title carries the searched words.
-  ///
-  /// Titles only: story text is never searched, so nothing a child reads is
-  /// scanned to answer a search.
-  List<StoryBook> _searchedStories(List<StoryBook> stories) {
-    final query = _query.trim().toLowerCase();
-    if (query.isEmpty) return stories;
-    return stories
-        .where((story) => story.content.title.toLowerCase().contains(query))
-        .toList(growable: false);
-  }
-
-  /// Falls back to all books when the selected collection left the shelf.
-  String _resolvedFilter(List<String> collections) {
-    final available = <String>{
-      _allFilter,
-      _favoritesFilter,
-      ...collections.map(_collectionFilter),
-    };
-    return available.contains(_selectedFilter) ? _selectedFilter : _allFilter;
-  }
-
-  /// Returns names in deterministic case-insensitive display order.
-  List<String> _collectionNames(List<StoryBook> stories) {
-    final names = stories.expand((story) => story.collections).toSet().toList();
-    names.sort(
-      (left, right) => left.toLowerCase().compareTo(right.toLowerCase()),
-    );
-    return names;
-  }
-
-  /// Filters approved stories by one special or collection selector value.
-  List<StoryBook> _filteredStories(List<StoryBook> stories, String filter) {
-    if (filter == _allFilter) return stories;
-    if (filter == _favoritesFilter) {
-      return stories.where((story) => story.isFavorite).toList(growable: false);
-    }
-    final collection = filter.substring(_collectionPrefix.length);
-    return stories
-        .where((story) => story.collections.contains(collection))
-        .toList(growable: false);
-  }
 }
-
-/// Filter value that keeps every book on the selected shelf.
-const _allFilter = 'all';
-
-/// Filter value that keeps only the books a child starred.
-const _favoritesFilter = 'favorites';
-
-/// Prefix keeping a collection label away from the two special filter values.
-const _collectionPrefix = 'collection:';
-
-/// Namespaces one collection label into a filter value.
-String _collectionFilter(String name) => '$_collectionPrefix$name';
 
 /// Shelf name, where the books live, and the actions that reach the whole page.
 class _ShelfHeader extends ConsumerWidget {
@@ -445,9 +371,9 @@ class _FilterChips extends StatelessWidget {
 
   final Color accent;
   final List<String> collections;
-  final String selectedFilter;
+  final ShelfFilter selectedFilter;
   final int storyCount;
-  final ValueChanged<String> onSelected;
+  final ValueChanged<ShelfFilter> onSelected;
 
   @override
   /// Counts the books the All chip would show, search included.
@@ -457,26 +383,33 @@ class _FilterChips extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: <Widget>[
-        _chip(value: _allFilter, label: text.allStoriesCount(storyCount)),
         _chip(
-          value: _favoritesFilter,
+          filter: const AllStories(),
+          label: text.allStoriesCount(storyCount),
+        ),
+        _chip(
+          filter: const FavoriteStories(),
           label: text.favoriteStories,
           icon: Icons.favorite_border_rounded,
         ),
         for (final collection in collections)
-          _chip(value: _collectionFilter(collection), label: collection),
+          _chip(filter: StoriesInCollection(collection), label: collection),
       ],
     );
   }
 
   /// Builds one filter chip in the selected child's accent.
-  Widget _chip({required String value, required String label, IconData? icon}) {
-    final selected = value == selectedFilter;
+  Widget _chip({
+    required ShelfFilter filter,
+    required String label,
+    IconData? icon,
+  }) {
+    final selected = filter == selectedFilter;
     return ChoiceChip(
-      key: ValueKey<String>('shelf-filter-$value'),
+      key: ValueKey<String>('shelf-filter-${_filterKey(filter)}'),
       selected: selected,
       showCheckmark: false,
-      onSelected: (_) => onSelected(value),
+      onSelected: (_) => onSelected(filter),
       selectedColor: accent.withValues(alpha: 0.18),
       side: BorderSide(color: selected ? accent : AppTheme.hairline),
       avatar: icon == null
@@ -485,6 +418,21 @@ class _FilterChips extends StatelessWidget {
       label: Text(label),
     );
   }
+}
+
+/// Stable widget key for one filter chip.
+///
+/// Deliberately a presentation detail rather than part of [ShelfFilter]: two
+/// chips can only share a key when a collection is literally named `all`,
+/// `favorites`, or `collection:something`, which costs a repaint and nothing
+/// else, where the encoded filter value this replaced lost the difference
+/// outright and showed the wrong books.
+String _filterKey(ShelfFilter filter) {
+  return switch (filter) {
+    AllStories() => 'all',
+    FavoriteStories() => 'favorites',
+    StoriesInCollection(:final name) => 'collection:$name',
+  };
 }
 
 /// The visible books, laid out on the shared mosaic.
