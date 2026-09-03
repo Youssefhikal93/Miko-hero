@@ -431,6 +431,7 @@
   "localAiWriting": "PC-gu wuxuu qorayaa sheekada…",
   "localAiChecking": "Waxaa la hubinayaa bogagga dhammaaday…",
   "bridgeUnreachable": "PC-gu ma jawaabin. Hubi in buundadu shaqaynayso iyo in cinwaanku sax yahay.",
+  "bridgeBlockedByBrowser": "Browser-ku uma oggolaan boggan inuu la xiriiro PC-ga. PC-ga laftiisa, ama qalab Tailscale ku shaqeeyo, fur dejinta bogga ee browser-ka, u deji \"Local network access\" Oggolow, kadibna dib u kici bogga. Haddii ay weli fashilanto, hubi in buundadu shaqaynayso iyo in cinwaanku sax yahay.",
   "bridgeTimedOut": "PC-gu wuxuu qaatay waqti aad u dheer inuu jawaabo.",
   "bridgeNotPaired": "Qalabkan ku xir PC-ga ka hor inta aanad sheeko halkaas ka samayn.",
   "bridgeUnauthorized": "PC-gu wuu diiday qalabkan. Mar kale ku xir.",

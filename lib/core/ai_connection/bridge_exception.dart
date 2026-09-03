@@ -7,6 +7,15 @@ enum BridgeFailure {
   /// The configured address did not answer at all.
   unreachable,
 
+  /// The browser refused to make the call, so the PC was never asked.
+  ///
+  /// Only raised by the web build. A browser hides the reason from the page,
+  /// so this covers Chrome's Local Network Access permission (a public https
+  /// site calling loopback or a Tailscale address), a missing allowed origin,
+  /// and a PC that is simply off; the parent-facing sentence names the first
+  /// because it is the one a parent cannot guess.
+  blockedByBrowser,
+
   /// The bridge accepted the connection but did not answer in time.
   timedOut,
 

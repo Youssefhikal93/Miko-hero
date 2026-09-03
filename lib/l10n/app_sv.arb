@@ -431,6 +431,7 @@
   "localAiWriting": "Datorn skriver berättelsen…",
   "localAiChecking": "Kontrollerar de färdiga sidorna…",
   "bridgeUnreachable": "Datorn svarade inte. Kontrollera att bryggan körs och att adressen stämmer.",
+  "bridgeBlockedByBrowser": "Webbläsaren lät inte den här sidan kontakta datorn. På datorn själv, eller på en enhet som kör Tailscale, öppna webbläsarens webbplatsinställningar för sidan, sätt \"Åtkomst till lokalt nätverk\" till Tillåt och ladda om. Om det fortfarande inte fungerar, kontrollera att bryggan körs och att adressen stämmer.",
   "bridgeTimedOut": "Datorn tog för lång tid på sig att svara.",
   "bridgeNotPaired": "Koppla den här enheten till datorn innan du skapar en berättelse där.",
   "bridgeUnauthorized": "Datorn nekade den här enheten. Koppla den igen.",

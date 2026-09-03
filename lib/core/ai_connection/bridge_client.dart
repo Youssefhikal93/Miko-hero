@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
@@ -56,6 +57,7 @@ class BridgeClient {
     required this.baseUrl,
     this.deviceToken,
     this.requestTimeout = defaultBridgeRequestTimeout,
+    this.runsInBrowser = kIsWeb,
   });
 
   /// Web-safe HTTP boundary replaced by tests.
@@ -71,6 +73,14 @@ class BridgeClient {
 
   /// Bound applied to every single call so no screen can hang forever.
   final Duration requestTimeout;
+
+  /// Whether a failed connection is the browser's refusal rather than the PC's.
+  ///
+  /// A browser reports every blocked or refused call as one opaque client
+  /// exception, so on the web that exception is typed [BridgeFailure.blockedByBrowser]
+  /// and its message tells the parent about the site permission. Injectable so
+  /// the web reading can be tested on the VM.
+  final bool runsInBrowser;
 
   /// Reads bridge and dependency health; the only call needing no pairing.
   Future<BridgeHealth> readHealth() async {
@@ -372,6 +382,12 @@ class BridgeClient {
       return await http.Response.fromStream(streamed).timeout(requestTimeout);
     } on TimeoutException {
       throw const BridgeException(BridgeFailure.timedOut);
+    } on http.ClientException {
+      throw BridgeException(
+        runsInBrowser
+            ? BridgeFailure.blockedByBrowser
+            : BridgeFailure.unreachable,
+      );
     } on Exception {
       throw const BridgeException(BridgeFailure.unreachable);
     }

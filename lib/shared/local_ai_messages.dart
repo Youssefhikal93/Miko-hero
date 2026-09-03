@@ -14,6 +14,7 @@ String localAiFailureMessage(AppLocalizations text, Object error) {
   if (error is! BridgeException) return text.somethingWentWrong;
   return switch (error.failure) {
     BridgeFailure.unreachable => text.bridgeUnreachable,
+    BridgeFailure.blockedByBrowser => text.bridgeBlockedByBrowser,
     BridgeFailure.timedOut => text.bridgeTimedOut,
     BridgeFailure.notPaired => text.bridgeNotPaired,
     BridgeFailure.unauthorized => text.bridgeUnauthorized,

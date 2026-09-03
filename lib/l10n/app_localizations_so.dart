@@ -1448,6 +1448,10 @@ class AppLocalizationsSo extends AppLocalizations {
       'PC-gu ma jawaabin. Hubi in buundadu shaqaynayso iyo in cinwaanku sax yahay.';
 
   @override
+  String get bridgeBlockedByBrowser =>
+      'Browser-ku uma oggolaan boggan inuu la xiriiro PC-ga. PC-ga laftiisa, ama qalab Tailscale ku shaqeeyo, fur dejinta bogga ee browser-ka, u deji \"Local network access\" Oggolow, kadibna dib u kici bogga. Haddii ay weli fashilanto, hubi in buundadu shaqaynayso iyo in cinwaanku sax yahay.';
+
+  @override
   String get bridgeTimedOut =>
       'PC-gu wuxuu qaatay waqti aad u dheer inuu jawaabo.';
 
