@@ -101,29 +101,47 @@ next step.
 All of these are **free**. Sizes are the download size; a model needs roughly
 its own size in memory plus about 2 GB of headroom.
 
-| System RAM | Recommended | Download | Also fine | Notes |
+Corrected on 2026-09-03 against the live Ollama library and published
+per-language evaluations. The evidence is in
+`docs/research/ollama-arabic-models.md` on the `research/ollama-arabic-models`
+branch.
+
+| System RAM | Recommended | Download | Approx. resident | Notes |
 | --- | --- | --- | --- | --- |
-| 8 GB | `gemma3:4b` (stay put) | ~3.3 GB | `qwen3:4b` (~2.6 GB) | Not enough room for a real upgrade. Try `qwen3:4b` for Arabic; expect a modest improvement at best. |
-| 16 GB | **`qwen3:8b`** | ~5.2 GB | `gemma3:12b` (~8.1 GB) | The sweet spot. `qwen3:8b` is the pick for Arabic; `gemma3:12b` writes lovely English and Swedish but is slower and weaker in Arabic. |
-| 32 GB or more | **`qwen3:14b`** | ~9.3 GB | `gemma3:27b` (~17 GB), `qwen3:32b` (~20 GB) | `qwen3:14b` is a large jump in Arabic quality. The 27B/32B options are better still but can take many minutes per story on this hardware. |
+| 8 GB | `qwen3.5:4b` | 3.4 GB | ~5 GB | A genuine upgrade on the `gemma3:4b` floor: Qwen 3.5 repaired much of the Somali weakness and posts the best en-to-Somali generation score in its class. Arabic at this size stays limited. |
+| 16 GB | **`qwen3.5:9b`** | 6.6 GB | ~8-9 GB | The sweet spot, and the strongest Arabic per gigabyte: 56.28 on QIMMA Arabic. |
+| 32 GB or more | **`gemma3:27b`** | 17 GB | ~19-20 GB | Best Arabic measured at this size (60.75), and first in the entire QIMMA suite on Poetry and Literature, the domain closest to children's prose. It also wins Somali outright. Expect several minutes per story. |
 
-**Qwen is the recommendation for Arabic.** The Qwen family is trained on
-substantially more Arabic text than Gemma and Llama at comparable sizes, and
-Arabic is the language the owner named as the problem. If Arabic is fixed,
-everything else improves with it.
+**Do not use the `qwen3:*` tags.** They are the previous generation, and the
+ladder is different: 4B/9B/27B, not 4B/8B/14B. The tag this document used to
+recommend at 16 GB, `qwen3:8b`, scores **39.38** on QIMMA Arabic against
+**56.28** for `qwen3.5:9b`. The old advice pointed at a model that is weak in
+the one language this upgrade exists to fix.
 
-**Decision:** any other freely downloadable Ollama model is a valid choice —
-Llama 3.1 8B, Mistral Small, Phi-4 — but check its Arabic before adopting it.
-The one requirement the bridge places on a model is that it can follow a JSON
-schema (`format`), which every model listed here does.
+**Qwen at 8 and 16 GB, Gemma at 32 GB.** Somali settles the top band: the
+whole Qwen3 lineage sits at chance on Belebele Somali, while Gemma3-12B
+reaches 69.33. Arabic-specialist models (Fanar-2, Jais-2, ALLaM, SILMA,
+AceGPT) are ruled out structurally — the bridge has a single `ollamaModel`
+serving all four languages, and every one of those models is Arabic/English
+only. Jais-2 also sits behind a contact form, which fails the no-accounts
+rule.
+
+**A warning about search results.** Several blog posts recommend
+`hf.co/tiiuae/Falcon-H1-Arabic-7B-Instruct-GGUF` and quote it as an OALL
+leader at 71.7%. That repository does not exist. Ignore it.
+
+**Decision:** any other freely downloadable Ollama model is a valid choice,
+but check its Arabic before adopting it. The one requirement the bridge
+places on a model is that it can follow a JSON schema (`format`), which every
+model listed here does.
 
 Pull the chosen model:
 
 ```
-ollama pull qwen3:8b
+ollama pull qwen3.5:9b
 ```
 
-Replace `qwen3:8b` with whatever the table pointed at. The download is one
+Replace `qwen3.5:9b` with whatever the table pointed at. The download is one
 file over HTTPS from Ollama's public library; there is nothing to sign up for
 and nothing to pay. Confirm it landed:
 
@@ -137,7 +155,7 @@ Find the file (its path is printed when the bridge starts) and change exactly
 one line:
 
 ```jsonc
-"ollamaModel": "qwen3:8b"
+"ollamaModel": "qwen3.5:9b"
 ```
 
 That is the whole change. Nothing else in the file needs touching.
@@ -157,8 +175,8 @@ refuses it with a clear message if anything is wrong.
 
 1. `GET /health` on the bridge must report `ollama` **available** and name the
    new model. If it says the model is missing, `ollama list` and check the tag
-   matches the config line character for character (`qwen3:8b`, not
-   `qwen3-8b`).
+   matches the config line character for character (`qwen3.5:9b`, not
+   `qwen3.5-9b`).
 2. Generate **one story per language** — `en`, `ar`, `sv`, `so` — for a test
    profile, six pages each. Use the same theme and moral for all four so the
    comparison is fair.
@@ -175,7 +193,7 @@ refuses it with a clear message if anything is wrong.
 5. **Check the time.** Note how long one six-page story takes end to end. Up
    to a few minutes is normal and fine — the parent reviews the draft later
    anyway. If it takes longer than the owner is willing to wait, drop one size
-   (`qwen3:14b` → `qwen3:8b` → `qwen3:4b`).
+   (`gemma3:27b` → `qwen3.5:9b` → `qwen3.5:4b`).
 6. Watch memory during a run (Task Manager → Performance → Memory). If the
    machine starts swapping to disk, the model is too big for this PC; drop one
    size.
