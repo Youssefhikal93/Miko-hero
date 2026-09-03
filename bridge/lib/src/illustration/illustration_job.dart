@@ -1,3 +1,4 @@
+import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/illustration/illustration_errors.dart';
 
 /// Lifecycle of one illustration job.
@@ -37,7 +38,7 @@ enum IllustrationJobStatus {
 ///
 /// The queue replaces the whole snapshot on every transition, so a snapshot
 /// handed to a request handler can never change underneath it.
-class IllustrationJob {
+class IllustrationJob implements QueuedJob {
   /// Creates a job snapshot.
   const IllustrationJob({
     required this.id,
@@ -54,9 +55,11 @@ class IllustrationJob {
   });
 
   /// Stable job id (uuid v4).
+  @override
   final String id;
 
   /// Device that created the job; only that device may read or cancel it.
+  @override
   final String deviceId;
 
   /// Story whose pages this job renders.
@@ -89,6 +92,9 @@ class IllustrationJob {
   /// Typed failure, set exactly when [status] is
   /// [IllustrationJobStatus.failed].
   final IllustrationFailure? failure;
+
+  @override
+  bool get isTerminal => status.isTerminal;
 
   /// Returns a copy with the given fields replaced.
   IllustrationJob copyWith({

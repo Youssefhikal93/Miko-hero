@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/common/secrets.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
@@ -81,6 +82,25 @@ PairedDevice requireAuthenticatedDevice(Request request) {
     );
   }
   return device;
+}
+
+/// Reads [jobId] out of [queue] as a job the calling device owns.
+///
+/// Jobs are owned by the device that created them. Another device's job and
+/// an id that never existed are reported identically — a `404` carrying
+/// [notFoundMessage] — so job ids cannot be probed.
+TJob requireOwnJob<TJob extends QueuedJob>(
+  Request request,
+  JobQueue<TJob, Object?> queue,
+  String jobId, {
+  required String notFoundMessage,
+}) {
+  final device = requireAuthenticatedDevice(request);
+  final job = queue.job(jobId);
+  if (job == null || job.deviceId != device.id) {
+    throw ApiError(404, ApiErrorCode.jobNotFound, notFoundMessage);
+  }
+  return job;
 }
 
 /// Parses one JSON object request body, raising typed errors otherwise.

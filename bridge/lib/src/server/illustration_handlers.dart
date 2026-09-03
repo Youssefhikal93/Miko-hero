@@ -51,7 +51,7 @@ class IllustrationHandlers {
 
   /// Handles `GET /illustrations/jobs/<jobId>`.
   Future<Response> readJob(Request request, String jobId) async {
-    final job = _requireOwnJob(request, jobId);
+    final job = _ownJob(request, jobId);
     return jsonResponse(
       200,
       job.toJson(queuePosition: _queue.queuePosition(jobId)),
@@ -63,7 +63,7 @@ class IllustrationHandlers {
   /// Idempotent: cancelling an already finished job answers `200` with the
   /// status it ended in.
   Future<Response> cancelJob(Request request, String jobId) async {
-    final job = _requireOwnJob(request, jobId);
+    final job = _ownJob(request, jobId);
     final IllustrationJob cancelled = _queue.cancel(job.id);
     return jsonResponse(200, <String, Object?>{
       'jobId': cancelled.id,
@@ -71,18 +71,12 @@ class IllustrationHandlers {
     });
   }
 
-  IllustrationJob _requireOwnJob(Request request, String jobId) {
-    final device = requireAuthenticatedDevice(request);
-    final job = _queue.job(jobId);
-    if (job == null || job.deviceId != device.id) {
-      throw ApiError(
-        404,
-        ApiErrorCode.jobNotFound,
-        'No illustration job exists under this id.',
-      );
-    }
-    return job;
-  }
+  IllustrationJob _ownJob(Request request, String jobId) => requireOwnJob(
+    request,
+    _queue,
+    jobId,
+    notFoundMessage: 'No illustration job exists under this id.',
+  );
 
   Future<_IllustrationOptions> _readOptions(Request request) async {
     final Uint8List raw;

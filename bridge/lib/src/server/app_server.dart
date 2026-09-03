@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:iam_hero_bridge/src/backup/library_backup_service.dart';
 import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
+import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/generation_job.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
@@ -72,7 +73,7 @@ class AppServer {
     Uuid uuid = const Uuid(),
     DateTime Function()? clock,
     void Function(String message)? notifyCode,
-    GenerationLogSink? logEvent,
+    JobLogSink? logEvent,
     Duration? illustrationPollInterval,
   }) : deviceStore = DeviceStore(library: library, uuid: uuid),
        pairingService = PairingService(uuid: uuid, clock: clock) {
