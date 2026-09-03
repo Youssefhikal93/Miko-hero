@@ -12,6 +12,64 @@ are covered by `OFL.txt`.
 - `NotoSans-Regular.ttf` renders English, Swedish, and Somali text.
 - `NotoNaskhArabic-Regular.ttf` renders right-to-left Arabic text.
 
+Both stay the **body** faces of an exported book: story prose, page numbers,
+and the small print. Titles and headings use the display faces below.
+
+## Storybook display faces
+
+An exported book should look like a picture book, so titles, the dedication,
+and the page badges are set in a rounded storybook display face rather than
+in the body font. Two faces are bundled and one is selected per story
+language:
+
+- `Baloo2-Variable.ttf` renders titles and headings for English, Swedish, and
+  Somali. Rounded, friendly, and heavy enough to read as a cover title.
+  - Source: [`google/fonts`](https://github.com/google/fonts), file
+    `ofl/baloo2/Baloo2[wght].ttf`, upstream
+    [`EkType/Baloo2`](https://github.com/EkType/Baloo2).
+  - Renamed on the way in only because Flutter asset paths and square
+    brackets do not mix. It is the unmodified upstream variable font; the PDF
+    renderer reads its default instance, which is the regular weight.
+  - License: `OFL-Baloo2.txt` (copyright 2019 The Baloo 2 Project Authors).
+  - Verified coverage: every Latin letter the four languages need, including
+    Swedish `å ä ö Å Ä Ö`, plus the punctuation and digits the export prints.
+- `Amiri-Bold.ttf` renders titles and headings for Arabic.
+  - Source: [`google/fonts`](https://github.com/google/fonts), file
+    `ofl/amiri/Amiri-Bold.ttf`, upstream
+    [`aliftype/amiri`](https://github.com/aliftype/amiri).
+  - License: `OFL-Amiri.txt` (copyright 2010–2022 The Amiri Project Authors).
+  - Verified coverage: every glyph the shaped Arabic strings of an exported
+    book resolve to, presentation forms included.
+
+### Why not one family for both scripts
+
+The obvious choice was one playful family covering both scripts — Baloo 2 for
+Latin with its sibling Baloo Bhaijaan 2 for Arabic. It does not work here, and
+the reason is the renderer rather than the font.
+
+The `pdf` package shapes Arabic itself: it runs the text through the `bidi`
+package, which converts joined letters into **Arabic Presentation Forms-B**
+code points (`U+FE70`–`U+FEFF`), and then looks those code points up in the
+font's `cmap`. A font that only supports Arabic through modern OpenType
+shaping features has no such code points, and every joined letter comes out
+blank. Measured against the exact strings this export prints:
+
+| Font | Missing shaped glyphs |
+| --- | --- |
+| `NotoNaskhArabic-Regular` (body) | none |
+| `Amiri-Bold` | none |
+| Baloo Bhaijaan 2 | 44 — effectively every joined form |
+| Lalezar, Rakkas, Almarai, Tajawal, Mirza, Katibeh, Vibes, Blaka | 1 (`U+FEF1`, isolated yeh — which the very common word `الذي` ends in) |
+
+Amiri Bold was the only OFL Arabic display face tested that covers the whole
+set, so it is the Arabic title face: warm, book-like, and heavy enough to
+carry a cover. It is a Naskh rather than a rounded face, so the pairing with
+Baloo 2 is a considered compromise, not a perfect match.
+
+`test/core/export/story_pdf_fonts_test.dart` asserts this coverage against the
+real font files, so a future font swap that would print blanks fails the
+suite instead of shipping.
+
 ## Easy-reading story font
 
 `AtkinsonHyperlegible-Regular.ttf` is the optional per-child easy-reading font

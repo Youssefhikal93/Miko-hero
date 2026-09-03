@@ -6,6 +6,7 @@ import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/export/pdf_file_service.dart';
 import 'package:miko_hero/core/export/story_pdf_service.dart';
 import 'package:miko_hero/core/illustrations/illustration_providers.dart';
+import 'package:miko_hero/core/models/kingdom_theme.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
 /// Supplies the offline multilingual PDF renderer.
@@ -53,8 +54,20 @@ class StoryExportController {
           story,
           coverPhotoBase64: includePhoto ? _coverPhoto(story) : null,
           illustrationBytesById: await _illustrations(story),
+          kingdomSymbol: _kingdomSymbol(story),
         );
     return _ref.read(pdfFileServiceProvider).save(bytes, story, dialogTitle);
+  }
+
+  /// Reads the hero's favourite kingdom badge for the dedication page.
+  ///
+  /// A decoration choice rather than private information, so unlike the photo
+  /// it needs no export-time permission. A story whose profile is gone simply
+  /// gets a dedication with no badge.
+  KingdomSymbol? _kingdomSymbol(StoryBook story) {
+    final state = _ref.read(appControllerProvider).value;
+    final profile = state?.profileById(story.content.request.profileId);
+    return profile?.kingdomTheme.symbol;
   }
 
   /// Reads every stored page image of [story], skipping the ones absent here.

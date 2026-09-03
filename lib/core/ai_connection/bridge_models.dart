@@ -524,6 +524,8 @@ class BridgeStoryRequest {
     required this.moral,
     required this.pageCount,
     required this.illustrationStyle,
+    this.favoriteTopics = '',
+    this.recurringWorld = '',
   });
 
   /// Stable local child identity, reused as the PC library profile key.
@@ -553,6 +555,17 @@ class BridgeStoryRequest {
   /// Requested illustration direction understood by the bridge.
   final String illustrationStyle;
 
+  /// The child's saved favorite things, so the story can weave them in.
+  ///
+  /// Optional on the wire: an empty value is left out of the body entirely,
+  /// which is also what a bridge build from before this field existed sees.
+  final String favoriteTopics;
+
+  /// The child's saved recurring story world, when the parent named one.
+  ///
+  /// Optional on the wire for the same reason as [favoriteTopics].
+  final String recurringWorld;
+
   /// Converts the request into the bridge's JSON field names.
   Map<String, Object> toJson() {
     return <String, Object>{
@@ -565,6 +578,8 @@ class BridgeStoryRequest {
       'moral': moral,
       'pageCount': pageCount,
       'illustrationStyle': illustrationStyle,
+      if (favoriteTopics.isNotEmpty) 'favoriteTopics': favoriteTopics,
+      if (recurringWorld.isNotEmpty) 'recurringWorld': recurringWorld,
     };
   }
 }

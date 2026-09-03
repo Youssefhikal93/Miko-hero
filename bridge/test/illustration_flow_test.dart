@@ -20,9 +20,14 @@ import 'support/harness.dart';
 /// A fake Ollama call that blocks until released, so a story job can be held
 /// "running" while the test inspects what the illustration queue is doing.
 class _GatedOllamaCall {
-  _GatedOllamaCall(this.payload);
+  _GatedOllamaCall(this.payload, {String? outline})
+    : outline = outline ?? outlinePayload(pageCount: 6);
 
   final String payload;
+
+  /// Answer for the outline pass, which now precedes the page pass.
+  final String outline;
+
   final Completer<void> started = Completer<void>();
   final Completer<void> release = Completer<void>();
 
@@ -43,7 +48,7 @@ class _GatedOllamaCall {
         'The bridge aborted this call.',
       );
     }
-    return ollamaEnvelope(payload);
+    return ollamaEnvelope(isOutlineRequest(request) ? outline : payload);
   }
 }
 

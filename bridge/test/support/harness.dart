@@ -93,6 +93,23 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
     );
   }
 
+  /// Answers the outline pass with [outline] and the page pass with [story].
+  ///
+  /// Generation is two calls now, so a fake that answers both with the same
+  /// payload would only ever exercise the first one. The pass is recognized by
+  /// the schema the bridge asked for, exactly as a real model would see it.
+  factory FakeOllamaStoryClient.writing({
+    required String story,
+    String? outline,
+    int pageCount = 6,
+  }) {
+    final plan = outline ?? outlinePayload(pageCount: pageCount);
+    return FakeOllamaStoryClient(
+      (OllamaGenerateRequest request, CancellationToken cancellation) async =>
+          ollamaEnvelope(isOutlineRequest(request) ? plan : story),
+    );
+  }
+
   /// Fails every call by throwing [error], like a broken transport.
   factory FakeOllamaStoryClient.failing(Object error) {
     return FakeOllamaStoryClient(
@@ -100,6 +117,15 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
           throw error,
     );
   }
+
+  /// Requests whose schema asked for page beats — the outline pass.
+  List<OllamaGenerateRequest> get outlineRequests =>
+      requests.where(isOutlineRequest).toList(growable: false);
+
+  /// Requests whose schema asked for finished pages — the page pass.
+  List<OllamaGenerateRequest> get pageRequests => requests
+      .where((request) => !isOutlineRequest(request))
+      .toList(growable: false);
 
   /// Behaviour invoked for every call.
   final FakeOllamaResponder responder;
@@ -266,6 +292,43 @@ Uint8List minimalJpegBytes() {
     0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
     0xFF, 0xD9, // EOI
   ]);
+}
+
+/// Whether [request] is the outline pass rather than the page pass.
+///
+/// Read off the requested JSON schema, which is the only difference a model
+/// would see between the two calls.
+bool isOutlineRequest(OllamaGenerateRequest request) {
+  final properties = request.format['properties'];
+  return properties is Map<String, Object?> && properties.containsKey('beats');
+}
+
+/// A schema-valid outline answer with [pageCount] beats.
+///
+/// [includeHeroAppearance] can be turned off to reproduce a model that plans
+/// the pages but forgets what the hero looks like.
+String outlinePayload({
+  required int pageCount,
+  String title = 'Nour and the Sea Lanterns',
+  String heroAppearance =
+      'short curly black hair, mustard-yellow raincoat, red boots, '
+      'carries a small brass lantern',
+  String Function(int pageNumber)? summary,
+  bool includeHeroAppearance = true,
+}) {
+  return jsonEncode(<String, Object?>{
+    'title': title,
+    if (includeHeroAppearance) 'heroAppearance': heroAppearance,
+    'beats': List<Object?>.generate(
+      pageCount,
+      (index) => <String, Object?>{
+        'pageNumber': index + 1,
+        'summary':
+            summary?.call(index + 1) ??
+            'Beat ${index + 1}: Nour moves one step closer to the lanterns.',
+      },
+    ),
+  });
 }
 
 /// Wraps a model answer in the non-streaming `/api/generate` envelope.

@@ -13,6 +13,12 @@ const int maximumHeroNameLength = 60;
 /// Maximum accepted length of the theme and the moral.
 const int maximumStoryIdeaLength = 300;
 
+/// Maximum accepted length of one saved per-child preference field.
+///
+/// Matches the app's own `maximumPreferenceTextLength`, so a value the parent
+/// was allowed to type can always be sent.
+const int maximumPreferenceLength = 240;
+
 /// Parent-confirmed Girl/Boy context that drives prose and later imagery.
 ///
 /// The app's `ChildGender.unspecified` is deliberately not accepted: a story
@@ -148,6 +154,8 @@ class StoryGenerationRequest {
     required this.moral,
     required this.pageCount,
     required this.illustrationStyle,
+    this.favoriteTopics = '',
+    this.recurringWorld = '',
   });
 
   /// Stable child identity owning the generated story.
@@ -176,6 +184,18 @@ class StoryGenerationRequest {
 
   /// Illustration direction carried into the scene descriptions.
   final StoryIllustrationStyle illustrationStyle;
+
+  /// Things the child loves, copied from the saved per-child preferences.
+  ///
+  /// Optional and empty by default: a device that never sends it — or a family
+  /// that filled nothing in — simply gets a story without this context, and
+  /// the prompt says nothing about favourites at all.
+  final String favoriteTopics;
+
+  /// Named world the family's stories keep returning to, when there is one.
+  ///
+  /// Optional and empty by default, for the same reason as [favoriteTopics].
+  final String recurringWorld;
 
   /// Validates and parses one `POST /stories/generate` body.
   ///
@@ -249,7 +269,47 @@ class StoryGenerationRequest {
       moral: moral,
       pageCount: pageCount,
       illustrationStyle: illustrationStyle,
+      favoriteTopics: _readOptionalText(
+        json,
+        'favoriteTopics',
+        maxLength: maximumPreferenceLength,
+      ),
+      recurringWorld: _readOptionalText(
+        json,
+        'recurringWorld',
+        maxLength: maximumPreferenceLength,
+      ),
     );
+  }
+
+  /// Reads one optional preference field, treating absence as "not set".
+  ///
+  /// Absent, null and blank all mean the same thing — the family filled
+  /// nothing in — so none of them is an error. A present value of the wrong
+  /// type or over the limit still is.
+  static String _readOptionalText(
+    Map<String, Object?> json,
+    String field, {
+    required int maxLength,
+  }) {
+    final value = json[field];
+    if (value == null) {
+      return '';
+    }
+    if (value is! String) {
+      throw StoryRequestValidationException(
+        field,
+        'Field "$field" must be a string when present.',
+      );
+    }
+    final trimmed = value.trim();
+    if (trimmed.length > maxLength) {
+      throw StoryRequestValidationException(
+        field,
+        'Field "$field" exceeds the $maxLength character limit.',
+      );
+    }
+    return trimmed;
   }
 
   static String _requireText(

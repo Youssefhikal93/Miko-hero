@@ -1674,6 +1674,42 @@ abstract class AppLocalizations {
   /// **'A saved PDF is not encrypted and leaves the app.'**
   String get exportPdfPhotoNotice;
 
+  /// No description provided for @pdfForHero.
+  ///
+  /// In en, this message translates to:
+  /// **'for {name}'**
+  String pdfForHero(String name);
+
+  /// No description provided for @pdfBelongsTo.
+  ///
+  /// In en, this message translates to:
+  /// **'This book belongs to {name}'**
+  String pdfBelongsTo(String name);
+
+  /// No description provided for @pdfMadeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Made on {date}'**
+  String pdfMadeOn(String date);
+
+  /// No description provided for @pdfPageBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {number} of {total}'**
+  String pdfPageBadge(int number, int total);
+
+  /// No description provided for @pdfMoralHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'The heart of this story'**
+  String get pdfMoralHeading;
+
+  /// No description provided for @pdfTheEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'The End'**
+  String get pdfTheEnd;
+
   /// No description provided for @narrationSettings.
   ///
   /// In en, this message translates to:

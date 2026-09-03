@@ -882,6 +882,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'A saved PDF is not encrypted and leaves the app.';
 
   @override
+  String pdfForHero(String name) {
+    return 'for $name';
+  }
+
+  @override
+  String pdfBelongsTo(String name) {
+    return 'This book belongs to $name';
+  }
+
+  @override
+  String pdfMadeOn(String date) {
+    return 'Made on $date';
+  }
+
+  @override
+  String pdfPageBadge(int number, int total) {
+    return 'Page $number of $total';
+  }
+
+  @override
+  String get pdfMoralHeading => 'The heart of this story';
+
+  @override
+  String get pdfTheEnd => 'The End';
+
+  @override
   String get narrationSettings => 'Narration settings';
 
   @override
