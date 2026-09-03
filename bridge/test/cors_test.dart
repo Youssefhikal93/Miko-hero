@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
+import 'package:iam_hero_bridge/src/config/bridge_config_loader.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/server/app_server.dart';
 import 'package:shelf/shelf.dart';
@@ -55,6 +56,7 @@ void main() {
     for (final origin in <String>[
       'http://localhost:8090',
       'http://127.0.0.1:52341',
+      'http://127.42.0.8:52341',
     ]) {
       final response = await _send(
         testServer.handler,
@@ -146,22 +148,154 @@ void main() {
     expect(response.headers.containsKey('access-control-allow-origin'), false);
   });
 
-  test('config refuses malformed origins and accepts bare ones', () {
-    expect(
-      () => BridgeConfig.fromJson(<String, Object?>{
-        'allowedWebOrigins': <Object?>['http://192.168.1.20:8765/app'],
-      }),
-      throwsFormatException,
-    );
+  test(
+    'config accepts only loopback, private, and Tailscale bind addresses',
+    () {
+      for (final address in <String>[
+        'localhost',
+        '127.0.0.1',
+        '127.255.255.255',
+        '::1',
+        '10.0.0.1',
+        '10.255.255.254',
+        '172.16.0.1',
+        '172.31.255.254',
+        '192.168.1.20',
+        '169.254.10.20',
+        '100.64.0.1',
+        '100.127.255.254',
+        'fc00::1',
+        'fdff::1',
+        'fe80::1',
+        'febf::1',
+      ]) {
+        expect(
+          BridgeConfig.fromJson(<String, Object?>{
+            'bindAddress': address,
+          }).bindAddress,
+          address,
+          reason: address,
+        );
+      }
+    },
+  );
+
+  test('config refuses wildcard, public, and non-local hostname binds', () {
+    for (final address in <String>[
+      '0.0.0.0',
+      '::',
+      '8.8.8.8',
+      '2001:4860:4860::8888',
+      '172.15.255.255',
+      '172.32.0.0',
+      '100.63.255.255',
+      '100.128.0.0',
+      'example.com',
+    ]) {
+      expect(
+        () => BridgeConfig.fromJson(<String, Object?>{'bindAddress': address}),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            contains('bindAddress'),
+          ),
+        ),
+        reason: address,
+      );
+    }
+  });
+
+  test('config accepts exact private http and public https origins', () {
+    final origins = <String>[
+      'http://localhost:5173',
+      'http://127.42.0.8',
+      'http://10.1.2.3:8765',
+      'http://172.16.0.1',
+      'http://172.31.255.254',
+      'http://192.168.1.20:8765',
+      'http://169.254.1.2',
+      'http://100.64.0.1',
+      'http://100.127.255.254',
+      'http://[::1]:5173',
+      'http://[fc00::1]',
+      'http://[fdff::1]',
+      'http://[fe80::1]',
+      'http://[febf::1]',
+      'https://stories.example.com',
+      'https://8.8.8.8:443',
+      'https://[2001:4860:4860::8888]',
+    ];
+    final config = BridgeConfig.fromJson(<String, Object?>{
+      'allowedWebOrigins': origins,
+    });
+    expect(config.allowedWebOrigins, origins);
+  });
+
+  test('config refuses every non-origin or insecure public origin shape', () {
+    for (final origin in <String>[
+      '*',
+      'https://*.example.com',
+      'https://stories.example.com/',
+      'https://stories.example.com/app',
+      'https://stories.example.com?mode=family',
+      'https://stories.example.com#family',
+      'https://parent@stories.example.com',
+      'ftp://stories.example.com',
+      'stories.example.com',
+      ' https://stories.example.com',
+      'https://stories.example.com ',
+      'https://stories.example.com:',
+      'https://stories.example.com:0',
+      'https://stories.example.com:65536',
+      'http://stories.example.com',
+      'http://8.8.8.8',
+      'http://[2001:4860:4860::8888]',
+    ]) {
+      expect(
+        () => BridgeConfig.fromJson(<String, Object?>{
+          'allowedWebOrigins': <Object?>[origin],
+        }),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            contains('allowedWebOrigins'),
+          ),
+        ),
+        reason: origin,
+      );
+    }
+  });
+
+  test('config refuses a non-list origin setting', () {
     expect(
       () => BridgeConfig.fromJson(<String, Object?>{
         'allowedWebOrigins': 'http://192.168.1.20:8765',
       }),
       throwsFormatException,
     );
-    final config = BridgeConfig.fromJson(<String, Object?>{
-      'allowedWebOrigins': <Object?>['http://192.168.1.20:8765'],
-    });
-    expect(config.allowedWebOrigins, <String>['http://192.168.1.20:8765']);
+  });
+
+  test('loader reports the refused field before server startup', () async {
+    final root = await createTempRoot();
+    final configFile = File(
+      '${root.path}${Platform.pathSeparator}unsafe_bridge_config.json',
+    );
+    await configFile.writeAsString('{"bindAddress":"0.0.0.0"}');
+
+    await expectLater(
+      const BridgeConfigLoader().load(
+        args: <String>['--config', configFile.path],
+        workingDirectory: root,
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('bindAddress'),
+        ),
+      ),
+    );
   });
 }

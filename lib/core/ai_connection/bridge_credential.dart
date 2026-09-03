@@ -6,9 +6,9 @@ const bridgePairingCodeLength = 6;
 
 /// The bearer token this device received when the parent paired it.
 ///
-/// Stored exactly like the parent-PIN verifier: its own local preference key,
-/// written only by the repository, never logged, and never rendered. The
-/// [toString] override keeps the token out of diagnostics even by accident.
+/// Stored in platform-protected storage, written only by the repository, never
+/// logged, and never rendered. The [toString] override keeps the token out of
+/// diagnostics even by accident.
 class BridgeCredential {
   /// Creates a stored pairing record after a successful confirmation.
   const BridgeCredential({

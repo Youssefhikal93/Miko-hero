@@ -8,6 +8,7 @@ import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Verifies localized application behavior from the user's point of view.
@@ -48,7 +49,16 @@ void main() {
   testWidgets('Somali selection keeps localized Material controls available', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
+          ),
+        ],
+        child: const IamHeroApp(),
+      ),
+    );
     await tester.pumpAndSettle();
     appRouter.go('/settings');
     await tester.pumpAndSettle();
@@ -255,6 +265,9 @@ void main() {
               latency: Duration.zero,
               currentTime: () => fixedTime,
             ),
+          ),
+          bridgeCredentialStorageProvider.overrideWithValue(
+            InMemoryBridgeCredentialStorage(),
           ),
         ],
         child: const IamHeroApp(),

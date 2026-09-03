@@ -4,10 +4,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/security/parent_security_service.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -86,6 +88,9 @@ Widget _app(ParentSecurityService service, DateTime clock) {
     overrides: [
       parentSecurityServiceProvider.overrideWithValue(service),
       parentSecurityClockProvider.overrideWithValue(() => clock),
+      bridgeCredentialStorageProvider.overrideWithValue(
+        InMemoryBridgeCredentialStorage(),
+      ),
     ],
     child: const IamHeroApp(),
   );

@@ -77,13 +77,17 @@ typedef FakeOllamaResponder =
       CancellationToken cancellation,
     );
 
+/// Scripted behaviour of one fake Ollama unload call.
+typedef FakeOllamaUnloadResponder =
+    Future<void> Function(OllamaUnloadRequest request);
+
 /// A fake [OllamaStoryClient] scripted per test.
 ///
 /// This is the only mocked boundary in the generation tests: everything
 /// between the HTTP endpoint and this client is the real implementation.
 class FakeOllamaStoryClient implements OllamaStoryClient {
   /// Creates a client driven by [responder].
-  FakeOllamaStoryClient(this.responder);
+  FakeOllamaStoryClient(this.responder, {this.unloadResponder});
 
   /// Answers every call with [payload] inside an Ollama envelope.
   factory FakeOllamaStoryClient.answering(String payload) {
@@ -102,11 +106,13 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
     required String story,
     String? outline,
     int pageCount = 6,
+    FakeOllamaUnloadResponder? unloadResponder,
   }) {
     final plan = outline ?? outlinePayload(pageCount: pageCount);
     return FakeOllamaStoryClient(
       (OllamaGenerateRequest request, CancellationToken cancellation) async =>
           ollamaEnvelope(isOutlineRequest(request) ? plan : story),
+      unloadResponder: unloadResponder,
     );
   }
 
@@ -130,8 +136,17 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
   /// Behaviour invoked for every call.
   final FakeOllamaResponder responder;
 
+  /// Optional behaviour invoked for every unload call.
+  final FakeOllamaUnloadResponder? unloadResponder;
+
   /// Requests seen by this client, in call order (for assertions).
   final List<OllamaGenerateRequest> requests = <OllamaGenerateRequest>[];
+
+  /// Unload requests seen by this client, in call order (for assertions).
+  final List<OllamaUnloadRequest> unloadRequests = <OllamaUnloadRequest>[];
+
+  /// Generation and unload requests in their original call order.
+  final List<Object> allRequests = <Object>[];
 
   @override
   Future<OllamaGenerateResponse> generate(
@@ -139,7 +154,15 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
     required CancellationToken cancellation,
   }) {
     requests.add(request);
+    allRequests.add(request);
     return responder(request, cancellation);
+  }
+
+  @override
+  Future<void> unload(OllamaUnloadRequest request) {
+    unloadRequests.add(request);
+    allRequests.add(request);
+    return unloadResponder?.call(request) ?? Future<void>.value();
   }
 }
 

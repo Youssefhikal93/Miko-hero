@@ -165,6 +165,8 @@ void main() {
           jobId,
         );
         expect(settled.status, GenerationJobStatus.completed);
+        expect(client.unloadRequests, hasLength(1));
+        expect(client.allRequests.last, isA<OllamaUnloadRequest>());
 
         final jobBody = await readJob(testServer, token, jobId);
         expect(jobBody['status'], 'completed');
@@ -572,9 +574,34 @@ void main() {
         hasLength(1),
         reason: 'a down server is not retried',
       );
+      expect(client.unloadRequests, hasLength(1));
+      expect(client.allRequests.last, isA<OllamaUnloadRequest>());
       testServer.expectEmptyLibrary();
     },
   );
+
+  test('an unload failure does not change a completed job', () async {
+    final printedCodes = <String>[];
+    final client = FakeOllamaStoryClient.writing(
+      story: storyPayload(pageCount: 6),
+      unloadResponder: (request) async {
+        throw const SocketException('Unload failed.');
+      },
+    );
+    final testServer = await createTestServer(
+      ollamaClient: client,
+      notifyCode: printedCodes.add,
+    );
+    addTearDown(testServer.close);
+    final token = await pairDevice(testServer, printedCodes);
+
+    final jobId = await startJob(testServer, token);
+    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+
+    expect(settled.status, GenerationJobStatus.completed);
+    expect(client.unloadRequests, hasLength(1));
+    expect(testServer.countRows('stories'), 1);
+  });
 
   test('a generation timeout fails the job with a typed error', () async {
     final printedCodes = <String>[];
@@ -669,6 +696,8 @@ void main() {
 
     final settled = await testServer.server.generationQueue.whenSettled(jobId);
     expect(settled.status, GenerationJobStatus.cancelled);
+    expect(client.unloadRequests, hasLength(1));
+    expect(client.allRequests.last, isA<OllamaUnloadRequest>());
     testServer.expectEmptyLibrary();
 
     final (repeatStatus, repeatBody) = await callJson(

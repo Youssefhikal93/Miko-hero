@@ -687,7 +687,7 @@ class _StoryProse extends StatelessWidget {
 
   /// Keeps the spoken-sentence tint warm while bedtime mode is on.
   Color _highlightColor(BuildContext context) {
-    return bedtime ? AppTheme.amber : Theme.of(context).colorScheme.primary;
+    return bedtime ? AppTheme.candle : Theme.of(context).colorScheme.primary;
   }
 }
 
@@ -708,8 +708,8 @@ class _ReaderControls extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         decoration: const BoxDecoration(
-          color: Color(0xFF11141D),
-          border: Border(top: BorderSide(color: Color(0xFF2A2E3B))),
+          color: AppTheme.sunken,
+          border: Border(top: BorderSide(color: AppTheme.hairline)),
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -783,7 +783,7 @@ class _ReaderControls extends StatelessWidget {
         isSelected: status.bedtime,
         icon: Icon(
           status.bedtime ? Icons.bedtime_rounded : Icons.bedtime_outlined,
-          color: status.bedtime ? AppTheme.amber : null,
+          color: status.bedtime ? AppTheme.candle : null,
         ),
       ),
       IconButton(

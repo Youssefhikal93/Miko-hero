@@ -135,6 +135,12 @@ void main() {
       'an oversized appearance': plan(
         heroAppearance: 'a' * (maximumHeroAppearanceLength + 1),
       ),
+      'an appearance written in Arabic': plan(
+        heroAppearance: 'شعر أسود قصير ومموج، سترة صفراء زاهية، حذاء أحمر صغير',
+      ),
+      'an appearance half in Arabic': plan(
+        heroAppearance: 'short black hair, سترة صفراء زاهية, red shoes',
+      ),
       'an oversized beat': plan(
         summary: (index) => 'a' * (maximumOutlineBeatLength + 1),
       ),
@@ -379,6 +385,17 @@ void main() {
         contains('must never describe or refer to a photograph'),
         reason: 'the appearance sheet is invented, never taken from a photo',
       );
+    });
+
+    test('the appearance line is demanded in English for every language', () {
+      for (final language in StoryLanguage.values) {
+        final prompt = buildStoryOutlinePrompt(request(language: language));
+        expect(
+          prompt,
+          contains('even when the story itself is not in English'),
+          reason: 'the image model reads Latin letters only (${language.code})',
+        );
+      }
     });
 
     test('the page prompt embeds the approved plan verbatim', () {

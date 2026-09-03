@@ -7,7 +7,7 @@ import 'package:shelf/shelf.dart';
 /// CORS consent before it lets the page read a bridge response. Consent is
 /// deliberately narrow:
 ///
-/// * loopback origins — `localhost`, `127.0.0.1` and `[::1]` on any port —
+/// * loopback origins — `localhost`, `127.0.0.0/8` and `[::1]` on any port —
 ///   are always allowed, so a web app opened on the PC itself just works;
 /// * every other origin must be listed in the configuration's
 ///   `allowedWebOrigins`;
@@ -28,7 +28,7 @@ Middleware corsMiddleware({required List<String> extraAllowedOrigins}) {
     if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
       return false;
     }
-    return _loopbackHosts.contains(uri.host.toLowerCase());
+    return _isLoopbackHost(uri.host);
   }
 
   Map<String, String> allowHeaders(String origin) {
@@ -74,8 +74,17 @@ Middleware corsMiddleware({required List<String> extraAllowedOrigins}) {
   };
 }
 
-/// Hosts treated as the PC itself and therefore always trusted for CORS.
-const Set<String> _loopbackHosts = <String>{'localhost', '127.0.0.1', '::1'};
+bool _isLoopbackHost(String host) {
+  final normalized = host.toLowerCase();
+  if (normalized == 'localhost' || normalized == '::1') return true;
+  final octets = normalized.split('.');
+  return octets.length == 4 &&
+      octets.first == '127' &&
+      octets.every((octet) {
+        final value = int.tryParse(octet);
+        return value != null && value >= 0 && value <= 255;
+      });
+}
 
 String _normalizeOrigin(String origin) {
   final trimmed = origin.trim().toLowerCase();

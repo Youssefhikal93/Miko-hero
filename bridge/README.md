@@ -8,14 +8,17 @@ stories with a local Ollama model, illustrates them with a local ComfyUI
 install, synchronizes both to every paired device, deletes them everywhere on
 request, and writes password-encrypted backups of the whole library.
 
-> ## ⚠️ Never expose this service to the internet
+> ## ⚠️ Never expose the bridge listener directly to the internet
 >
 > The bridge has no TLS, no accounts, and no hardening against hostile
-> traffic. It is designed for a trusted home network only.
-> **Never port-forward it on your router, never expose it via a tunnel or
-> reverse proxy to the public internet.** By default it binds to
-> `127.0.0.1` and is unreachable from other machines; change `bindAddress`
-> only if you understand the consequences.
+> traffic. It is designed to listen only on loopback, a private/LAN or
+> link-local address, or a Tailscale address. The bridge refuses wildcard,
+> public, and hostname bind addresses other than `localhost`.
+> **Never port-forward the listener on your router.** If remote access is
+> required, keep `bindAddress` on `127.0.0.1` and terminate public HTTPS in a
+> narrowly configured proxy or tunnel that forwards to the loopback listener.
+> Add the public web app's origin (not the bridge URL unless it also serves the
+> app) explicitly to `allowedWebOrigins` using `https://`.
 
 ## Requirements
 
@@ -51,7 +54,7 @@ printed. All machine-specific values live in this file; nothing is hardcoded.
 
 | Field           | Default                 | Meaning                                   |
 | --------------- | ----------------------- | ----------------------------------------- |
-| `bindAddress`   | `127.0.0.1`             | Interface the HTTP server binds to        |
+| `bindAddress`   | `127.0.0.1`             | Interface the HTTP server binds to. Startup accepts only `localhost`, `127.0.0.0/8`, `::1`, private IPv4 (`10/8`, `172.16/12`, `192.168/16`), link-local (`169.254/16`, `fe80::/10`), private IPv6 (`fc00::/7`), or Tailscale (`100.64/10`). Wildcard, public, and other hostname addresses are refused. |
 | `port`          | `8765`                  | TCP port of the HTTP server               |
 | `libraryPath`   | `<cwd>/iam_hero_library`| Root folder of the master library         |
 | `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API          |
@@ -60,7 +63,7 @@ printed. All machine-specific values live in this file; nothing is hardcoded.
 | `generationTimeoutSeconds` | `900`        | Budget for **one** generation call (30–3600); a job makes two |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
 | `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800)   |
-| `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Loopback origins (`localhost`, `127.0.0.1`, any port) are always allowed; list LAN origins such as `http://192.168.1.20:8765` explicitly. Never list a public internet origin. |
+| `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Every entry must be an exact origin: scheme + host + optional port, with no wildcard, credentials, path, query, fragment, or trailing slash. Loopback origins (`localhost`, `127.0.0.0/8`, `[::1]`, any port) are always allowed. `http://` is accepted only for loopback and the private/LAN, link-local, and Tailscale ranges accepted by `bindAddress`; every public origin must be listed explicitly with `https://`. |
 | `illustration`  | see below               | How pages are rendered. Optional as a whole |
 
 Example `bridge_config.json`:
@@ -772,6 +775,9 @@ queued ──▶ generating ──▶ validating ──▶ completed
   its pages and one `pending` illustration row per page. If that write
   fails the job fails as `library_write_failed` and no rows remain.
 - **failed / cancelled** — no story, no partial rows, ever.
+
+After any running job reaches one of those terminal states, the bridge asks
+Ollama to unload the configured model before releasing the shared GPU lease.
 
 ### Language purity
 

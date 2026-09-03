@@ -10,6 +10,7 @@ import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
@@ -478,7 +479,10 @@ Future<ProviderContainer> _pairedContainer(
   bool isPaired = true,
   bool usesLocalAi = true,
 }) async {
-  final repository = await LocalRepository.open();
+  final credentialStorage = InMemoryBridgeCredentialStorage();
+  final repository = await LocalRepository.open(
+    bridgeCredentialStorage: credentialStorage,
+  );
   await repository.saveProfiles(const <ChildProfile>[
     ChildProfile(
       id: 'miko',
@@ -515,7 +519,10 @@ Future<ProviderContainer> _pairedContainer(
     );
   }
   final container = ProviderContainer(
-    overrides: [bridgeHttpClientProvider.overrideWithValue(bridge.httpClient)],
+    overrides: [
+      bridgeHttpClientProvider.overrideWithValue(bridge.httpClient),
+      bridgeCredentialStorageProvider.overrideWithValue(credentialStorage),
+    ],
   );
   addTearDown(container.dispose);
   await container.read(appControllerProvider.future);

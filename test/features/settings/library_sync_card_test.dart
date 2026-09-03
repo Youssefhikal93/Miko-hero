@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
 import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -84,7 +86,12 @@ void main() {
 /// Builds the real application over one scripted PC boundary.
 Widget _app(FakeBridgeHttpClient httpClient) {
   return ProviderScope(
-    overrides: [bridgeHttpClientProvider.overrideWithValue(httpClient)],
+    overrides: [
+      bridgeHttpClientProvider.overrideWithValue(httpClient),
+      bridgeCredentialStorageProvider.overrideWithValue(
+        InMemoryBridgeCredentialStorage(),
+      ),
+    ],
     child: const IamHeroApp(),
   );
 }

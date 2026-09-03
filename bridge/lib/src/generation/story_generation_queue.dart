@@ -24,6 +24,8 @@ typedef GenerationLogSink = void Function(String message);
 /// How many finished jobs stay readable before the oldest are dropped.
 const int maxRetainedFinishedJobs = 100;
 
+const Duration _ollamaUnloadTimeout = Duration(seconds: 5);
+
 /// Runs story generation jobs strictly one at a time.
 ///
 /// The machine has one small GPU, so concurrency is not a tuning knob: a
@@ -210,7 +212,30 @@ class StoryGenerationQueue {
     try {
       await _runJobOnGpu(jobId);
     } finally {
-      lease.release();
+      try {
+        await _unloadOllama(jobId);
+        final finished = _jobs[jobId];
+        if (finished != null && finished.status.isTerminal) {
+          _settle(finished);
+        }
+      } finally {
+        lease.release();
+      }
+    }
+  }
+
+  Future<void> _unloadOllama(String jobId) async {
+    try {
+      await _client.unload(
+        OllamaUnloadRequest(
+          baseUrl: _config.ollamaBaseUrl,
+          model: _config.ollamaModel,
+          timeout: _ollamaUnloadTimeout,
+        ),
+      );
+      _log('job $jobId Ollama model unloaded');
+    } catch (_) {
+      _log('job $jobId Ollama unload failed');
     }
   }
 
@@ -425,7 +450,6 @@ class StoryGenerationQueue {
     );
     _jobs[jobId] = finished;
     _log('job $jobId completed in ${_elapsedMs(start)} ms');
-    _settle(finished);
   }
 
   void _fail(String jobId, GenerationFailure failure, DateTime start) {
@@ -441,13 +465,10 @@ class StoryGenerationQueue {
       'job $jobId failed code=${failure.code.wireCode} '
       'after ${_elapsedMs(start)} ms',
     );
-    _settle(finished);
   }
 
   void _settleCancelled(String jobId, DateTime start) {
-    final current = _jobs[jobId]!;
     _log('job $jobId stopped after ${_elapsedMs(start)} ms');
-    _settle(current);
   }
 
   void _settle(GenerationJob job) {
