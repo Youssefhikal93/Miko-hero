@@ -406,6 +406,7 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | File | Responsibility |
 | --- | --- |
 | `docs/CODEBASE.md` | This file. |
+| `CONTEXT.md` | The domain glossary at the repo root: one canonical name per concept (hero, shelf, library transaction, GPU tenant, …) with the words to avoid. A glossary only — no implementation detail lives there. |
 | `docs/LOCAL_AI_INTEGRATION.md` | The contract the local Ollama and ComfyUI integration is held to: the `StoryGenerator` boundary, failure semantics, and privacy and network constraints. |
 | `docs/ILLUSTRATION_QUALITY_UPGRADE.md` | Work order for the AI PC, completed September 2026: which free model files to download and which `illustration` settings to change so the pictures improve. Kept as the record of what runs there. |
 | `docs/STORY_QUALITY_UPGRADE.md` | The same for the words, also completed: why `gemma3:4b` is the floor rather than a recommendation, a free-model table by system RAM (Qwen chosen for Arabic), the one `ollamaModel` line to change, why `think: false` is required, and a verification section that ends with reading the Arabic aloud with a native speaker. |
