@@ -117,6 +117,10 @@ flutter:
     - family: AtkinsonHyperlegible
       fonts:
         - asset: assets/fonts/AtkinsonHyperlegible-Regular.ttf
+    # Book-like serif for Latin-script story prose in the reader and review.
+    - family: Newsreader
+      fonts:
+        - asset: assets/fonts/Newsreader-Variable.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
