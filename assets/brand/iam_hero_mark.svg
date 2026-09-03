@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Iam - hero brand mark</title>
+  <!--
+    The one source of the brand mark: an open book with a candle flame rising
+    from it. Redesign palette (docs/design/iam-hero-redesign.html): night
+    background, candle amber covers and flame, light-text pages. No text, no
+    photograph, no child data, so the same drawing works as an app icon, a
+    launcher foreground and a splash logo.
+
+    tool/render_brand_assets.dart rasterizes this file into the PNG masters the
+    icon and splash generators consume. It reads the backdrop colour below and
+    paints it itself for the opaque targets, so the backdrop is never scaled
+    with the mark and always bleeds to the edge of the icon. It also drops the
+    element with id="glow" for Android's themed icon, which keeps only the
+    silhouette and would turn a soft halo into a flat disc.
+
+    The mark is drawn on a 1024 grid and then scaled so that every painted
+    point stays inside a circle of radius 400 around the centre - the Android
+    adaptive and web maskable safe area - which is why it survives being
+    cropped to a circle, a squircle or a rounded square.
+  -->
+  <rect id="backdrop" x="0" y="0" width="1024" height="1024" fill="#0A0D18"/>
+  <defs>
+    <!-- The candle light: warm at 1024 px, gone by 48 px, and soft enough at
+         every size in between that it never draws an edge of its own. -->
+    <radialGradient id="candleGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFB43A" stop-opacity="0.3"/>
+      <stop offset="0.55" stop-color="#FFB43A" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#FFB43A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g id="mark" transform="translate(512, 512) scale(0.94) translate(-512, -512)">
+    <circle id="glow" cx="512" cy="404" r="240" fill="url(#candleGlow)"/>
+    <!-- Flame. -->
+    <path fill="#FFB43A" d="M512 252
+      C560 324 600 360 600 412
+      C600 465 561 508 512 508
+      C463 508 424 465 424 412
+      C424 360 464 324 512 252 Z"/>
+    <path fill="#FFE7B8" d="M512 344
+      C542 386 558 404 558 432
+      C558 460 537 480 512 480
+      C487 480 466 460 466 432
+      C466 404 482 386 512 344 Z"/>
+    <!-- Open covers and spine, one path across both halves. -->
+    <path fill="#FFB43A" d="M512 592
+      C424 540 286 518 140 538
+      L140 714
+      C286 694 424 714 512 772
+      C600 714 738 694 884 714
+      L884 538
+      C738 518 600 540 512 592 Z"/>
+    <!-- The two pages, inset so the covers stay a rim and the spine a band. -->
+    <path fill="#F2EFEA" d="M496 606
+      C420 562 296 544 172 560
+      L172 688
+      C296 672 420 690 496 742 Z"/>
+    <path fill="#F2EFEA" d="M528 606
+      C604 562 728 544 852 560
+      L852 688
+      C728 672 604 690 528 742 Z"/>
+  </g>
+</svg>
