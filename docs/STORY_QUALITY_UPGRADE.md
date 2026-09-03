@@ -1,5 +1,11 @@
 # Story quality upgrade — steps for the AI PC
 
+> **Status: completed on the AI PC, September 2026** (issues #9, #10, #25,
+> #26). Live model: `qwen3.5:9b`, called with `think: false` so the
+> schema-constrained JSON lands in `response`. Arabic output was judged correct
+> by the owner; pages now carry three to five sentences with sensory detail,
+> dialogue, and shown feelings. The steps below are kept as the record.
+
 This document is a self-contained work order for an agent (or a person) on
 the **AI PC** — the machine that runs Ollama, ComfyUI, and the Iam-hero
 bridge. Everything that could be done in code is **already implemented and

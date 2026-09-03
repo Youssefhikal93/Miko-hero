@@ -1,4 +1,10 @@
-# Remote family access over the internet — complete guide (branch: `dev`)
+# Remote family access over the internet — complete guide
+
+> **Status: live since 2026-09-04** (issues #11, #12). Tailscale Funnel on the
+> AI PC forwards public HTTPS to the bridge on `127.0.0.1:8765`; the hosted
+> web app's origin is in `allowedWebOrigins`; unpaired requests get `401`.
+> The public URL is deliberately not written in this repository. The steps
+> below are kept as the record and as the rebuild guide.
 
 A self-contained work order for an agent (or a person) on the **AI PC** — the
 machine that runs the Iam-hero bridge, Ollama, and ComfyUI.

@@ -92,6 +92,17 @@ Rules that every change must respect:
 | `bridge_story_provenance.dart` | Builds and reads back the bridge story and illustration identities carried inside `StoryPage.sceneDescription`, following the demo generator's em-dash segment convention, so no stored story needs migrating when ComfyUI lands. `storyIdOf` is how every surface recognizes one master-library story, including a story generated here whose local identity came from its queued job. |
 | `local_ai_progress.dart` | `LocalAiStage` and `LocalAiProgress`: what the PC is doing right now, as an enum rather than the bridge's English progress sentence. |
 
+### Illustrations — `core/illustrations/`
+
+| File | Responsibility |
+| --- | --- |
+| `illustration_service.dart` | Draws one bridge story's page images on the paired PC: starts the job, polls it (`IllustrationProgress` carries counts, never prose), bounded by a whole-job timeout because one page takes minutes on a home GPU, then hands the finished pages to the downloader. Forgiving about everything except the PC itself: an unusable photo is skipped, a page the PC fails on is reported and the rest still fetched, cancelling keeps what was drawn. |
+| `illustration_downloader.dart` | Fetches finished page images into the local cache one identity at a time, so a single refused image never blocks the rest; `IllustrationDownloadReport` counts fetched, not-yet-drawn and failed pages separately. |
+| `illustration_store.dart` | The cache boundary: `IllustrationStore`, `CachedIllustration` (bytes plus the ETag they arrived with), and identity validation so nothing that could escape a file name or object-store key ever reaches a platform implementation. |
+| `illustration_store_io.dart` / `illustration_store_web.dart` / `illustration_store_platform.dart` | The two platform caches and the single conditional import that picks one. Files under application support on every non-web platform (temp-file write then rename, so no half-written PNG survives); IndexedDB on the web, because `localStorage` is text-only and a few megabytes. |
+| `illustration_providers.dart` | Riverpod wiring: the platform store, the poll interval and clock (both injectable for tests), and `illustrationBytesProvider` watched per page so one finished download repaints exactly that page and a broken cache falls back to placeholder art. |
+| `reference_photo.dart` | Reads a usable JPEG or PNG face reference out of a stored profile by its magic bytes, or null meaning "send no photo" — the book still gets pictures, just without the likeness. |
+
 ### Storage — `core/storage/`
 
 | File | Responsibility |
@@ -185,6 +196,8 @@ Rules that every change must respect:
 | `story_collections_dialog.dart` | Editor for a story's collection labels (for example bedtime, learning, adventures) with bounded, deduplicated parsing. |
 | `story_share_controller.dart` | Commands for single-story files: encrypt one stored story with its hero name, save or pick the file, decrypt a selected file, and import it into a chosen profile. Refuses an already present story identity (`DuplicateStoryException`) and a destination profile that no longer exists (`UnknownEntityException`). |
 | `story_share_actions.dart` | The parent-gated export and import flows: password prompt, decrypted preview (title, page count, hero), destination-profile choice, and one localized message per typed failure. Talks only to `StoryShareController`. |
+| `illustrate_story_controller.dart` | Owns the one picture run this device may have going at a time, as `IllustrateStoryRun` (running, finished or failed in one value so a dialog can never show a state the run is not in). Nothing is persisted: the artwork lives in the image cache and the PC master library, so a restart loses none of it. |
+| `story_illustrate_actions.dart` | The parent-gated "make the pictures" flow on a PC-library story's card: shows what the run costs first (minutes per page, the child's photo travels to the PC), then a live view that names the page being drawn in one sentence rather than a spinner. Offered only for stories the PC holds and only while this device is paired. |
 | `story_delete_actions.dart` | The parent-gated deletion flow. A demo story keeps today's single local deletion; a story that also lives in the PC master library offers the two clearly worded choices instead — remove this device's offline copy, or delete it everywhere. Delete-everywhere requires the PC and reports the typed bridge failure without removing anything locally. |
 
 ### Reader — `features/reader/`
@@ -366,10 +379,12 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | File | Responsibility |
 | --- | --- |
 | `docs/CODEBASE.md` | This file. |
-| `docs/LOCAL_AI_INTEGRATION.md` | The contract for the future local Ollama and ComfyUI phase: the `StoryGenerator` boundary, failure semantics, and privacy constraints. |
-| `docs/ILLUSTRATION_QUALITY_UPGRADE.md` | No-programming work order for the AI PC: which free model files to download and which `illustration` settings to change so the pictures improve. |
-| `docs/STORY_QUALITY_UPGRADE.md` | The same for the words: why `gemma3:4b` is the floor rather than a recommendation, a free-model table by system RAM (Qwen recommended for Arabic), the one `ollamaModel` line to change, and a verification section that ends with reading the Arabic aloud with a native speaker. |
+| `docs/LOCAL_AI_INTEGRATION.md` | The contract the local Ollama and ComfyUI integration is held to: the `StoryGenerator` boundary, failure semantics, and privacy and network constraints. |
+| `docs/ILLUSTRATION_QUALITY_UPGRADE.md` | Work order for the AI PC, completed September 2026: which free model files to download and which `illustration` settings to change so the pictures improve. Kept as the record of what runs there. |
+| `docs/STORY_QUALITY_UPGRADE.md` | The same for the words, also completed: why `gemma3:4b` is the floor rather than a recommendation, a free-model table by system RAM (Qwen chosen for Arabic), the one `ollamaModel` line to change, why `think: false` is required, and a verification section that ends with reading the Arabic aloud with a native speaker. |
+| `docs/REMOTE_FAMILY_ACCESS.md` | Work order for publishing the bridge to the internet with Tailscale Funnel so a family member abroad can pair from the hosted web app, completed on the AI PC in September 2026: install, funnel, allowed origin, pairing walkthrough, verification, keep-awake, rollback, and the security limits the owner accepted. |
 | `docs/design/iam-hero-redesign.html` | Static HTML design reference for the phone redesign (Home, Library, Create, Reader): palette tokens, Outfit interface type, serif story prose, mosaic tiles, tap-once chips. Open it in a browser; it is not part of the Flutter build. |
+| `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/domain.md` | How an agent session works this repo's GitHub issues, the five triage labels, and where domain glossary and decision records would live. Referenced from `CLAUDE.md`. |
 
 ## Feature → file quick reference
 

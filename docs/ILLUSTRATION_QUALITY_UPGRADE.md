@@ -1,5 +1,11 @@
 # Illustration quality upgrade — steps for the AI PC
 
+> **Status: completed on the AI PC, September 2026** (issues #5, #6, #24).
+> Live configuration: `dreamshaper_8` checkpoint, `coolkids-v2` LoRA,
+> RealESRGAN upscale to 1024², peak VRAM about 3.4 GB; a six-page book renders
+> in roughly 72 s. The bridge now unloads the Ollama model before rendering.
+> The steps below are kept as the record of that setup.
+
 This document is a self-contained work order for an agent (or a person) on
 the **AI PC** — the machine that runs Ollama, ComfyUI, and the Iam-hero
 bridge. Everything that could be done in code is **already implemented and
