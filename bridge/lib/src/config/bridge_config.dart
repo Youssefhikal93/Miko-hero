@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:iam_hero_bridge/src/common/json_reader.dart';
+import 'package:iam_hero_bridge/src/common/local_network.dart';
 import 'package:iam_hero_bridge/src/config/illustration_settings.dart';
 
 /// Immutable runtime configuration of the bridge service.
@@ -150,79 +152,102 @@ class BridgeConfig {
     };
   }
 
+  /// Every key a configuration file may carry.
+  ///
+  /// Written down rather than implied, because anything else in the file is
+  /// refused: see [BridgeConfig.fromJson].
+  static const Set<String> knownKeys = <String>{
+    'bindAddress',
+    'port',
+    'libraryPath',
+    'ollamaBaseUrl',
+    'comfyUiBaseUrl',
+    'ollamaModel',
+    'generationTimeoutSeconds',
+    'maxGenerationAttempts',
+    'illustrationTimeoutSeconds',
+    'allowedWebOrigins',
+    'illustration',
+  };
+
   /// Validates and parses a configuration from a decoded JSON map.
   ///
   /// Missing fields fall back to their documented defaults so partially
   /// filled files keep working; present-but-invalid values throw a
   /// [FormatException] with a precise message.
+  ///
+  /// A key that is not in [knownKeys] is refused by name, exactly as the
+  /// `illustration` section has always refused one. A misspelled top-level
+  /// setting used to be dropped in silence, which meant a parent who typed
+  /// `ollamaModle` ran every story on the default model and had nothing to
+  /// read that said so.
   factory BridgeConfig.fromJson(Map<String, Object?> json) {
+    final reader = JsonReader.root(json, failures: bridgeConfigFailures);
+    reader.rejectUnknownKeys(knownKeys);
     return BridgeConfig(
-      bindAddress: _readBindAddress(json, 'bindAddress') ?? defaultBindAddress,
-      port: _readPort(json),
-      libraryPath:
-          _readNonEmptyString(json, 'libraryPath') ?? defaultLibraryPath(),
+      bindAddress: _readBindAddress(reader) ?? defaultBindAddress,
+      port: reader.optionalInt(
+        'port',
+        minimum: 1,
+        maximum: 65535,
+        fallback: defaultPort,
+      ),
+      libraryPath: reader.optionalString('libraryPath') ?? defaultLibraryPath(),
       ollamaBaseUrl:
-          _readHttpUrl(json, 'ollamaBaseUrl') ?? defaultOllamaBaseUrl,
+          reader.optionalBaseUrl('ollamaBaseUrl')?.text ?? defaultOllamaBaseUrl,
       comfyUiBaseUrl:
-          _readHttpUrl(json, 'comfyUiBaseUrl') ?? defaultComfyUiBaseUrl,
-      ollamaModel:
-          _readNonEmptyString(json, 'ollamaModel') ?? defaultOllamaModel,
-      generationTimeoutSeconds: _readBoundedInt(
-        json,
+          reader.optionalBaseUrl('comfyUiBaseUrl')?.text ??
+          defaultComfyUiBaseUrl,
+      ollamaModel: reader.optionalString('ollamaModel') ?? defaultOllamaModel,
+      generationTimeoutSeconds: reader.optionalInt(
         'generationTimeoutSeconds',
         minimum: minimumGenerationTimeoutSeconds,
         maximum: maximumGenerationTimeoutSeconds,
         fallback: defaultGenerationTimeoutSeconds,
       ),
-      maxGenerationAttempts: _readBoundedInt(
-        json,
+      maxGenerationAttempts: reader.optionalInt(
         'maxGenerationAttempts',
         minimum: 1,
         maximum: maximumGenerationAttempts,
         fallback: defaultMaxGenerationAttempts,
       ),
-      illustrationTimeoutSeconds: _readBoundedInt(
-        json,
+      illustrationTimeoutSeconds: reader.optionalInt(
         'illustrationTimeoutSeconds',
         minimum: minimumIllustrationTimeoutSeconds,
         maximum: maximumIllustrationTimeoutSeconds,
         fallback: defaultIllustrationTimeoutSeconds,
       ),
-      allowedWebOrigins: _readOriginList(json, 'allowedWebOrigins'),
-      illustration: _readIllustration(json),
+      allowedWebOrigins: _readOriginList(reader),
+      illustration: _readIllustration(reader),
     );
   }
 
   /// Reads and validates the optional `illustration` section.
-  static IllustrationSettings _readIllustration(Map<String, Object?> json) {
-    final value = json['illustration'];
-    if (value == null) {
+  static IllustrationSettings _readIllustration(JsonReader reader) {
+    final section = reader.section(
+      illustrationSectionPath,
+      expected: 'a JSON object',
+    );
+    if (section == null) {
       return IllustrationSettings.defaults;
     }
-    if (value is! Map<String, Object?>) {
-      throw const FormatException(
-        'Bridge config field "illustration" must be a JSON object.',
-      );
-    }
-    return IllustrationSettings.fromJson(value);
+    return IllustrationSettings.fromReader(section);
   }
 
   /// Reads and validates the optional list of extra allowed web origins.
-  static List<String> _readOriginList(Map<String, Object?> json, String key) {
-    final Object? value = json[key];
-    if (value == null) {
+  static List<String> _readOriginList(JsonReader reader) {
+    const key = 'allowedWebOrigins';
+    final entries = reader.optionalList(
+      key,
+      expected: 'a list of origin strings',
+    );
+    if (entries == null) {
       return const <String>[];
     }
-    if (value is! List<Object?>) {
-      throw FormatException('Field "$key" must be a list of origin strings.');
-    }
     final origins = <String>[];
-    for (final entry in value) {
+    for (final entry in entries) {
       if (entry is! String || entry.isEmpty || entry != entry.trim()) {
-        throw FormatException(
-          'Bridge config field "$key" must contain only exact origin '
-          'strings.',
-        );
+        reader.fail(key, 'must contain only exact origin strings.');
       }
       final origin = entry;
       final uri = Uri.tryParse(origin);
@@ -235,16 +260,18 @@ class BridgeConfig {
           uri.hasQuery ||
           uri.hasFragment ||
           !_hasExactOriginAuthority(origin, uri)) {
-        throw FormatException(
-          'Bridge config field "$key" entry "$origin" must be an exact '
-          'http(s) origin (scheme, host, and optional port only; no wildcard, '
-          'path, query, fragment, credentials, or trailing slash).',
+        reader.fail(
+          key,
+          'entry "$origin" must be an exact http(s) origin (scheme, host, '
+          'and optional port only; no wildcard, path, query, fragment, '
+          'credentials, or trailing slash).',
         );
       }
-      if (uri.scheme == 'http' && !_isPrivateOrLoopbackHost(uri.host)) {
-        throw FormatException(
-          'Bridge config field "$key" entry "$origin" must use https '
-          'because its host is not loopback or private/LAN.',
+      if (uri.scheme == 'http' && !isPrivateOrLoopbackHost(uri.host)) {
+        reader.fail(
+          key,
+          'entry "$origin" must use https because its host is not loopback '
+          'or private/LAN.',
         );
       }
       origins.add(origin);
@@ -252,14 +279,16 @@ class BridgeConfig {
     return List<String>.unmodifiable(origins);
   }
 
-  static String? _readBindAddress(Map<String, Object?> json, String key) {
-    final value = _readNonEmptyString(json, key);
+  static String? _readBindAddress(JsonReader reader) {
+    const key = 'bindAddress';
+    final value = reader.optionalString(key);
     if (value == null) return null;
-    if (!_isPrivateOrLoopbackHost(value)) {
-      throw FormatException(
-        'Bridge config field "$key" must be "localhost" or a loopback, '
-        'private/LAN, link-local, or Tailscale IP address; wildcard, public, '
-        'and other hostname addresses are refused.',
+    if (!isPrivateOrLoopbackHost(value)) {
+      reader.fail(
+        key,
+        'must be "localhost" or a loopback, private/LAN, link-local, or '
+        'Tailscale IP address; wildcard, public, and other hostname '
+        'addresses are refused.',
       );
     }
     return value;
@@ -276,31 +305,6 @@ class BridgeConfig {
     } on FormatException {
       return false;
     }
-  }
-
-  static bool _isPrivateOrLoopbackHost(String host) {
-    if (host.toLowerCase() == 'localhost') return true;
-    final address = InternetAddress.tryParse(host);
-    if (address == null) return false;
-    final bytes = address.rawAddress;
-    if (address.type == InternetAddressType.IPv4) {
-      return bytes[0] == 127 ||
-          bytes[0] == 10 ||
-          bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31 ||
-          bytes[0] == 192 && bytes[1] == 168 ||
-          bytes[0] == 169 && bytes[1] == 254 ||
-          bytes[0] == 100 && bytes[1] >= 64 && bytes[1] <= 127;
-    }
-    return _isIpv6Loopback(bytes) ||
-        (bytes[0] & 0xfe) == 0xfc ||
-        bytes[0] == 0xfe && (bytes[1] & 0xc0) == 0x80;
-  }
-
-  static bool _isIpv6Loopback(List<int> bytes) {
-    for (var index = 0; index < bytes.length - 1; index++) {
-      if (bytes[index] != 0) return false;
-    }
-    return bytes.last == 1;
   }
 
   /// Builds a fully-default configuration rooted at [workingDirectory].
@@ -337,68 +341,6 @@ class BridgeConfig {
       path = '$path$separator';
     }
     return '${path}iam_hero_library';
-  }
-
-  static String? _readNonEmptyString(Map<String, Object?> json, String key) {
-    final value = json[key];
-    if (value == null) {
-      return null;
-    }
-    if (value is! String || value.trim().isEmpty) {
-      throw FormatException(
-        'Bridge config field "$key" must be a non-empty string.',
-      );
-    }
-    return value.trim();
-  }
-
-  static int _readPort(Map<String, Object?> json) {
-    final value = json['port'];
-    if (value == null) {
-      return defaultPort;
-    }
-    if (value is! int || value < 1 || value > 65535) {
-      throw FormatException(
-        'Bridge config field "port" must be an integer between 1 and 65535.',
-      );
-    }
-    return value;
-  }
-
-  static int _readBoundedInt(
-    Map<String, Object?> json,
-    String key, {
-    required int minimum,
-    required int maximum,
-    required int fallback,
-  }) {
-    final value = json[key];
-    if (value == null) {
-      return fallback;
-    }
-    if (value is! int || value < minimum || value > maximum) {
-      throw FormatException(
-        'Bridge config field "$key" must be an integer between $minimum '
-        'and $maximum.',
-      );
-    }
-    return value;
-  }
-
-  static String? _readHttpUrl(Map<String, Object?> json, String key) {
-    final value = _readNonEmptyString(json, key);
-    if (value == null) {
-      return null;
-    }
-    final uri = Uri.tryParse(value);
-    if (uri == null ||
-        (uri.scheme != 'http' && uri.scheme != 'https') ||
-        !value.contains('://')) {
-      throw FormatException(
-        'Bridge config field "$key" must be an http(s) URL.',
-      );
-    }
-    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
 }
 

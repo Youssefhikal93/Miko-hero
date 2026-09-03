@@ -52,13 +52,21 @@ The bridge loads one JSON configuration file, resolved in this order:
 If the file does not exist it is created with defaults and its location is
 printed. All machine-specific values live in this file; nothing is hardcoded.
 
+**The whole file is strict.** Every key below is optional and falls back to
+its documented default, but a key that is not in the table is refused at
+startup with its own name in the message — the rule the `illustration` section
+has always followed, now applied to the top level too. A misspelled
+`ollamaModle` used to be dropped in silence, which meant every story ran on
+the default model with nothing anywhere saying so. If the bridge refuses to
+start after an upgrade, the message names the key to fix or delete.
+
 | Field           | Default                 | Meaning                                   |
 | --------------- | ----------------------- | ----------------------------------------- |
 | `bindAddress`   | `127.0.0.1`             | Interface the HTTP server binds to. Startup accepts only `localhost`, `127.0.0.0/8`, `::1`, private IPv4 (`10/8`, `172.16/12`, `192.168/16`), link-local (`169.254/16`, `fe80::/10`), private IPv6 (`fc00::/7`), or Tailscale (`100.64/10`). Wildcard, public, and other hostname addresses are refused. |
 | `port`          | `8765`                  | TCP port of the HTTP server               |
 | `libraryPath`   | `<cwd>/iam_hero_library`| Root folder of the master library         |
-| `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API          |
-| `comfyUiBaseUrl`| `http://127.0.0.1:8188` | Base URL of the local ComfyUI API         |
+| `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API. Must be an absolute `http(s)` URL; trailing slashes are ignored |
+| `comfyUiBaseUrl`| `http://127.0.0.1:8188` | Base URL of the local ComfyUI API. Same rule as `ollamaBaseUrl`   |
 | `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories. `gemma3:4b` is the floor, not a recommendation — see [`docs/STORY_QUALITY_UPGRADE.md`](../docs/STORY_QUALITY_UPGRADE.md) |
 | `generationTimeoutSeconds` | `900`        | Budget for **one** generation call (30–3600); a job makes two |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|

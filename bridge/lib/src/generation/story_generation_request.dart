@@ -1,3 +1,5 @@
+import 'package:iam_hero_bridge/src/common/json_reader.dart';
+
 /// Page counts the app may request, matching `StoryLength` on the device.
 const List<int> allowedStoryPageCounts = <int>[6, 8, 10];
 
@@ -134,6 +136,25 @@ class StoryRequestValidationException implements Exception {
   String toString() => 'StoryRequestValidationException($field)';
 }
 
+/// How a story generation body names its fields and refuses them.
+class _StoryRequestFailures extends JsonFieldFailures {
+  const _StoryRequestFailures();
+
+  @override
+  String describeField(String path) => 'Field "$path"';
+
+  @override
+  String describeContainer(String path) =>
+      path.isEmpty ? 'The request body' : 'Field "$path"';
+
+  @override
+  Object failure(String path, String message) =>
+      StoryRequestValidationException(path, message);
+}
+
+/// The vocabulary a `POST /stories/generate` body is refused in.
+const JsonFieldFailures storyRequestFailures = _StoryRequestFailures();
+
 /// Fully validated inputs for one story generation job.
 ///
 /// This is the bridge-side mirror of the app's `StoryRequest`: same hero
@@ -202,151 +223,69 @@ class StoryGenerationRequest {
   /// Throws a [StoryRequestValidationException] naming the first offending
   /// field; nothing is queued until every field is accepted.
   factory StoryGenerationRequest.fromJson(Map<String, Object?> json) {
-    final profileId = _requireText(json, 'profileId', maxLength: 64);
-    final heroName = _requireText(
-      json,
+    // Read in wire order, so a body with more than one problem always names
+    // the same field it named before this shared reader existed.
+    final reader = JsonReader.root(json, failures: storyRequestFailures);
+    final profileId = reader.requireString('profileId', maxLength: 64);
+    final heroName = reader.requireString(
       'heroName',
       maxLength: maximumHeroNameLength,
     );
-    final ageYears = _requireInt(
-      json,
+    final ageYears = reader.requireInt(
       'ageYears',
       minimum: minimumStoryAgeYears,
       maximum: maximumStoryAgeYears,
     );
-    final genderContext = StoryGenderContext.fromWireName(
-      _requireText(json, 'genderContext', maxLength: 20),
+    final gender = reader.namedChoice<StoryGenderContext>(
+      'genderContext',
+      resolve: StoryGenderContext.fromWireName,
+      expected: '"girl" or "boy"',
+      maxLength: 20,
     );
-    if (genderContext == null) {
-      throw const StoryRequestValidationException(
-        'genderContext',
-        'Field "genderContext" must be "girl" or "boy".',
-      );
-    }
-    final language = StoryLanguage.fromCode(
-      _requireText(json, 'languageCode', maxLength: 8),
+    final language = reader.namedChoice<StoryLanguage>(
+      'languageCode',
+      resolve: StoryLanguage.fromCode,
+      expected: 'one of ar, en, sv, so',
+      maxLength: 8,
     );
-    if (language == null) {
-      throw const StoryRequestValidationException(
-        'languageCode',
-        'Field "languageCode" must be one of ar, en, sv, so.',
-      );
-    }
-    final theme = _requireText(
-      json,
+    final theme = reader.requireString(
       'theme',
       maxLength: maximumStoryIdeaLength,
     );
-    final moral = _requireText(
-      json,
+    final moral = reader.requireString(
       'moral',
       maxLength: maximumStoryIdeaLength,
     );
-    final pageCount = _requireInt(json, 'pageCount', minimum: 1, maximum: 100);
+    final pageCount = reader.requireInt('pageCount', minimum: 1, maximum: 100);
     if (!allowedStoryPageCounts.contains(pageCount)) {
-      throw const StoryRequestValidationException(
-        'pageCount',
-        'Field "pageCount" must be 6, 8 or 10.',
-      );
-    }
-    final illustrationStyle = StoryIllustrationStyle.fromWireName(
-      _requireText(json, 'illustrationStyle', maxLength: 40),
-    );
-    if (illustrationStyle == null) {
-      throw const StoryRequestValidationException(
-        'illustrationStyle',
-        'Field "illustrationStyle" must be one of pictureBook, watercolor, '
-            'colorful3d.',
-      );
+      reader.fail('pageCount', 'must be 6, 8 or 10.');
     }
     return StoryGenerationRequest(
       profileId: profileId,
       heroName: heroName,
       ageYears: ageYears,
-      gender: genderContext,
+      gender: gender,
       language: language,
       theme: theme,
       moral: moral,
       pageCount: pageCount,
-      illustrationStyle: illustrationStyle,
-      favoriteTopics: _readOptionalText(
-        json,
+      illustrationStyle: reader.namedChoice<StoryIllustrationStyle>(
+        'illustrationStyle',
+        resolve: StoryIllustrationStyle.fromWireName,
+        expected: 'one of pictureBook, watercolor, colorful3d',
+        maxLength: 40,
+      ),
+      // Absent, null and blank all mean the same thing — the family filled
+      // nothing in — so none of them is an error. A present value of the wrong
+      // type or over the limit still is.
+      favoriteTopics: reader.optionalText(
         'favoriteTopics',
         maxLength: maximumPreferenceLength,
       ),
-      recurringWorld: _readOptionalText(
-        json,
+      recurringWorld: reader.optionalText(
         'recurringWorld',
         maxLength: maximumPreferenceLength,
       ),
     );
-  }
-
-  /// Reads one optional preference field, treating absence as "not set".
-  ///
-  /// Absent, null and blank all mean the same thing — the family filled
-  /// nothing in — so none of them is an error. A present value of the wrong
-  /// type or over the limit still is.
-  static String _readOptionalText(
-    Map<String, Object?> json,
-    String field, {
-    required int maxLength,
-  }) {
-    final value = json[field];
-    if (value == null) {
-      return '';
-    }
-    if (value is! String) {
-      throw StoryRequestValidationException(
-        field,
-        'Field "$field" must be a string when present.',
-      );
-    }
-    final trimmed = value.trim();
-    if (trimmed.length > maxLength) {
-      throw StoryRequestValidationException(
-        field,
-        'Field "$field" exceeds the $maxLength character limit.',
-      );
-    }
-    return trimmed;
-  }
-
-  static String _requireText(
-    Map<String, Object?> json,
-    String field, {
-    required int maxLength,
-  }) {
-    final value = json[field];
-    if (value is! String || value.trim().isEmpty) {
-      throw StoryRequestValidationException(
-        field,
-        'Field "$field" is required and must be a non-empty string.',
-      );
-    }
-    final trimmed = value.trim();
-    if (trimmed.length > maxLength) {
-      throw StoryRequestValidationException(
-        field,
-        'Field "$field" exceeds the $maxLength character limit.',
-      );
-    }
-    return trimmed;
-  }
-
-  static int _requireInt(
-    Map<String, Object?> json,
-    String field, {
-    required int minimum,
-    required int maximum,
-  }) {
-    final value = json[field];
-    if (value is! int || value < minimum || value > maximum) {
-      throw StoryRequestValidationException(
-        field,
-        'Field "$field" must be an integer between $minimum and $maximum.',
-      );
-    }
-    return value;
   }
 }

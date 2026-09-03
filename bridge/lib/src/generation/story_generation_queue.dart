@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:iam_hero_bridge/src/common/base_url.dart';
 import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
@@ -389,7 +390,7 @@ class StoryGenerationQueue {
     required Map<String, Object?> format,
   }) async {
     final call = OllamaGenerateRequest(
-      baseUrl: _config.ollamaBaseUrl,
+      baseUrl: BaseUrl.parse(_config.ollamaBaseUrl),
       model: _config.ollamaModel,
       prompt: prompt,
       format: format,
@@ -519,7 +520,7 @@ class _OllamaTenant implements GpuTenant {
     try {
       await _client.unload(
         OllamaUnloadRequest(
-          baseUrl: _config.ollamaBaseUrl,
+          baseUrl: BaseUrl.parse(_config.ollamaBaseUrl),
           model: _config.ollamaModel,
           timeout: _unloadTimeout,
         ),

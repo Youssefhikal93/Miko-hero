@@ -3,8 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:iam_hero_bridge/src/common/base_url.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
+
+/// Path of the one Ollama endpoint the bridge calls, for generating and for
+/// unloading alike.
+const String ollamaGeneratePath = '/api/generate';
 
 /// Largest Ollama answer the bridge is willing to buffer (4 MB).
 ///
@@ -24,7 +29,7 @@ class OllamaGenerateRequest {
   });
 
   /// Base URL of the local Ollama API, e.g. `http://127.0.0.1:11434`.
-  final String baseUrl;
+  final BaseUrl baseUrl;
 
   /// Model tag to generate with, e.g. `gemma3:4b`.
   final String model;
@@ -39,14 +44,7 @@ class OllamaGenerateRequest {
   final Duration timeout;
 
   /// The `/api/generate` endpoint derived from [baseUrl].
-  Uri get endpoint {
-    final parsed = Uri.parse(baseUrl);
-    var path = parsed.path;
-    while (path.endsWith('/')) {
-      path = path.substring(0, path.length - 1);
-    }
-    return parsed.replace(path: '$path/api/generate');
-  }
+  Uri get endpoint => baseUrl.resolve(ollamaGeneratePath);
 
   /// The request body Ollama expects.
   ///
@@ -85,7 +83,7 @@ class OllamaUnloadRequest {
   });
 
   /// Base URL of the local Ollama API, e.g. `http://127.0.0.1:11434`.
-  final String baseUrl;
+  final BaseUrl baseUrl;
 
   /// Model tag to unload, e.g. `gemma3:4b`.
   final String model;
@@ -94,14 +92,7 @@ class OllamaUnloadRequest {
   final Duration timeout;
 
   /// The `/api/generate` endpoint derived from [baseUrl].
-  Uri get endpoint {
-    final parsed = Uri.parse(baseUrl);
-    var path = parsed.path;
-    while (path.endsWith('/')) {
-      path = path.substring(0, path.length - 1);
-    }
-    return parsed.replace(path: '$path/api/generate');
-  }
+  Uri get endpoint => baseUrl.resolve(ollamaGeneratePath);
 
   /// The request body Ollama expects for an explicit unload.
   Map<String, Object?> toJson() {

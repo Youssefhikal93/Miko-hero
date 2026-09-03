@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:iam_hero_bridge/src/common/json_reader.dart';
 import 'package:shelf/shelf.dart';
 
 /// Machine-readable error codes used in typed JSON error responses.
@@ -83,6 +84,28 @@ class ApiError implements Exception {
   @override
   String toString() => 'ApiError($status, $code)';
 }
+
+/// How a JSON request body names its fields and refuses them.
+///
+/// One bad field is a `400 invalid_field` with the field named and its value
+/// left out, which is the same envelope every other handler answers with.
+class _ApiFieldFailures extends JsonFieldFailures {
+  const _ApiFieldFailures();
+
+  @override
+  String describeField(String path) => 'Field "$path"';
+
+  @override
+  String describeContainer(String path) =>
+      path.isEmpty ? 'The request body' : 'Field "$path"';
+
+  @override
+  Object failure(String path, String message) =>
+      ApiError(400, ApiErrorCode.invalidField, message);
+}
+
+/// The vocabulary an HTTP request body's fields are refused in.
+const JsonFieldFailures apiFieldFailures = _ApiFieldFailures();
 
 /// Serializes [body] as one JSON response with `application/json`.
 Response jsonResponse(int status, Map<String, Object?> body) {

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:iam_hero_bridge/src/common/base_url.dart';
+
 /// Largest ComfyUI JSON answer the bridge is willing to buffer (4 MB).
 ///
 /// A history entry lists file names, not pixels; anything past this is a
@@ -25,23 +27,14 @@ class ComfyUiEndpoint {
   const ComfyUiEndpoint({required this.baseUrl, required this.timeout});
 
   /// Base URL of the local ComfyUI API, e.g. `http://127.0.0.1:8188`.
-  final String baseUrl;
+  final BaseUrl baseUrl;
 
   /// Wall-clock budget for one call.
   final Duration timeout;
 
   /// Resolves [path] (and optional [query]) against [baseUrl].
-  Uri resolve(String path, [Map<String, String>? query]) {
-    final parsed = Uri.parse(baseUrl);
-    var base = parsed.path;
-    while (base.endsWith('/')) {
-      base = base.substring(0, base.length - 1);
-    }
-    return parsed.replace(
-      path: '$base$path',
-      queryParameters: query == null || query.isEmpty ? null : query,
-    );
-  }
+  Uri resolve(String path, [Map<String, String>? query]) =>
+      baseUrl.resolve(path, query);
 }
 
 /// One image ComfyUI saved, as named in a history entry.

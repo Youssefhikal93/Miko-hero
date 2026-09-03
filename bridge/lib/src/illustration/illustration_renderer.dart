@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:iam_hero_bridge/src/common/atomic_files.dart';
+import 'package:iam_hero_bridge/src/common/base_url.dart';
 import 'package:iam_hero_bridge/src/common/image_bytes.dart';
 import 'package:iam_hero_bridge/src/common/paths.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
@@ -55,7 +56,7 @@ class IllustrationRenderer {
 
   /// Endpoint used for short metadata calls.
   ComfyUiEndpoint get _control => ComfyUiEndpoint(
-    baseUrl: _config.comfyUiBaseUrl,
+    baseUrl: BaseUrl.parse(_config.comfyUiBaseUrl),
     timeout: _config.illustrationTimeout < illustrationControlTimeout
         ? _config.illustrationTimeout
         : illustrationControlTimeout,
@@ -63,7 +64,7 @@ class IllustrationRenderer {
 
   /// Endpoint used for the two calls that move bytes.
   ComfyUiEndpoint get _transfer => ComfyUiEndpoint(
-    baseUrl: _config.comfyUiBaseUrl,
+    baseUrl: BaseUrl.parse(_config.comfyUiBaseUrl),
     timeout: _config.illustrationTimeout,
   );
 
