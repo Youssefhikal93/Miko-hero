@@ -7,7 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/backup/story_share_codec.dart';
-import 'package:miko_hero/core/backup/story_share_file_service.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/shared_story.dart';
 import 'package:miko_hero/core/models/story_models.dart';
@@ -15,6 +14,8 @@ import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/library/story_share_controller.dart';
 
 import '../../support/seeded_device.dart';
+
+import '../../support/fake_encrypted_file_picker.dart';
 
 /// Verifies that one story can travel between devices without duplicates.
 void main() {
@@ -65,18 +66,24 @@ void main() {
   test(
     'an exported story file carries the hero name of the local profile',
     () async {
+      final picker = FakeEncryptedFilePicker();
       final container = await _familyContainer(
         stories: <StoryBook>[_story(profileId: 'miko')],
+        picker: picker,
       );
       final controller = container.read(storyShareControllerProvider);
       final codec = StoryShareCodec(deriver: _fakeBackupKey);
 
-      final bytes = await controller.createStoryFile(
+      final saved = await controller.exportStory(
         'story-moon',
         'family-safe-password',
+        dialogTitle: 'Save story file',
       );
+      final bytes = picker.savedBytes!;
       final decoded = await codec.decode(bytes, 'family-safe-password');
 
+      expect(saved, isTrue);
+      expect(picker.savedFileName, 'Moon Garden.iamhero-story');
       expect(decoded.heroName, 'Miko');
       expect(decoded.story.id, 'story-moon');
       expect(utf8.decode(bytes), isNot(contains('photoBase64')));
@@ -96,7 +103,7 @@ void main() {
       'family-safe-password',
     );
 
-    await _pumpLibrary(tester, codec, _FakeStoryFiles(bytes));
+    await _pumpLibrary(tester, codec, _pickerHolding(bytes));
 
     await tester.tap(find.text('Import story file'));
     await tester.pumpAndSettle();
@@ -146,7 +153,7 @@ void main() {
     await _pumpLibrary(
       tester,
       StoryShareCodec(deriver: _fakeBackupKey),
-      _FakeStoryFiles(backup),
+      _pickerHolding(backup),
     );
 
     await tester.tap(find.text('Import story file'));
@@ -167,14 +174,14 @@ void main() {
 Future<void> _pumpLibrary(
   WidgetTester tester,
   StoryShareCodec codec,
-  _FakeStoryFiles files,
+  FakeEncryptedFilePicker picker,
 ) {
   return pumpApp(
     tester,
     route: '/library',
     overrides: [
       storyShareCodecProvider.overrideWithValue(codec),
-      storyShareFileServiceProvider.overrideWithValue(files),
+      encryptedFilePickerProvider.overrideWithValue(picker),
     ],
   );
 }
@@ -191,9 +198,18 @@ Future<void> _storeFamily({List<StoryBook> stories = const <StoryBook>[]}) {
   );
 }
 
+/// The platform picker holding one prepared file, as if a parent chose it.
+FakeEncryptedFilePicker _pickerHolding(Uint8List bytes) {
+  return FakeEncryptedFilePicker(
+    picked: bytes,
+    pickedName: 'moon-garden.iamhero-story',
+  );
+}
+
 /// Opens a container over real persisted state with two saved child profiles.
 Future<ProviderContainer> _familyContainer({
   List<StoryBook> stories = const <StoryBook>[],
+  FakeEncryptedFilePicker? picker,
 }) async {
   await _storeFamily(stories: stories);
   final container = ProviderContainer(
@@ -201,40 +217,12 @@ Future<ProviderContainer> _familyContainer({
       storyShareCodecProvider.overrideWithValue(
         StoryShareCodec(deriver: _fakeBackupKey),
       ),
+      if (picker != null) encryptedFilePickerProvider.overrideWithValue(picker),
     ],
   );
   addTearDown(container.dispose);
   await container.read(appControllerProvider.future);
   return container;
-}
-
-/// Platform file boundary replaced by bytes the test already prepared.
-class _FakeStoryFiles extends StoryShareFileService {
-  /// Creates a picker that always returns the supplied encrypted container.
-  _FakeStoryFiles(this.bytes);
-
-  /// Bytes handed to the import flow as if a parent had picked a file.
-  final Uint8List bytes;
-
-  /// Bytes the export flow asked to save, if any.
-  Uint8List? savedBytes;
-
-  @override
-  /// Returns the prepared file without opening a platform dialog.
-  Future<PickedStoryFile?> pickStory() async {
-    return PickedStoryFile(name: 'moon-garden.iamhero-story', bytes: bytes);
-  }
-
-  @override
-  /// Records the export instead of writing to the device.
-  Future<bool> saveStory(
-    Uint8List saved,
-    String storyTitle,
-    String dialogTitle,
-  ) async {
-    savedBytes = saved;
-    return true;
-  }
 }
 
 /// Builds one approved two-page book owned by [profileId].

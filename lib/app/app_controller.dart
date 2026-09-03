@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
+import 'package:miko_hero/core/files/encrypted_file_picker.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:miko_hero/core/generation/local_ai_story_generator.dart';
 import 'package:miko_hero/core/generation/story_generator.dart';
@@ -25,6 +26,14 @@ final bridgeCredentialStorageProvider = Provider<BridgeCredentialStorage>((
 ) {
   if (kIsWeb) return const PreferencesBridgeCredentialStorage();
   return const SecureBridgeCredentialStorage();
+});
+
+/// Supplies the platform save and open dialogs every file flow shares.
+///
+/// One picker for backups, story files, and rendered PDFs, so a test replaces
+/// exactly one boundary to drive any of those flows without a device dialog.
+final encryptedFilePickerProvider = Provider<EncryptedFilePicker>((ref) {
+  return const PlatformEncryptedFilePicker();
 });
 
 /// Opens the platform stores once per provider container.

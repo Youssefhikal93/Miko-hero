@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:miko_hero/core/backup/backup_file_service.dart';
-import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/shared_story.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/library/story_share_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/encrypted_file_messages.dart';
 import 'package:miko_hero/shared/encryption_password_dialog.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
 
@@ -34,21 +33,21 @@ Future<void> exportStoryFile(
     confirmPassword: true,
   );
   if (password == null || !context.mounted) return;
-  final controller = ref.read(storyShareControllerProvider);
   try {
-    final bytes = await controller.createStoryFile(story.id, password);
-    final saved = await controller.saveStoryFile(
-      bytes,
-      story.content.title,
-      text.saveStoryFileDialogTitle,
-    );
+    final saved = await ref
+        .read(storyShareControllerProvider)
+        .exportStory(
+          story.id,
+          password,
+          dialogTitle: text.saveStoryFileDialogTitle,
+        );
     if (!context.mounted) return;
     _showMessage(
       context,
       saved ? text.storyFileSaved : text.storyFileSaveCancelled,
     );
   } on Exception catch (error) {
-    if (context.mounted) _showMessage(context, _errorMessage(text, error));
+    if (context.mounted) _showMessage(context, storyFileMessage(text, error));
   }
 }
 
@@ -69,21 +68,22 @@ Future<void> importStoryFile(
   if (!await requestParentAccess(context, ref) || !context.mounted) return;
   final controller = ref.read(storyShareControllerProvider);
   try {
-    final picked = await controller.pickStoryFile();
-    if (picked == null || !context.mounted) return;
-    final password = await showEncryptionPasswordDialog(
-      context,
-      copy: _storyPasswordCopy(
-        text,
-        title: text.enterStoryPasswordTitle,
-        requirements: text.backupPasswordRequirements,
-      ),
-      confirmPassword: false,
-      fileContext: text.restoreFileName(picked.name),
+    final shared = await controller.openStoryFile(
+      askPassword: (fileName) async {
+        if (!context.mounted) return null;
+        return showEncryptionPasswordDialog(
+          context,
+          copy: _storyPasswordCopy(
+            text,
+            title: text.enterStoryPasswordTitle,
+            requirements: text.backupPasswordRequirements,
+          ),
+          confirmPassword: false,
+          fileContext: text.restoreFileName(fileName),
+        );
+      },
     );
-    if (password == null || !context.mounted) return;
-    final shared = await controller.decodeStoryFile(picked.bytes, password);
-    if (!context.mounted) return;
+    if (shared == null || !context.mounted) return;
     final profileId = await showDialog<String>(
       context: context,
       builder: (context) => _ImportStoryDialog(
@@ -97,7 +97,7 @@ Future<void> importStoryFile(
     if (!context.mounted) return;
     _showMessage(context, text.storyImported(shared.story.content.title));
   } on Exception catch (error) {
-    if (context.mounted) _showMessage(context, _errorMessage(text, error));
+    if (context.mounted) _showMessage(context, storyFileMessage(text, error));
   }
 }
 
@@ -203,17 +203,4 @@ void _showMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(message)));
-}
-
-/// Maps typed story-file failures to safe localized messages.
-String _errorMessage(AppLocalizations text, Object error) {
-  return switch (error) {
-    BackupAuthenticationException() => text.storyFileWrongPassword,
-    BackupFormatException() => text.storyFileInvalid,
-    BackupTooLargeException() => text.storyFileTooLarge,
-    BackupFileReadException() => text.storyFileReadFailed,
-    UnsupportedSchemaVersionException() => text.storyFileNewerVersion,
-    DuplicateStoryException() => text.storyAlreadyOnDevice,
-    _ => text.storyFileFailed,
-  };
 }

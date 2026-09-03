@@ -11,6 +11,9 @@ const maximumBackupBytes = 64 * 1024 * 1024;
 /// Minimum password length required when creating a backup.
 const minimumBackupPasswordLength = 8;
 
+/// File extension used for portable encrypted family backups.
+const backupFileExtension = 'iamhero';
+
 /// Envelope format name identifying a complete family backup file.
 const backupEnvelopeFormat = 'iam-hero-backup';
 

@@ -3,11 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:miko_hero/core/backup/backup_file_service.dart';
-import 'package:miko_hero/core/backup/encrypted_backup_codec.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/features/settings/backup_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/encrypted_file_messages.dart';
 import 'package:miko_hero/shared/encryption_password_dialog.dart';
 
 /// Encrypted portable backup and restore controls for parent settings.
@@ -90,7 +89,7 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
       final saved = await _showPreparedBackup(bytes);
       if (saved == true && mounted) _showMessage(text.backupSaved);
     } on Exception catch (error) {
-      if (mounted) _showMessage(_backupErrorMessage(text, error));
+      if (mounted) _showMessage(backupFileMessage(text, error));
     } finally {
       if (mounted) _setBusy(false);
     }
@@ -102,19 +101,22 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
     _setBusy(true);
     try {
       final controller = ref.read(backupControllerProvider);
-      final picked = await controller.pickBackup();
-      if (picked == null || !mounted) return;
-      _setBusy(false);
-      final password = await showEncryptionPasswordDialog(
-        context,
-        copy: _passwordCopy(text, text.enterBackupPasswordTitle),
-        confirmPassword: false,
-        fileContext: text.restoreFileName(picked.name),
+      final restored = await controller.openBackup(
+        askPassword: (fileName) async {
+          if (!mounted) return null;
+          // The parent is reading a dialog, not waiting on this device.
+          _setBusy(false);
+          final password = await showEncryptionPasswordDialog(
+            context,
+            copy: _passwordCopy(text, text.enterBackupPasswordTitle),
+            confirmPassword: false,
+            fileContext: text.restoreFileName(fileName),
+          );
+          if (password != null && mounted) _setBusy(true);
+          return password;
+        },
       );
-      if (password == null || !mounted) return;
-      _setBusy(true);
-      final restored = await controller.decodeBackup(picked.bytes, password);
-      if (!mounted) return;
+      if (restored == null || !mounted) return;
       _setBusy(false);
       final confirmed = await _confirmRestore(restored);
       if (confirmed != true || !mounted) return;
@@ -122,7 +124,7 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
       await controller.restore(restored);
       if (mounted) _showMessage(text.backupRestored);
     } on Exception catch (error) {
-      if (mounted) _showMessage(_backupErrorMessage(text, error));
+      if (mounted) _showMessage(backupFileMessage(text, error));
     } finally {
       if (mounted) _setBusy(false);
     }
@@ -151,7 +153,7 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
               } on Exception catch (error) {
                 if (!dialogContext.mounted) return;
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(_backupErrorMessage(text, error))),
+                  SnackBar(content: Text(backupFileMessage(text, error))),
                 );
               }
             },
@@ -214,16 +216,4 @@ EncryptionPasswordCopy _passwordCopy(AppLocalizations text, String title) {
     cancel: text.cancel,
     confirmAction: text.continueAction,
   );
-}
-
-/// Maps typed backup failures to safe localized messages.
-String _backupErrorMessage(AppLocalizations text, Object error) {
-  return switch (error) {
-    BackupAuthenticationException() => text.backupWrongPassword,
-    BackupFormatException() => text.backupInvalid,
-    BackupTooLargeException() => text.backupTooLarge,
-    BackupFileReadException() => text.backupFileReadFailed,
-    UnsupportedSchemaVersionException() => text.backupNewerVersion,
-    _ => text.backupFailed,
-  };
 }
