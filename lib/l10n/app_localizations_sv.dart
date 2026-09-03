@@ -283,6 +283,9 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get readToMe => 'Läs för mig';
+
+  @override
   String get playNarration => 'Spela berättarröst';
 
   @override

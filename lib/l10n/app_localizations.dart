@@ -618,6 +618,12 @@ abstract class AppLocalizations {
   /// **'Page {current} of {total}'**
   String pageProgress(int current, int total);
 
+  /// No description provided for @readToMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Read to me'**
+  String get readToMe;
+
   /// No description provided for @playNarration.
   ///
   /// In en, this message translates to:

@@ -379,7 +379,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
 
     expect(find.text('Miko hero'), findsOneWidget);

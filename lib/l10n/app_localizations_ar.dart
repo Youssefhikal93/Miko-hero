@@ -278,6 +278,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get readToMe => 'اقرأ لي';
+
+  @override
   String get playNarration => 'تشغيل السرد';
 
   @override

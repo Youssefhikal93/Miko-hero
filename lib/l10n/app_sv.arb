@@ -86,6 +86,7 @@
   "previousPage": "Föregående",
   "nextPage": "Nästa",
   "pageProgress": "Sida {current} av {total}",
+  "readToMe": "Läs för mig",
   "playNarration": "Spela berättarröst",
   "pauseNarration": "Pausa berättarröst",
   "resumeNarration": "Fortsätt berättarröst",
