@@ -15,7 +15,11 @@ the source tree lives in [Codebase map](docs/CODEBASE.md).
 
 ## Current features
 
-- Android, iOS, and web Flutter targets
+- Android, iOS, and web Flutter targets, with app icons and splash screens for
+  all three generated from one brand mark
+- Phone-first design: a night palette with candle accents, the Outfit interface
+  face, Newsreader serif for Latin story prose, a Home mosaic of the newest
+  stories, "The shelf" library with per-child chips, and an icon-only bottom bar
 - Application identifier `com.youssefhikal.mikohero`
 - English, Arabic, Swedish, and Somali application interfaces
 - Story text in the same four languages
@@ -72,9 +76,11 @@ the source tree lives in [Codebase map](docs/CODEBASE.md).
 Girl/Boy choice, theme color, kingdom decoration, reading comfort and finished-story
 badges, the active profile, base64-encoded reference photos, and story JSON through
 `shared_preferences`; downloaded page illustrations live in files (or IndexedDB
-on the web). The app's only network client talks to the family's own PC bridge
-on the home network: the child's reference photo travels only there, and no
-profile or story content is ever sent to an external service.
+on the web). The app's only network client talks to the family's own PC bridge,
+on the home network or, when the owner publishes it with Tailscale Funnel over
+HTTPS, from anywhere: the child's reference photo travels only there, and no
+profile or story content is ever sent to an external service. Remote setup and
+its accepted limits are in [Remote family access](docs/REMOTE_FAMILY_ACCESS.md).
 
 Local app storage is not an encrypted vault. It relies on the operating system
 and device account for access control. The optional parent PIN is an app-level
@@ -224,9 +230,14 @@ release keystore before any store distribution.
   speech engines insert a short gap between sentences, and resuming after a
   pause repeats the paused sentence from its beginning rather than relying on
   platform pause support.
-- Library sync requires the PC bridge to be running and reachable on the home
-  network; profiles themselves move between devices via the encrypted backup
-  or a single encrypted story file, each with its own password.
+- Library sync and story generation require the PC bridge to be running and
+  reachable, on the home network or through the owner's Tailscale Funnel;
+  profiles themselves move between devices via the encrypted backup or a
+  single encrypted story file, each with its own password.
+- Every paired device sees every profile and story on the PC. A per-family
+  login is planned separately.
+- The Arabic, Swedish, and Somali interface strings added with the redesign
+  have not yet been read by a native speaker.
 - The easy-reading font covers Latin script only. Arabic story prose keeps the
   interface font, and PDF export always uses the bundled Noto fonts regardless of
   the setting.
@@ -249,15 +260,18 @@ Every push to `main` runs the GitHub Actions workflow in
    `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`. Without them the deploy is
    skipped and the workflow still verifies the push.
 
-So publishing an update is exactly one command:
+`dev` is the trunk: every change lands there through a pull request, and
+`main` is only ever moved by a release pull request from `dev` that the owner
+merges. That merge is the deploy.
 
 ```
-git push origin main
+gh pr create --base main --head dev --title "Release: ..."
 ```
 
 Privacy note: the deployed site is static files only. Profiles, photos,
 stories, and pictures live in each browser's local storage and IndexedDB;
-nothing is uploaded to the hosting service. The PC bridge stays on the private
-home network — a hosted page can reach it only on the PC itself (`localhost`
-is exempt from mixed-content rules); phones on the LAN use the app served from
-the bridge's own network instead.
+nothing is uploaded to the hosting service. The PC bridge binds to loopback
+only; the hosted page reaches it either on the PC itself or through the
+owner's Tailscale Funnel, which terminates HTTPS and forwards to that loopback
+port. The bridge accepts browser calls only from the exact origins listed in
+its configuration, and every request beyond pairing needs a device token.

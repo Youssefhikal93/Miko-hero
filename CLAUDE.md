@@ -24,12 +24,11 @@ Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/
 from `dev`, commit to `dev`, push `dev`. Merging `dev` into `main` is the
 owner's decision, tracked as its own ticket.
 
-## Current effort
+## Working tickets
 
-Three upgrades are in flight, driven by the wayfinder map in **issue #3**
-(illustration quality, story quality, remote family access). Read the map
-before picking up work; it holds the destination, the constraints, and what
-is deliberately out of scope.
+The September 2026 effort (illustration quality, story quality, remote family
+access, and the phone redesign) shipped; its map was **issue #3** and its
+decisions are recorded there. New work starts as a new issue.
 
 Every ticket is labelled with the machine it runs on:
 
@@ -46,8 +45,16 @@ To work a ticket: assign it to yourself first — that assignment *is* the
 claim, and it stops a second session duplicating you. Then follow the work
 order the ticket points at, comment the outcome on the ticket, and close it.
 
-The three work orders are self-contained: `docs/ILLUSTRATION_QUALITY_UPGRADE.md`,
-`docs/STORY_QUALITY_UPGRADE.md`, `docs/REMOTE_FAMILY_ACCESS.md`.
+The three completed work orders stay as the record of what runs on the AI PC:
+`docs/ILLUSTRATION_QUALITY_UPGRADE.md`, `docs/STORY_QUALITY_UPGRADE.md`,
+`docs/REMOTE_FAMILY_ACCESS.md`. Keep `docs/CODEBASE.md` current whenever a
+file is added, removed, or changes responsibility.
+
+## AI PC resources
+
+Ollama and ComfyUI share one 4 GB GPU with everything else on the PC. Generate
+a real story or picture only when a change needs it, one run per change, and
+unload the model (`ollama stop <model>`) when you are done.
 
 ## Gate order
 
