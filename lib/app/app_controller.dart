@@ -9,13 +9,23 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/device_narration_service.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
+import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 
-/// Opens the platform preference store once per provider container.
+/// Supplies protected storage for the bridge's bearer credential.
+final bridgeCredentialStorageProvider = Provider<BridgeCredentialStorage>((
+  ref,
+) {
+  return const SecureBridgeCredentialStorage();
+});
+
+/// Opens the platform stores once per provider container.
 final localRepositoryProvider = FutureProvider<LocalRepository>((ref) {
-  return LocalRepository.open();
+  return LocalRepository.open(
+    bridgeCredentialStorage: ref.watch(bridgeCredentialStorageProvider),
+  );
 });
 
 /// Supplies how often a job running on the PC is polled.
