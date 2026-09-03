@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
+import 'package:iam_hero_bridge/src/generation/language_purity.dart';
+import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 
 /// Longest accepted outline title.
 const int maximumOutlineTitleLength = 200;
@@ -97,8 +99,8 @@ Map<String, Object?> storyOutlineResponseSchema(int pageCount) {
 /// Validates one outline answer against every structural rule.
 ///
 /// Rules: valid JSON object, non-empty title, non-empty one-line hero
-/// appearance, exactly [expectedPageCount] beats, beat numbers running 1..N in
-/// order, and a non-empty summary on every beat. Any violation raises a
+/// appearance written in Latin script, exactly [expectedPageCount] beats, beat
+/// numbers running 1..N in order, and a non-empty summary on every beat. Any violation raises a
 /// [GenerationException] with [GenerationFailureCode.invalidModelOutput], so a
 /// bad plan costs a retry instead of producing a bad book.
 StoryOutline parseStoryOutline(
@@ -130,6 +132,20 @@ StoryOutline parseStoryOutline(
     field: 'the hero appearance line',
     maxLength: maximumHeroAppearanceLength,
   );
+  // The appearance line is consumed only by the image model, which reads
+  // Latin letters. Written in the story's own script — which happens for
+  // Arabic books — it becomes noise in every page's scene and the pictures
+  // lose the mood the text describes. Refusing it here costs one retry.
+  final appearanceScript = checkLanguagePurity(
+    language: StoryLanguage.english,
+    texts: <String>[heroAppearance],
+  );
+  if (!appearanceScript.isPure) {
+    throw const GenerationException(
+      GenerationFailureCode.invalidModelOutput,
+      'The hero appearance line must be written in English.',
+    );
+  }
   final Object? rawBeats = decoded['beats'];
   if (rawBeats is! List) {
     throw const GenerationException(
