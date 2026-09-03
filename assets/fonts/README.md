@@ -2,6 +2,31 @@
 
 Every bundled font is distributed under the SIL Open Font License 1.1.
 
+## Interface typeface
+
+`Outfit-Variable.ttf` is the typeface the application chrome speaks in:
+headings, labels, buttons, chips, and navigation, on every platform. It is
+bundled, never downloaded at runtime, and no font package is used.
+
+- Source: [`google/fonts`](https://github.com/google/fonts), file
+  `ofl/outfit/Outfit[wght].ttf`, upstream
+  [`Outfitio/Outfit-Fonts`](https://github.com/Outfitio/Outfit-Fonts).
+- Renamed on the way in only because Flutter asset paths and square brackets
+  do not mix. It is the unmodified upstream variable font.
+- License: `OFL-Outfit.txt` (copyright 2021 The Outfit Project Authors).
+- One `wght` axis, 100–900, whose **default instance is 100 (Thin)**. The
+  shared theme therefore pins the axis with `fontVariations` on every style it
+  builds instead of relying on `fontWeight` alone; a style that only asked for
+  a weight would render hairline-thin.
+- Latin only: it has no Arabic script. The interface text theme falls back to
+  `NotoNaskhArabic` for the Arabic locale, decided in one place —
+  `interfaceFontFamilyFor` in `lib/app/app_theme.dart` — following the same
+  script rule story prose already uses for the easy-reading font.
+
+`NotoNaskhArabic-Regular.ttf` therefore has two jobs: the Arabic body face of
+an exported book, and the Arabic interface face. Only the regular weight is
+bundled, so Arabic chrome carries less weight contrast than Latin chrome does.
+
 ## Offline PDF export
 
 The app bundles `NotoSans-Regular.ttf` and `NotoNaskhArabic-Regular.ttf` only

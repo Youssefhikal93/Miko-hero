@@ -40,12 +40,13 @@ class _IamHeroAppState extends ConsumerState<IamHeroApp> {
   Widget build(BuildContext context) {
     final appState = ref.watch(appControllerProvider);
     final activeProfile = appState.value?.activeProfile;
+    final locale = appState.value?.locale;
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Iam - hero',
-      theme: AppTheme.dark(activeProfile),
+      theme: AppTheme.dark(activeProfile, locale: locale),
       routerConfig: appRouter,
-      locale: appState.value?.locale,
+      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
         AppLocalizations.delegate,

@@ -49,31 +49,28 @@ class ScreenLayout extends StatelessWidget {
   static const _ambientGradient = RadialGradient(
     center: Alignment(0.8, -0.9),
     radius: 1.2,
-    colors: <Color>[Color(0x222F2340), AppTheme.ink],
+    colors: <Color>[Color(0x222F2340), AppTheme.night],
   );
 }
 
-/// Reusable card with warm gradient reserved for hero-level content.
+/// Reusable tile reserved for hero-level content.
 class AccentPanel extends StatelessWidget {
   /// Creates a highlighted panel around the supplied content.
   const AccentPanel({required this.child, super.key});
 
-  /// Content displayed above the gradient treatment.
+  /// Content displayed on the tile surface.
   final Widget child;
 
   @override
-  /// Renders a bordered gradient that remains distinct in dark mode.
+  /// Renders a flat tile ringed by the active child's accent.
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF302314), Color(0xFF161925)],
-        ),
+        color: AppTheme.tile,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFF5A3D1C)),
+        border: Border.all(color: accent.withValues(alpha: 0.55)),
       ),
       child: child,
     );
@@ -104,7 +101,7 @@ class SectionHeading extends StatelessWidget {
             subtitle!,
             style: Theme.of(
               context,
-            ).textTheme.bodyLarge?.copyWith(color: const Color(0xFFB3B7C5)),
+            ).textTheme.bodyLarge?.copyWith(color: AppTheme.muted),
           ),
         ],
       ],

@@ -46,7 +46,7 @@ class StoryCard extends StatelessWidget {
                     DateFormat.yMMMd(
                       Localizations.localeOf(context).toString(),
                     ).format(story.createdAt.toLocal()),
-                    style: const TextStyle(color: Color(0xFFA7ABBA)),
+                    style: const TextStyle(color: AppTheme.muted),
                   ),
                   const SizedBox(height: 14),
                   _actions(text),

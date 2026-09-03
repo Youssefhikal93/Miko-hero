@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
 /// Responsive navigation frame retained around every application route.
@@ -213,8 +214,8 @@ class _DesktopShell extends StatelessWidget {
           Container(
             width: 270,
             decoration: const BoxDecoration(
-              color: Color(0xFF0F121A),
-              border: Border(right: BorderSide(color: Color(0xFF262A37))),
+              color: AppTheme.sunken,
+              border: Border(right: BorderSide(color: AppTheme.hairline)),
             ),
             child: SafeArea(
               child: Column(
