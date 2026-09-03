@@ -482,6 +482,7 @@
   "localAiWriting": "The PC is writing the story…",
   "localAiChecking": "Checking the finished pages…",
   "bridgeUnreachable": "The PC did not answer. Check that the bridge is running and that the address is correct.",
+  "bridgeBlockedByBrowser": "The browser did not let this page contact the PC. On the PC itself, or on a device that runs Tailscale, open the browser's site settings for this page, set \"Local network access\" to Allow, and reload. If it still fails, check that the bridge is running and that the address is correct.",
   "bridgeTimedOut": "The PC took too long to answer.",
   "bridgeNotPaired": "Pair this device with the PC before generating a story there.",
   "bridgeUnauthorized": "The PC refused this device. Pair it again.",

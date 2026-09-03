@@ -179,6 +179,30 @@ void main() {
     );
   });
 
+  test('in a browser a refused connection is named as the browser\'s', () async {
+    // A browser reports a blocked call (site permission, origin, or a PC that
+    // is off) as one opaque exception; the parent is told about the permission
+    // because that is the cause they cannot see.
+    final blocked = BridgeClient(
+      httpClient: FakeBridgeHttpClient((request) async {
+        throw http.ClientException('Failed to fetch', request.url);
+      }),
+      baseUrl: baseUrl,
+      runsInBrowser: true,
+    );
+
+    await expectLater(
+      blocked.readHealth(),
+      throwsA(
+        isA<BridgeException>().having(
+          (error) => error.failure,
+          'failure',
+          BridgeFailure.blockedByBrowser,
+        ),
+      ),
+    );
+  });
+
   test('an answer that is not the agreed shape is refused', () async {
     final httpClient = FakeBridgeHttpClient((request) async {
       return bridgeJsonResponse(<String, Object>{'unexpected': true});

@@ -1447,6 +1447,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'Datorn svarade inte. Kontrollera att bryggan körs och att adressen stämmer.';
 
   @override
+  String get bridgeBlockedByBrowser =>
+      'Webbläsaren lät inte den här sidan kontakta datorn. På datorn själv, eller på en enhet som kör Tailscale, öppna webbläsarens webbplatsinställningar för sidan, sätt \"Åtkomst till lokalt nätverk\" till Tillåt och ladda om. Om det fortfarande inte fungerar, kontrollera att bryggan körs och att adressen stämmer.';
+
+  @override
   String get bridgeTimedOut => 'Datorn tog för lång tid på sig att svara.';
 
   @override

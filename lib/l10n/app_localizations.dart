@@ -2634,6 +2634,12 @@ abstract class AppLocalizations {
   /// **'The PC did not answer. Check that the bridge is running and that the address is correct.'**
   String get bridgeUnreachable;
 
+  /// No description provided for @bridgeBlockedByBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'The browser did not let this page contact the PC. On the PC itself, or on a device that runs Tailscale, open the browser\'s site settings for this page, set \"Local network access\" to Allow, and reload. If it still fails, check that the bridge is running and that the address is correct.'**
+  String get bridgeBlockedByBrowser;
+
   /// No description provided for @bridgeTimedOut.
   ///
   /// In en, this message translates to:
