@@ -797,6 +797,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noDrafts => 'No stories are waiting for review.';
 
   @override
+  String get moreStoryActions => 'More story actions';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count pages';
+  }
+
+  @override
   String get addFavorite => 'Add to favorites';
 
   @override

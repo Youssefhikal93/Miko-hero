@@ -109,3 +109,19 @@ has no Arabic script. PDF export is unaffected and still uses the Noto fonts.
   low-vision readers by making similar letters easier to tell apart.
 - License: `OFL-AtkinsonHyperlegible.txt` (copyright 2020 Braille Institute of
   America, Inc.).
+
+## Story prose serif
+
+`Newsreader-Variable.ttf` is the book-like Latin-script face used for story
+prose in the reader and the parent review preview when the child's easy-reading
+setting is off. Arabic prose keeps `NotoNaskhArabic`, and PDF export keeps its
+existing Noto body fonts.
+
+- Source: [`google/fonts`](https://github.com/google/fonts), file
+  `ofl/newsreader/Newsreader[opsz,wght].ttf`, upstream
+  [`productiontype/Newsreader`](https://github.com/productiontype/Newsreader).
+- Renamed on the way in only because Flutter asset paths and square brackets
+  do not mix. It is the unmodified upstream variable font.
+- The `opsz` axis spans 6–72 and `wght` spans 200–800. Its default instance is
+  16pt regular at weight 400, so the resolver does not pin the weight axis.
+- License: `OFL-Newsreader.txt` (copyright 2020 The Newsreader Project Authors).

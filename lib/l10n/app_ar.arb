@@ -238,6 +238,8 @@
   "reviewMoral": "القيمة: {value}",
   "reviewPageNumber": "الصفحة {number}",
   "noDrafts": "لا توجد قصص بانتظار المراجعة.",
+  "moreStoryActions": "إجراءات أخرى للقصة",
+  "storyPageCount": "{count} صفحات",
   "addFavorite": "إضافة إلى المفضلة",
   "removeFavorite": "إزالة من المفضلة",
   "manageCollections": "إدارة المجموعات",

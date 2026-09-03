@@ -802,6 +802,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get noDrafts => 'Inga berättelser väntar på granskning.';
 
   @override
+  String get moreStoryActions => 'Fler åtgärder för berättelsen';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count sidor';
+  }
+
+  @override
   String get addFavorite => 'Lägg till som favorit';
 
   @override

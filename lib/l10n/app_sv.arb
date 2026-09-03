@@ -238,6 +238,8 @@
   "reviewMoral": "Lärdom: {value}",
   "reviewPageNumber": "Sida {number}",
   "noDrafts": "Inga berättelser väntar på granskning.",
+  "moreStoryActions": "Fler åtgärder för berättelsen",
+  "storyPageCount": "{count} sidor",
   "addFavorite": "Lägg till som favorit",
   "removeFavorite": "Ta bort från favoriter",
   "manageCollections": "Hantera samlingar",
