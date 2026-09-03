@@ -50,6 +50,58 @@ class AppLocalizationsSo extends AppLocalizations {
   String get setUpProfile => 'Ku dar bog';
 
   @override
+  String get readingAs => 'Waxaad u akhrinaysaa';
+
+  @override
+  String get greetingMorning => 'Subax wanaagsan.';
+
+  @override
+  String get greetingAfternoon => 'Galab wanaagsan.';
+
+  @override
+  String get greetingEvening => 'Fiid wanaagsan.';
+
+  @override
+  String get greetingNight => 'Habeen wanaagsan.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title weli waxay sugaysaa in la dhammaystiro.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'Sheekooyin cusub waxay sugayaan in waalid akhriyo.';
+
+  @override
+  String get greetingCreateStory => 'Sheekada caawa weli lama qorin.';
+
+  @override
+  String get keepReading => 'Sii wad akhriska';
+
+  @override
+  String get newStory => 'Sheeko cusub';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned ka $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Qoraallo dib-u-eegis sugaya: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Waalidiinta keliya · khaanadda kama muuqato';
+
+  @override
+  String get onTheShelf => 'Khaanadda buugta';
+
+  @override
+  String get seeAll => 'Arag dhammaan';
+
+  @override
   String get editProfile => 'Wax ka beddel bogga halyeyga';
 
   @override

@@ -50,6 +50,58 @@ class AppLocalizationsSv extends AppLocalizations {
   String get setUpProfile => 'Lägg till profil';
 
   @override
+  String get readingAs => 'Läser som';
+
+  @override
+  String get greetingMorning => 'God morgon.';
+
+  @override
+  String get greetingAfternoon => 'God eftermiddag.';
+
+  @override
+  String get greetingEvening => 'God kväll.';
+
+  @override
+  String get greetingNight => 'God natt.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title väntar på att bli utläst.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'Nya berättelser väntar på att en förälder läser dem.';
+
+  @override
+  String get greetingCreateStory => 'Kvällens berättelse är inte skriven än.';
+
+  @override
+  String get keepReading => 'Fortsätt läsa';
+
+  @override
+  String get newStory => 'Ny berättelse';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned av $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Utkast som väntar på granskning: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Endast för föräldrar · syns inte på hyllan';
+
+  @override
+  String get onTheShelf => 'På hyllan';
+
+  @override
+  String get seeAll => 'Visa alla';
+
+  @override
   String get editProfile => 'Redigera hjälteprofil';
 
   @override

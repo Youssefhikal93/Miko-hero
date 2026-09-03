@@ -138,7 +138,10 @@ Rules that every change must respect:
 
 | File | Responsibility |
 | --- | --- |
-| `home_page.dart` | Personalized dashboard: profile setup prompt for new families, primary create-story action, and the most recent approved books, laid out on the shared mosaic with the newest book on a full-width tile and the two behind it on cover tiles. Home offers no secondary command on a book, so its tiles carry no overflow control. |
+| `home_page.dart` | The redesign mosaic: the "Reading as" header, a greeting by time of day over one line about what is really waiting, the tiles a family's own state has something to say with, and the "On the shelf" strip whose "See all" hands the rest to the library. A family with no profiles sees the setup prompt and nothing else. Home offers no secondary command on a book, so its tiles carry no overflow control. |
+| `home_greeting.dart` | The pure part of Home: which part of the day a moment falls in, the localized greeting for it, the one line under it (a book to continue, then drafts waiting, then an invitation to write), and `keepReadingStory` — the newest approved story on the active child's shelf that this device has not recorded as finished. Nothing about a reading position is stored, so there is nothing to remember and nothing to migrate. |
+| `home_hero_switcher.dart` | Home's header and the family switcher behind it: the active child's name under "Reading as", their photo ringed in their own accent, and a bottom sheet listing every child. Picking one runs `ProfileController.activateProfile`, which is what makes the theme and every other screen follow. |
+| `home_tiles.dart` | The four Home tiles and the rounded surface they share: keep reading (the shared `StoryCover` under a "Keep reading" label and the book's page count, opening the reader), new story, the active child's reading badges out of four (read-only), and the parent's drafts row, whose tap goes to `/review` where the parent gate already lives. |
 
 ### Profiles — `features/profile/`
 
@@ -296,6 +299,7 @@ them), then run the commands above.
 | File | What it proves |
 | --- | --- |
 | `test/app/iam_hero_app_test.dart` | End-to-end widget flows: onboarding, profile creation, choosing a birth date for a legacy age-only profile, story creation through review and approval into the reader, per-child library tabs, theme restoration, and localization. Two of them hold the creation form to its contract: tapping a hero, eight pages, and a language hands the generator exactly the request the dropdowns used to build, and a device saved on Local AI never sees the demo named in the header. |
+| `test/app/home_page_test.dart` | Home through the real application: the header switcher changes the active child and persists it, the new story tile reaches the creation page, keep reading opens the newest unfinished book at its first page and disappears once that book is finished, the drafts row is absent without drafts and counts them when they exist, its tap stops at the parent PIN and continues to the queue after the right one, a family with no profiles is asked for one before anything else, and each part of the day keeps its own hours. |
 | `test/app/app_theme_test.dart` | The shared skin: every palette token holds its redesign value and reaches the cards, fields, chips, buttons, dialogs, and all three navigation surfaces; the active child's colour stays the accent on the filled button, the selected chip, and the indicators; every interface text slot asks for Outfit with its weight pinned on the axis; the Arabic locale asks for the Naskh face and never for Outfit; both faces are in the asset bundle; and the hero panel paints a flat tile with an accent ring instead of a gradient. |
 | `test/core/generation/demo_story_generator_test.dart` | Demo stories respect language, page count, gender context, and saved child preferences; requests without a gender choice are rejected. |
 | `test/core/models/child_profile_test.dart` | Legacy age-only profiles still decode, ages count the birthday itself (including leap-day children), and malformed, future, or too-recent birth dates are refused at the storage boundary. |
@@ -371,7 +375,7 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | --- | --- |
 | Child profiles, birth dates, and photos | `core/models/child_profile.dart`, `features/profile/*` |
 | Per-child themes | `app/app_theme.dart`, `features/kingdom/my_kingdom_page.dart`, `features/profile/profile_controller.dart` |
-| Mosaic layout and story tiles | `shared/screen_layout.dart`, `shared/story_card.dart`, `features/home/home_page.dart`, `docs/design/iam-hero-redesign.html` |
+| Mosaic layout and story tiles | `shared/screen_layout.dart`, `shared/story_card.dart`, `features/home/*`, `docs/design/iam-hero-redesign.html` |
 | Palette tokens and interface typeface | `app/app_theme.dart`, `assets/fonts/Outfit-Variable.ttf`, `assets/fonts/README.md`, `docs/design/iam-hero-redesign.html` |
 | Story creation (demo and local AI) | `features/story_creation/*`, `core/generation/*` |
 | PC bridge client and pairing | `core/ai_connection/*`, `features/settings/ai_connection_controller.dart`, `ai_connection_card.dart`, `shared/local_ai_messages.dart` |

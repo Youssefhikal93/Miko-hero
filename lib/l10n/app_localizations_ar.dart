@@ -49,6 +49,57 @@ class AppLocalizationsAr extends AppLocalizations {
   String get setUpProfile => 'إضافة ملف';
 
   @override
+  String get readingAs => 'القراءة باسم';
+
+  @override
+  String get greetingMorning => 'صباح الخير.';
+
+  @override
+  String get greetingAfternoon => 'طاب نهارك.';
+
+  @override
+  String get greetingEvening => 'مساء الخير.';
+
+  @override
+  String get greetingNight => 'طابت ليلتك.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title تنتظر أن تُكمَل.';
+  }
+
+  @override
+  String get greetingDraftsWaiting => 'قصص جديدة تنتظر أن يقرأها أحد الوالدين.';
+
+  @override
+  String get greetingCreateStory => 'قصة هذه الليلة لم تُكتب بعد.';
+
+  @override
+  String get keepReading => 'تابع القراءة';
+
+  @override
+  String get newStory => 'قصة جديدة';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned من $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'مسودات بانتظار المراجعة: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'للوالدين فقط · لا تظهر على الرف';
+
+  @override
+  String get onTheShelf => 'على الرف';
+
+  @override
+  String get seeAll => 'عرض الكل';
+
+  @override
   String get editProfile => 'تعديل ملف البطل';
 
   @override
