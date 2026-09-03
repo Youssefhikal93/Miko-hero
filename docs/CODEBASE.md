@@ -307,6 +307,7 @@ Full setup, endpoint, and security documentation lives in `bridge/README.md`.
 | `docs/LOCAL_AI_INTEGRATION.md` | The contract for the future local Ollama and ComfyUI phase: the `StoryGenerator` boundary, failure semantics, and privacy constraints. |
 | `docs/ILLUSTRATION_QUALITY_UPGRADE.md` | No-programming work order for the AI PC: which free model files to download and which `illustration` settings to change so the pictures improve. |
 | `docs/STORY_QUALITY_UPGRADE.md` | The same for the words: why `gemma3:4b` is the floor rather than a recommendation, a free-model table by system RAM (Qwen recommended for Arabic), the one `ollamaModel` line to change, and a verification section that ends with reading the Arabic aloud with a native speaker. |
+| `docs/design/iam-hero-redesign.html` | Static HTML design reference for the phone redesign (Home, Library, Create, Reader): palette tokens, Outfit interface type, serif story prose, mosaic tiles, tap-once chips. Open it in a browser; it is not part of the Flutter build. |
 
 ## Feature → file quick reference
 
