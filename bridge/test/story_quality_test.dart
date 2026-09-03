@@ -393,6 +393,46 @@ void main() {
       expect(prompt, contains('Page N tells beat N of the plan'));
     });
 
+    test(
+      'the outline prompt gives the hero a want and makes the middle cost',
+      () {
+        final prompt = buildStoryOutlinePrompt(request());
+
+        expect(prompt, contains('wants'), reason: 'page 1 names a small want');
+        expect(
+          prompt,
+          contains('costs'),
+          reason: 'the middle has to cost the hero a try or a choice',
+        );
+        expect(
+          prompt,
+          contains('what Nour feels or decides'),
+          reason:
+              'every beat carries the hero\'s inner movement, not just events',
+        );
+      },
+    );
+
+    test('the page prompt demands vivid pages: senses, dialogue, feeling', () {
+      final prompt = buildStoryPagesPrompt(request(), outline());
+
+      expect(
+        prompt,
+        contains('$minimumSentencesPerPage to $maximumSentencesPerPage'),
+      );
+      expect(minimumSentencesPerPage, greaterThanOrEqualTo(3));
+      expect(maximumSentencesPerPage, greaterThanOrEqualTo(5));
+      expect(prompt, contains('sees, hears, smells'));
+      expect(prompt, contains('spoken dialogue'));
+      expect(prompt, contains('quotation marks'));
+      expect(
+        prompt,
+        contains('not just naming it'),
+        reason: 'feelings are shown through the body, not labelled',
+      );
+      expect(prompt, contains('the flat sentence'));
+    });
+
     test('the page prompt demands an earned ending and no stated moral', () {
       final prompt = buildStoryPagesPrompt(request(), outline());
 

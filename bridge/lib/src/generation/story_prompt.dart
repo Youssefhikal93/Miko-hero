@@ -2,10 +2,13 @@ import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 import 'package:iam_hero_bridge/src/generation/story_outline.dart';
 
 /// Minimum number of sentences demanded per page.
-const int minimumSentencesPerPage = 2;
+///
+/// Raised from two on 2026-09-03: two-sentence pages read as captions, not a
+/// story (the owner's verdict on the first `qwen3.5:9b` books, issue #25).
+const int minimumSentencesPerPage = 3;
 
 /// Maximum number of sentences demanded per page.
-const int maximumSentencesPerPage = 4;
+const int maximumSentencesPerPage = 5;
 
 /// Builds the JSON schema handed to Ollama in the `format` field.
 ///
@@ -57,11 +60,15 @@ The story:
 ${_storyIdeaBlock(request)}
 
 Plan the arc across the $pageCount pages like this:
-- Page 1 opens warmly in an ordinary, safe moment and shows who $name is.
-- The middle pages bring one challenge or discovery and let it grow; $name
-  tries, struggles a little, and learns something.
+- Page 1 opens warmly in an ordinary, safe moment, shows who $name is, and
+  names one small thing $name wants or hopes for today. That want is the
+  thread the whole book pulls on.
+- The middle pages bring one challenge or discovery and let it grow. It
+  costs $name something before it turns: a try that does not work, a hard
+  choice, a moment of doubt. Then $name does something about it.
 - The final page resolves it because of something $name chose or did — never
-  because an adult, a rescue or luck fixed it.
+  because an adult, a rescue or luck fixed it — and the ending answers the
+  want from page 1, even if not in the way $name expected.
 - The lesson is visible in what happens, not announced. Do not plan a page
   whose beat is "the moral is explained".
 
@@ -69,7 +76,9 @@ Hard requirements:
 1. Write "title" and every "summary" ONLY in $language.
    ${_languageRule(request)}
 2. Produce EXACTLY $pageCount beats, numbered 1 to $pageCount in order.
-3. Each "summary" is ONE short sentence naming what happens on that page.
+3. Each "summary" is one or two short sentences: what happens on that page,
+   and what $name feels or decides because of it. A beat that only lists an
+   event is not enough; the reader has to be able to feel the page turn.
 4. "heroAppearance" is ONE short English line describing how $name looks in
    the pictures: hair, clothing colours, and one small prop that recurs — for
    example "short curly black hair, mustard-yellow raincoat, red boots,
@@ -120,6 +129,18 @@ Hard requirements:
 3. Every page has $minimumSentencesPerPage to $maximumSentencesPerPage
    complete sentences of flowing prose — no headings, lists or page labels
    inside the text.
+3a. Make every page vivid and specific, never a caption. On each page put at
+    least one concrete detail a child can sense — what $name
+    sees, hears, smells or touches, how the air or the ground feels —
+    chosen for this place and this moment, not a stock phrase.
+3b. Let people speak. Most pages carry at least one short line of
+    spoken dialogue in quotation marks — $name, a friend, a parent — in a
+    real voice that sounds like a child or a family member, never a lesson
+    in disguise. Dialogue counts toward the sentence range.
+3c. Show what $name feels through the body and through action — a held
+    breath, a hand squeezed tighter, a jump, a small step back — and
+    not just naming it. "$name was brave" is the flat sentence to avoid;
+    show the brave thing instead.
 4. ${_readingLevelRule(request)}
 5. Use the name $name where it reads naturally — roughly once or twice per
    page. Everywhere else use pronouns and ordinary wording; a page that
