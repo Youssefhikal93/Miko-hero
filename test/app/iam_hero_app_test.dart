@@ -30,7 +30,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Iam - hero'), findsWidgets);
+    expect(find.text('Add a hero profile'), findsOneWidget);
     expect(find.text('Add a profile'), findsWidgets);
     expect(find.text('Sign in'), findsNothing);
   });

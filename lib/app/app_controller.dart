@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
@@ -15,9 +16,14 @@ import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 
 /// Supplies protected storage for the bridge's bearer credential.
+///
+/// Phones and desktops get the platform's protected store; the web build keeps
+/// the value in preferences, because a browser has nothing more protected to
+/// offer and the web plugin failed silently in release builds.
 final bridgeCredentialStorageProvider = Provider<BridgeCredentialStorage>((
   ref,
 ) {
+  if (kIsWeb) return const PreferencesBridgeCredentialStorage();
   return const SecureBridgeCredentialStorage();
 });
 
