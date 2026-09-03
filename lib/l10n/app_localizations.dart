@@ -180,6 +180,96 @@ abstract class AppLocalizations {
   /// **'Add a profile'**
   String get setUpProfile;
 
+  /// No description provided for @readingAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading as'**
+  String get readingAs;
+
+  /// No description provided for @greetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning.'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon.'**
+  String get greetingAfternoon;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening.'**
+  String get greetingEvening;
+
+  /// No description provided for @greetingNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Good night.'**
+  String get greetingNight;
+
+  /// No description provided for @greetingContinueStory.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is waiting to be finished.'**
+  String greetingContinueStory(String title);
+
+  /// No description provided for @greetingDraftsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'New stories are waiting for a parent to read them.'**
+  String get greetingDraftsWaiting;
+
+  /// No description provided for @greetingCreateStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Tonight\'s story has not been written yet.'**
+  String get greetingCreateStory;
+
+  /// No description provided for @keepReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep reading'**
+  String get keepReading;
+
+  /// No description provided for @newStory.
+  ///
+  /// In en, this message translates to:
+  /// **'New story'**
+  String get newStory;
+
+  /// No description provided for @readingBadgesEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'{earned} of {total}'**
+  String readingBadgesEarned(int earned, int total);
+
+  /// No description provided for @draftsWaitingForReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts waiting for review: {count}'**
+  String draftsWaitingForReview(int count);
+
+  /// No description provided for @draftsWaitingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent only · hidden from the shelf'**
+  String get draftsWaitingHint;
+
+  /// No description provided for @onTheShelf.
+  ///
+  /// In en, this message translates to:
+  /// **'On the shelf'**
+  String get onTheShelf;
+
+  /// No description provided for @seeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get seeAll;
+
   /// No description provided for @editProfile.
   ///
   /// In en, this message translates to:
@@ -387,8 +477,98 @@ abstract class AppLocalizations {
   /// No description provided for @createStoryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Create a story'**
+  /// **'New story'**
   String get createStoryTitle;
+
+  /// No description provided for @whoIsTheHero.
+  ///
+  /// In en, this message translates to:
+  /// **'Who is the hero'**
+  String get whoIsTheHero;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @heroAgeGender.
+  ///
+  /// In en, this message translates to:
+  /// **'{age} · {gender}'**
+  String heroAgeGender(int age, String gender);
+
+  /// No description provided for @whatHappens.
+  ///
+  /// In en, this message translates to:
+  /// **'What happens'**
+  String get whatHappens;
+
+  /// No description provided for @lessonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'And the lesson it teaches'**
+  String get lessonHint;
+
+  /// No description provided for @howLong.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get howLong;
+
+  /// No description provided for @pages.
+  ///
+  /// In en, this message translates to:
+  /// **'pages'**
+  String get pages;
+
+  /// No description provided for @lookAndLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Look and language'**
+  String get lookAndLanguage;
+
+  /// No description provided for @storyLanguageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get storyLanguageEnglish;
+
+  /// No description provided for @storyLanguageArabic.
+  ///
+  /// In en, this message translates to:
+  /// **'العربية'**
+  String get storyLanguageArabic;
+
+  /// No description provided for @storyLanguageSwedish.
+  ///
+  /// In en, this message translates to:
+  /// **'Svenska'**
+  String get storyLanguageSwedish;
+
+  /// No description provided for @storyLanguageSomali.
+  ///
+  /// In en, this message translates to:
+  /// **'Soomaali'**
+  String get storyLanguageSomali;
+
+  /// No description provided for @writeTheStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Write the story'**
+  String get writeTheStory;
+
+  /// No description provided for @demoGeneratorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo'**
+  String get demoGeneratorLabel;
+
+  /// No description provided for @localAiGeneratorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Local AI'**
+  String get localAiGeneratorLabel;
 
   /// No description provided for @chooseHeroProfile.
   ///
@@ -471,7 +651,7 @@ abstract class AppLocalizations {
   /// No description provided for @pictureBookStyle.
   ///
   /// In en, this message translates to:
-  /// **'Soft picture book'**
+  /// **'Picture book'**
   String get pictureBookStyle;
 
   /// No description provided for @watercolorStyle.
@@ -635,6 +815,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {current} of {total}'**
   String pageProgress(int current, int total);
+
+  /// No description provided for @readToMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Read to me'**
+  String get readToMe;
 
   /// No description provided for @playNarration.
   ///

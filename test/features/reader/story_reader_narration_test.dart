@@ -93,7 +93,7 @@ void main() {
     await tester.pumpWidget(_app(voice));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Narration settings'));
+    await tester.tap(find.byTooltip('Sleep timer'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sleep timer'), findsOneWidget);

@@ -50,6 +50,58 @@ class AppLocalizationsSo extends AppLocalizations {
   String get setUpProfile => 'Ku dar bog';
 
   @override
+  String get readingAs => 'Waxaad u akhrinaysaa';
+
+  @override
+  String get greetingMorning => 'Subax wanaagsan.';
+
+  @override
+  String get greetingAfternoon => 'Galab wanaagsan.';
+
+  @override
+  String get greetingEvening => 'Fiid wanaagsan.';
+
+  @override
+  String get greetingNight => 'Habeen wanaagsan.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title weli waxay sugaysaa in la dhammaystiro.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'Sheekooyin cusub waxay sugayaan in waalid akhriyo.';
+
+  @override
+  String get greetingCreateStory => 'Sheekada caawa weli lama qorin.';
+
+  @override
+  String get keepReading => 'Sii wad akhriska';
+
+  @override
+  String get newStory => 'Sheeko cusub';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned ka $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Qoraallo dib-u-eegis sugaya: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Waalidiinta keliya · khaanadda kama muuqato';
+
+  @override
+  String get onTheShelf => 'Khaanadda buugta';
+
+  @override
+  String get seeAll => 'Arag dhammaan';
+
+  @override
   String get editProfile => 'Wax ka beddel bogga halyeyga';
 
   @override
@@ -160,7 +212,54 @@ class AppLocalizationsSo extends AppLocalizations {
   String get photoRequired => 'Dooro sawir tixraac ah.';
 
   @override
-  String get createStoryTitle => 'Abuur sheeko';
+  String get createStoryTitle => 'Sheeko cusub';
+
+  @override
+  String get whoIsTheHero => 'Yaa ah halyeyga?';
+
+  @override
+  String get add => 'Ku dar';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'Maxaa dhacaya?';
+
+  @override
+  String get lessonHint => 'Iyo casharka ay barayso';
+
+  @override
+  String get howLong => 'Intee le\'eg?';
+
+  @override
+  String get pages => 'bog';
+
+  @override
+  String get lookAndLanguage => 'Muuqaalka iyo luqadda';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Qor sheekada';
+
+  @override
+  String get demoGeneratorLabel => 'Tijaabo';
+
+  @override
+  String get localAiGeneratorLabel => 'AI maxalli ah';
 
   @override
   String get chooseHeroProfile => 'Dooro bogga halyeyga';
@@ -202,7 +301,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get longLength => 'Dheer · 10 bog';
 
   @override
-  String get pictureBookStyle => 'Buug sawir jilicsan';
+  String get pictureBookStyle => 'Buug sawir';
 
   @override
   String get watercolorStyle => 'Midab-biyood';
@@ -291,6 +390,9 @@ class AppLocalizationsSo extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'Bogga $current ee $total';
   }
+
+  @override
+  String get readToMe => 'Ii akhri';
 
   @override
   String get playNarration => 'Daar akhriska';

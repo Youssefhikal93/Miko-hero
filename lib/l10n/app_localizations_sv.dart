@@ -50,6 +50,58 @@ class AppLocalizationsSv extends AppLocalizations {
   String get setUpProfile => 'Lägg till profil';
 
   @override
+  String get readingAs => 'Läser som';
+
+  @override
+  String get greetingMorning => 'God morgon.';
+
+  @override
+  String get greetingAfternoon => 'God eftermiddag.';
+
+  @override
+  String get greetingEvening => 'God kväll.';
+
+  @override
+  String get greetingNight => 'God natt.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title väntar på att bli utläst.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'Nya berättelser väntar på att en förälder läser dem.';
+
+  @override
+  String get greetingCreateStory => 'Kvällens berättelse är inte skriven än.';
+
+  @override
+  String get keepReading => 'Fortsätt läsa';
+
+  @override
+  String get newStory => 'Ny berättelse';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned av $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Utkast som väntar på granskning: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Endast för föräldrar · syns inte på hyllan';
+
+  @override
+  String get onTheShelf => 'På hyllan';
+
+  @override
+  String get seeAll => 'Visa alla';
+
+  @override
   String get editProfile => 'Redigera hjälteprofil';
 
   @override
@@ -160,7 +212,54 @@ class AppLocalizationsSv extends AppLocalizations {
   String get photoRequired => 'Välj ett referensfoto.';
 
   @override
-  String get createStoryTitle => 'Skapa en berättelse';
+  String get createStoryTitle => 'Ny berättelse';
+
+  @override
+  String get whoIsTheHero => 'Vem är hjälten?';
+
+  @override
+  String get add => 'Lägg till';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'Vad händer?';
+
+  @override
+  String get lessonHint => 'Och lärdomen den förmedlar';
+
+  @override
+  String get howLong => 'Hur lång?';
+
+  @override
+  String get pages => 'sidor';
+
+  @override
+  String get lookAndLanguage => 'Utseende och språk';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Skriv berättelsen';
+
+  @override
+  String get demoGeneratorLabel => 'Demo';
+
+  @override
+  String get localAiGeneratorLabel => 'Lokal AI';
 
   @override
   String get chooseHeroProfile => 'Välj en hjälteprofil';
@@ -203,7 +302,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get longLength => 'Lång · 10 sidor';
 
   @override
-  String get pictureBookStyle => 'Mjuk bilderbok';
+  String get pictureBookStyle => 'Bilderbok';
 
   @override
   String get watercolorStyle => 'Akvarell';
@@ -289,6 +388,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'Sida $current av $total';
   }
+
+  @override
+  String get readToMe => 'Läs för mig';
 
   @override
   String get playNarration => 'Spela berättarröst';

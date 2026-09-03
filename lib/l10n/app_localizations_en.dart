@@ -50,6 +50,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setUpProfile => 'Add a profile';
 
   @override
+  String get readingAs => 'Reading as';
+
+  @override
+  String get greetingMorning => 'Good morning.';
+
+  @override
+  String get greetingAfternoon => 'Good afternoon.';
+
+  @override
+  String get greetingEvening => 'Good evening.';
+
+  @override
+  String get greetingNight => 'Good night.';
+
+  @override
+  String greetingContinueStory(String title) {
+    return '$title is waiting to be finished.';
+  }
+
+  @override
+  String get greetingDraftsWaiting =>
+      'New stories are waiting for a parent to read them.';
+
+  @override
+  String get greetingCreateStory =>
+      'Tonight\'s story has not been written yet.';
+
+  @override
+  String get keepReading => 'Keep reading';
+
+  @override
+  String get newStory => 'New story';
+
+  @override
+  String readingBadgesEarned(int earned, int total) {
+    return '$earned of $total';
+  }
+
+  @override
+  String draftsWaitingForReview(int count) {
+    return 'Drafts waiting for review: $count';
+  }
+
+  @override
+  String get draftsWaitingHint => 'Parent only · hidden from the shelf';
+
+  @override
+  String get onTheShelf => 'On the shelf';
+
+  @override
+  String get seeAll => 'See all';
+
+  @override
   String get editProfile => 'Edit hero profile';
 
   @override
@@ -160,7 +213,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoRequired => 'Choose a reference photo.';
 
   @override
-  String get createStoryTitle => 'Create a story';
+  String get createStoryTitle => 'New story';
+
+  @override
+  String get whoIsTheHero => 'Who is the hero';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'What happens';
+
+  @override
+  String get lessonHint => 'And the lesson it teaches';
+
+  @override
+  String get howLong => 'How long';
+
+  @override
+  String get pages => 'pages';
+
+  @override
+  String get lookAndLanguage => 'Look and language';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Write the story';
+
+  @override
+  String get demoGeneratorLabel => 'Demo';
+
+  @override
+  String get localAiGeneratorLabel => 'Local AI';
 
   @override
   String get chooseHeroProfile => 'Choose a hero profile';
@@ -202,7 +302,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get longLength => 'Long · 10 pages';
 
   @override
-  String get pictureBookStyle => 'Soft picture book';
+  String get pictureBookStyle => 'Picture book';
 
   @override
   String get watercolorStyle => 'Watercolor';
@@ -290,6 +390,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String pageProgress(int current, int total) {
     return 'Page $current of $total';
   }
+
+  @override
+  String get readToMe => 'Read to me';
 
   @override
   String get playNarration => 'Play narration';
