@@ -75,6 +75,43 @@ class OllamaGenerateRequest {
   Uint8List encodeBody() => utf8.encode(jsonEncode(toJson()));
 }
 
+/// One request to unload a model from Ollama after generation finishes.
+class OllamaUnloadRequest {
+  /// Creates an unload request against [baseUrl] for [model].
+  const OllamaUnloadRequest({
+    required this.baseUrl,
+    required this.model,
+    required this.timeout,
+  });
+
+  /// Base URL of the local Ollama API, e.g. `http://127.0.0.1:11434`.
+  final String baseUrl;
+
+  /// Model tag to unload, e.g. `gemma3:4b`.
+  final String model;
+
+  /// Wall-clock budget for the unload call.
+  final Duration timeout;
+
+  /// The `/api/generate` endpoint derived from [baseUrl].
+  Uri get endpoint {
+    final parsed = Uri.parse(baseUrl);
+    var path = parsed.path;
+    while (path.endsWith('/')) {
+      path = path.substring(0, path.length - 1);
+    }
+    return parsed.replace(path: '$path/api/generate');
+  }
+
+  /// The request body Ollama expects for an explicit unload.
+  Map<String, Object?> toJson() {
+    return <String, Object?>{'model': model, 'keep_alive': 0};
+  }
+
+  /// The body encoded as explicit UTF-8 bytes.
+  Uint8List encodeBody() => utf8.encode(jsonEncode(toJson()));
+}
+
 /// Raw answer of one `/api/generate` call.
 class OllamaGenerateResponse {
   /// Creates a response.
@@ -107,6 +144,9 @@ abstract class OllamaStoryClient {
     OllamaGenerateRequest request, {
     required CancellationToken cancellation,
   });
+
+  /// Asks Ollama to unload the model named by [request].
+  Future<void> unload(OllamaUnloadRequest request);
 }
 
 /// Production [OllamaStoryClient] backed by `dart:io`.
@@ -132,6 +172,22 @@ class IoOllamaStoryClient implements OllamaStoryClient {
       onTimeout: () {
         final timeout = TimeoutException(
           'Ollama did not answer in time.',
+          request.timeout,
+        );
+        handle.abort(timeout);
+        throw timeout;
+      },
+    );
+  }
+
+  @override
+  Future<void> unload(OllamaUnloadRequest request) {
+    final handle = _AbortHandle();
+    return _sendUnload(request, handle).timeout(
+      request.timeout,
+      onTimeout: () {
+        final timeout = TimeoutException(
+          'Ollama did not unload the model in time.',
           request.timeout,
         );
         handle.abort(timeout);
@@ -174,6 +230,36 @@ class IoOllamaStoryClient implements OllamaStoryClient {
         statusCode: response.statusCode,
         bodyBytes: bytes,
       );
+    } finally {
+      handle.settle();
+    }
+  }
+
+  Future<void> _sendUnload(
+    OllamaUnloadRequest request,
+    _AbortHandle handle,
+  ) async {
+    final Uint8List body = request.encodeBody();
+    final HttpClientRequest httpRequest = await _client.postUrl(
+      request.endpoint,
+    );
+    handle.attach(httpRequest);
+    try {
+      httpRequest.headers.set(
+        HttpHeaders.contentTypeHeader,
+        'application/json; charset=utf-8',
+      );
+      httpRequest.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      httpRequest.contentLength = body.length;
+      httpRequest.add(body);
+      final HttpClientResponse response = await httpRequest.close();
+      await response.drain<void>();
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException(
+          'Ollama answered HTTP ${response.statusCode} while unloading.',
+          uri: request.endpoint,
+        );
+      }
     } finally {
       handle.settle();
     }

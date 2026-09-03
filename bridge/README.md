@@ -773,6 +773,9 @@ queued ──▶ generating ──▶ validating ──▶ completed
   fails the job fails as `library_write_failed` and no rows remain.
 - **failed / cancelled** — no story, no partial rows, ever.
 
+After any running job reaches one of those terminal states, the bridge asks
+Ollama to unload the configured model before releasing the shared GPU lease.
+
 ### Language purity
 
 Both passes are checked against the script the story was requested in, and a
