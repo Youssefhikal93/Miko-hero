@@ -390,11 +390,7 @@ class TestServer {
 
   /// Stops any unfinished generation or illustration job and closes the
   /// database.
-  void close() {
-    server.generationQueue.shutdown();
-    server.illustrationQueue.shutdown();
-    library.close();
-  }
+  Future<void> close() => server.close();
 
   /// Number of rows currently stored in [table].
   int countRows(String table) {

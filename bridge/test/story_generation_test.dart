@@ -161,9 +161,7 @@ void main() {
           token,
           body: generateRequestBody(pageCount: pageCount),
         );
-        final settled = await testServer.server.generationQueue.whenSettled(
-          jobId,
-        );
+        final settled = await testServer.server.awaitStoryJob(jobId);
         expect(settled.status, GenerationJobStatus.completed);
         expect(client.unloadRequests, hasLength(1));
         expect(client.allRequests.last, isA<OllamaUnloadRequest>());
@@ -257,9 +255,7 @@ void main() {
           illustrationStyle: 'watercolor',
         ),
       );
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
       expect(settled.status, GenerationJobStatus.completed);
 
       expect(client.outlineRequests, hasLength(1));
@@ -349,9 +345,7 @@ void main() {
         final token = await pairDevice(testServer, printedCodes);
 
         final jobId = await startJob(testServer, token);
-        final settled = await testServer.server.generationQueue.whenSettled(
-          jobId,
-        );
+        final settled = await testServer.server.awaitStoryJob(jobId);
 
         expect(settled.status, GenerationJobStatus.failed);
         expect(
@@ -402,9 +396,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
 
       final jobId = await startJob(testServer, token);
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
 
       expect(settled.status, GenerationJobStatus.failed);
       expect(
@@ -446,9 +438,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
 
       final jobId = await startJob(testServer, token);
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
 
       expect(settled.status, GenerationJobStatus.completed);
       expect(client.outlineRequests, hasLength(1));
@@ -475,7 +465,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
     expect(settled.status, GenerationJobStatus.completed);
 
     final scenes = testServer.library.database
@@ -516,7 +506,7 @@ void main() {
         ..['favoriteTopics'] = 'sea turtles and paper boats'
         ..['recurringWorld'] = 'the Lantern Harbour',
     );
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
     expect(settled.status, GenerationJobStatus.completed);
 
     for (final call in client.requests) {
@@ -538,7 +528,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    await testServer.server.generationQueue.whenSettled(jobId);
+    await testServer.server.awaitStoryJob(jobId);
 
     for (final call in client.requests) {
       expect(call.prompt, isNot(contains('recurring story world')));
@@ -561,9 +551,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
 
       final jobId = await startJob(testServer, token);
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
 
       expect(settled.status, GenerationJobStatus.failed);
       final jobBody = await readJob(testServer, token, jobId);
@@ -596,7 +584,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
 
     expect(settled.status, GenerationJobStatus.completed);
     expect(client.unloadRequests, hasLength(1));
@@ -616,7 +604,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
 
     expect(settled.status, GenerationJobStatus.failed);
     final jobBody = await readJob(testServer, token, jobId);
@@ -654,10 +642,8 @@ void main() {
     expect(cancelBody['status'], 'cancelled');
 
     gate.release.complete();
-    await testServer.server.generationQueue.whenSettled(runningJobId);
-    final cancelled = await testServer.server.generationQueue.whenSettled(
-      queuedJobId,
-    );
+    await testServer.server.awaitStoryJob(runningJobId);
+    final cancelled = await testServer.server.awaitStoryJob(queuedJobId);
 
     expect(cancelled.status, GenerationJobStatus.cancelled);
     expect(
@@ -694,7 +680,7 @@ void main() {
     expect(cancelStatus, 200, reason: 'body was $cancelBody');
     expect(cancelBody['status'], 'cancelled');
 
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
     expect(settled.status, GenerationJobStatus.cancelled);
     expect(client.unloadRequests, hasLength(1));
     expect(client.allRequests.last, isA<OllamaUnloadRequest>());
@@ -746,12 +732,8 @@ void main() {
     );
 
     gate.release.complete();
-    final first = await testServer.server.generationQueue.whenSettled(
-      firstJobId,
-    );
-    final second = await testServer.server.generationQueue.whenSettled(
-      secondJobId,
-    );
+    final first = await testServer.server.awaitStoryJob(firstJobId);
+    final second = await testServer.server.awaitStoryJob(secondJobId);
 
     expect(first.status, GenerationJobStatus.completed);
     expect(second.status, GenerationJobStatus.completed);
@@ -788,7 +770,7 @@ void main() {
     );
 
     final jobId = await startJob(testServer, ownerToken);
-    await testServer.server.generationQueue.whenSettled(jobId);
+    await testServer.server.awaitStoryJob(jobId);
 
     final (readStatus, readBody) = await callJson(
       testServer.handler,

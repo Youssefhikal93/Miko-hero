@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:iam_hero_bridge/src/backup/library_backup_service.dart';
 import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
+import 'package:iam_hero_bridge/src/generation/generation_job.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
 import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
 import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
+import 'package:iam_hero_bridge/src/illustration/illustration_job.dart';
 import 'package:iam_hero_bridge/src/illustration/illustration_queue.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
@@ -74,7 +76,7 @@ class AppServer {
   }) : deviceStore = DeviceStore(library: library, uuid: uuid),
        pairingService = PairingService(uuid: uuid, clock: clock) {
     final gpuGate = GpuGate();
-    generationQueue = StoryGenerationQueue(
+    _generationQueue = StoryGenerationQueue(
       config: config,
       writer: StoryLibraryWriter(library: library, uuid: uuid),
       client: ollamaClient,
@@ -83,7 +85,7 @@ class AppServer {
       clock: clock,
       log: logEvent,
     );
-    illustrationQueue = IllustrationQueue(
+    _illustrationQueue = IllustrationQueue(
       config: config,
       library: library,
       client: comfyUiClient,
@@ -110,8 +112,8 @@ class AppServer {
       notifyCode: notifyCode,
     );
     _devicesHandler = DevicesHandler(deviceStore: deviceStore);
-    _generationHandlers = GenerationHandlers(queue: generationQueue);
-    _illustrationHandlers = IllustrationHandlers(queue: illustrationQueue);
+    _generationHandlers = GenerationHandlers(queue: _generationQueue);
+    _illustrationHandlers = IllustrationHandlers(queue: _illustrationQueue);
     _profilePhotoHandlers = ProfilePhotoHandlers(
       store: ProfilePhotoStore(library: library),
     );
@@ -139,13 +141,17 @@ class AppServer {
   final PairingService pairingService;
 
   /// Single-worker story generation queue behind the `/stories` endpoints.
-  late final StoryGenerationQueue generationQueue;
+  late final StoryGenerationQueue _generationQueue;
 
   /// Single-worker illustration queue behind the `/illustrations` endpoints.
   ///
-  /// Shares its [GpuGate] with [generationQueue], so the two never render at
+  /// Shares its [GpuGate] with [_generationQueue], so the two never render at
   /// the same time.
-  late final IllustrationQueue illustrationQueue;
+  late final IllustrationQueue _illustrationQueue;
+
+  /// The bound socket once [start] has returned; null before that and after
+  /// [close].
+  HttpServer? _httpServer;
 
   final ProbeHttpClient _probeHttpClient;
   late final HealthHandler _healthHandler;
@@ -227,14 +233,49 @@ class AppServer {
 
   /// Binds the HTTP server on `config.bindAddress:config.port`.
   ///
-  /// Returns the running [HttpServer]; stop it via [HttpServer.close].
-  Future<HttpServer> start() {
-    return shelf_io.serve(
+  /// Returns the running [HttpServer] so the caller can print where it
+  /// listens; stop everything through [close], not [HttpServer.close].
+  Future<HttpServer> start() async {
+    final HttpServer httpServer = await shelf_io.serve(
       buildHandler(),
       config.bindAddress,
       config.port,
       poweredByHeader: null,
     );
+    _httpServer = httpServer;
+    return httpServer;
+  }
+
+  /// Stops the server completely: abandons every unfinished story or
+  /// illustration job, closes the socket if [start] bound one, and closes the
+  /// master library.
+  ///
+  /// Safe to call whether or not [start] ran, and safe to call twice.
+  Future<void> close() async {
+    _generationQueue.shutdown();
+    _illustrationQueue.shutdown();
+    final HttpServer? httpServer = _httpServer;
+    _httpServer = null;
+    if (httpServer != null) {
+      await httpServer.close(force: true);
+    }
+    library.close();
+  }
+
+  /// Completes when the story job [jobId] reaches a terminal state.
+  ///
+  /// The one door tests need into the story queue; production callers poll
+  /// the `/stories/jobs/<jobId>` endpoint instead.
+  Future<GenerationJob> awaitStoryJob(String jobId) {
+    return _generationQueue.whenSettled(jobId);
+  }
+
+  /// Completes when the illustration job [jobId] reaches a terminal state.
+  ///
+  /// The one door tests need into the illustration queue; production callers
+  /// poll the `/illustrations/jobs/<jobId>` endpoint instead.
+  Future<IllustrationJob> awaitIllustrationJob(String jobId) {
+    return _illustrationQueue.whenSettled(jobId);
   }
 
   Response _typedNotFound(Request request) {
