@@ -22,15 +22,15 @@ const int maxRetainedFinishedIllustrationJobs = 100;
 ///
 /// The queue is the story queue's twin — FIFO, one worker, in-memory jobs,
 /// content-free logs, a retained-job cap — with two differences that come
-/// from what it renders. It holds a [GpuGate] lease for each individual
-/// page rather than for a whole job, so a story that was queued behind a
-/// ten-page book waits for one page instead of ten; and a page that fails
-/// does not fail the book, it just marks its own row `failed` and lets the
-/// remaining pages carry on.
+/// from what it renders. It takes a [GpuGate] turn for each individual page
+/// rather than for a whole job, so a story that was queued behind a ten-page
+/// book waits for one page instead of ten; and a page that fails does not
+/// fail the book, it just marks its own row `failed` and lets the remaining
+/// pages carry on.
 ///
 /// A job with a reference photo runs one extra render before its first page:
 /// the photo is redrawn as a storybook portrait, and that portrait — never the
-/// photo — is what the pages use as their face reference. It takes a lease of
+/// photo — is what the pages use as their face reference. It takes a turn of
 /// its own, on the same terms as a page.
 class IllustrationQueue {
   /// Creates a queue.
@@ -81,6 +81,11 @@ class IllustrationQueue {
   final IllustrationRepository _repository;
   final IllustrationRenderer _renderer;
   final GpuGate _gate;
+
+  /// This queue's identity at the gate, shared by every page of every job so
+  /// the gate can tell one page following another from a real handover.
+  static const GpuTenant _tenant = _ComfyUiTenant();
+
   final Uuid _uuid;
   final DateTime Function() _clock;
   final GenerationLogSink _log;
@@ -294,7 +299,7 @@ class IllustrationQueue {
       }
       // Stage one, once per job: redraw the photo as a storybook portrait so
       // the face adapter reads a drawing rather than a photograph. It is a
-      // full render on the same card, so it takes the same one-GPU lease a
+      // full render on the same card, so it takes the same one-GPU turn a
       // page takes — a story must never be generated alongside it.
       _transition(
         jobId,
@@ -303,17 +308,14 @@ class IllustrationQueue {
         // and reporting "waiting for the renderer" through it would be a lie.
         progress: 'Drawing the hero.',
       );
-      final GpuLease lease = await _gate.acquire();
-      try {
-        referenceImageName = await _renderer.renderStylizedReference(
+      referenceImageName = await _gate.run(_tenant, () {
+        return _renderer.renderStylizedReference(
           storyId: plan.targets.storyId,
           photoImageName: photoImageName,
           style: plan.style,
           gender: plan.gender,
         );
-      } finally {
-        lease.release();
-      }
+      });
     }
     _log(
       'illustration job $jobId rendering pages=${pages.length} '
@@ -336,17 +338,18 @@ class IllustrationQueue {
         completedPageCount: completed,
         failedPageCount: failed,
       );
-      // One lease per page: the story queue may slip in between pages, but
+      // One turn per page: the story queue may slip in between pages, but
       // never alongside one.
-      final GpuLease lease = await _gate.acquire();
       try {
-        await _renderer.renderPage(
-          target: target,
-          storyId: plan.targets.storyId,
-          style: plan.style,
-          gender: plan.gender,
-          referenceImageName: referenceImageName,
-        );
+        await _gate.run(_tenant, () {
+          return _renderer.renderPage(
+            target: target,
+            storyId: plan.targets.storyId,
+            style: plan.style,
+            gender: plan.gender,
+            referenceImageName: referenceImageName,
+          );
+        });
         completed++;
         _log('illustration job $jobId page=${target.pageIndex} rendered');
       } on IllustrationException catch (error) {
@@ -364,8 +367,6 @@ class IllustrationQueue {
           'illustration job $jobId page=${target.pageIndex} '
           'error=${IllustrationFailureCode.internalError.wireCode}',
         );
-      } finally {
-        lease.release();
       }
     }
 
@@ -525,6 +526,29 @@ class IllustrationQueue {
 
   static void _ignoreLog(String message) {
     // Logging is opt-in; the bridge stays silent unless a sink is wired.
+  }
+}
+
+/// The renderer's claim on the GPU, as the gate sees it.
+///
+/// Eviction does nothing, deliberately. ComfyUI keeps its checkpoint resident
+/// between renders, and the bridge has no way to ask it to let go that can be
+/// verified on this machine — so the card behaves exactly as it did before the
+/// gate learned to evict, and nothing has been quietly changed on a guess.
+///
+/// This is the one place that changes when the bridge does learn to free it:
+/// a free call belongs in [evict], not in the queue's page loop, so that the
+/// gate keeps deciding *when* — after the last page, never between two of
+/// them.
+class _ComfyUiTenant implements GpuTenant {
+  const _ComfyUiTenant();
+
+  @override
+  String get name => 'comfyui';
+
+  @override
+  Future<void> evict() async {
+    // Nothing to free yet; see the class doc for why that is on purpose.
   }
 }
 

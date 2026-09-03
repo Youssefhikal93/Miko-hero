@@ -24,8 +24,6 @@ typedef GenerationLogSink = void Function(String message);
 /// How many finished jobs stay readable before the oldest are dropped.
 const int maxRetainedFinishedJobs = 100;
 
-const Duration _ollamaUnloadTimeout = Duration(seconds: 5);
-
 /// Runs story generation jobs strictly one at a time.
 ///
 /// The machine has one small GPU, so concurrency is not a tuning knob: a
@@ -66,6 +64,17 @@ class StoryGenerationQueue {
   /// story is being written waits for the story instead of fighting it for
   /// the same 4 GB of VRAM.
   final GpuGate _gate;
+
+  /// This queue's identity at the gate, and the thing the gate evicts.
+  ///
+  /// Lazy because it borrows the gate's eviction budget, which is only known
+  /// once [_gate] has been resolved.
+  late final _OllamaTenant _tenant = _OllamaTenant(
+    config: _config,
+    client: _client,
+    log: _log,
+    unloadTimeout: _gate.evictionTimeout,
+  );
 
   final Uuid _uuid;
   final DateTime Function() _clock;
@@ -207,36 +216,24 @@ class StoryGenerationQueue {
     }
   }
 
+  /// Runs one job's whole GPU turn, then reports it settled.
+  ///
+  /// Unloading the model is no longer this queue's business: the gate evicts
+  /// [_tenant] on the way out, so the card is clear before anything else is
+  /// allowed to start. The job is reported settled as soon as the worker has
+  /// stopped touching the library, which is what [whenSettled] promises — the
+  /// unload happens behind it, still inside the turn.
   Future<void> _runJob(String jobId) async {
-    final GpuLease lease = await _gate.acquire();
-    try {
-      await _runJobOnGpu(jobId);
-    } finally {
+    await _gate.run(_tenant, () async {
       try {
-        await _unloadOllama(jobId);
+        await _runJobOnGpu(jobId);
+      } finally {
         final finished = _jobs[jobId];
         if (finished != null && finished.status.isTerminal) {
           _settle(finished);
         }
-      } finally {
-        lease.release();
       }
-    }
-  }
-
-  Future<void> _unloadOllama(String jobId) async {
-    try {
-      await _client.unload(
-        OllamaUnloadRequest(
-          baseUrl: _config.ollamaBaseUrl,
-          model: _config.ollamaModel,
-          timeout: _ollamaUnloadTimeout,
-        ),
-      );
-      _log('job $jobId Ollama model unloaded');
-    } catch (_) {
-      _log('job $jobId Ollama unload failed');
-    }
+    });
   }
 
   /// Runs one job's attempts, both passes, inside the held GPU lease.
@@ -488,5 +485,50 @@ class StoryGenerationQueue {
 
   static void _ignoreLog(String message) {
     // Logging is opt-in; the bridge stays silent unless a sink is wired.
+  }
+}
+
+/// The language model's claim on the GPU, as the gate sees it.
+///
+/// Ollama keeps a model resident for its keep-alive window after the last
+/// token, so "the story is written" and "the card is free" are not the same
+/// moment. Eviction is the explicit unload that closes that gap; without it
+/// the renderer would find a card that is nominally idle and actually full.
+///
+/// The job id is deliberately absent from these lines: by the time the gate
+/// evicts, the turn is over and the unload belongs to the queue, not to any
+/// one story.
+class _OllamaTenant implements GpuTenant {
+  const _OllamaTenant({
+    required this._config,
+    required this._client,
+    required this._log,
+    required this._unloadTimeout,
+  });
+
+  final BridgeConfig _config;
+  final OllamaStoryClient _client;
+  final GenerationLogSink _log;
+  final Duration _unloadTimeout;
+
+  @override
+  String get name => 'ollama';
+
+  @override
+  Future<void> evict() async {
+    try {
+      await _client.unload(
+        OllamaUnloadRequest(
+          baseUrl: _config.ollamaBaseUrl,
+          model: _config.ollamaModel,
+          timeout: _unloadTimeout,
+        ),
+      );
+      _log('Ollama model unloaded');
+    } catch (_) {
+      // Swallowed rather than rethrown so the log says which local service
+      // failed; the gate's own net would only be able to say "ollama".
+      _log('Ollama unload failed');
+    }
   }
 }

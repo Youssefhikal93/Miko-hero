@@ -776,8 +776,10 @@ queued ──▶ generating ──▶ validating ──▶ completed
   fails the job fails as `library_write_failed` and no rows remain.
 - **failed / cancelled** — no story, no partial rows, ever.
 
-After any running job reaches one of those terminal states, the bridge asks
-Ollama to unload the configured model before releasing the shared GPU lease.
+After any running job reaches one of those terminal states, the shared GPU
+gate asks Ollama to unload the configured model before the card changes hands
+or goes idle. The gate owns that rule for both queues; a queue never unloads
+on its own.
 
 ### Language purity
 
@@ -918,8 +920,8 @@ first stage runs once per job — one extra render on top of the pages:
    their negative prompt: a page must stay free to be whatever its style
    demands instead of arguing with its reference.
 
-Stage one takes the same one-GPU lease a page takes, so no story is ever
-generated alongside it. If it fails for any reason the job renders the pages
+Stage one takes the same turn on the one-GPU gate a page takes, so no story
+is ever generated alongside it. If it fails for any reason the job renders the pages
 with **no reference at all** — never with the raw photo, which is the output
 this pass exists to avoid. The portrait is derived from the child's photo and
 is treated as private content: it stays inside ComfyUI's folders, exactly as

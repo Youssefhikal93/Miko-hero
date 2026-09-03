@@ -53,7 +53,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// The two generation queues share one [GpuGate], created here, because the
 /// machine has one GPU: a story and an illustration must never render at the
-/// same moment.
+/// same moment, and whatever one of them loaded onto the card has to be gone
+/// before the other starts.
 class AppServer {
   /// Creates a server for [config] over an initialized [library].
   ///
@@ -75,7 +76,10 @@ class AppServer {
     Duration? illustrationPollInterval,
   }) : deviceStore = DeviceStore(library: library, uuid: uuid),
        pairingService = PairingService(uuid: uuid, clock: clock) {
-    final gpuGate = GpuGate();
+    // The gate, not the queues, clears the card between them, so it gets the
+    // same content-free sink: an eviction that failed is a fact about the
+    // machine that only this line will ever report.
+    final gpuGate = GpuGate(log: logEvent);
     _generationQueue = StoryGenerationQueue(
       config: config,
       writer: StoryLibraryWriter(library: library, uuid: uuid),
