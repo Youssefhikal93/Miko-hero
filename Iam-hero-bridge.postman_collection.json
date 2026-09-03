@@ -1,0 +1,593 @@
+{
+  "info": {
+    "_postman_id": "6b0f2a4c-9d31-4f77-9a2e-7c1f5d0a3b18",
+    "name": "Iam-hero bridge",
+    "description": "Every endpoint the Iam-hero PC bridge serves, in the order a happy path uses them.\n\n**Set two things and nothing else:**\n\n1. `baseUrl` — `http://127.0.0.1:8765` on the PC itself, or the Tailscale Funnel address (`https://<machine>.<tailnet>.ts.net`) from anywhere else.\n2. `deviceToken` — leave it empty. Run **Pairing → Confirm pairing** once and its test script stores the returned token here for every other request.\n\n`storyId`, `jobId` and `illustrationId` are filled in the same way by the requests that produce them, so the collection runs top to bottom without copy-paste. `profileId` is the one value you type yourself: use the id the sync manifest reports under `profiles`, or `profile-1` if you queued a story with the example body below.\n\nAuthentication is set once at the collection level as `Bearer {{deviceToken}}`. `GET /health` and the two pairing endpoints opt out of it, exactly as the bridge does.\n\nAll errors use the typed envelope `{\"error\": {\"code\": \"...\", \"message\": \"...\"}}`. Every request's description names the codes it can answer with. Full documentation: `bridge/README.md`.\n\nNothing in this file is real: no token, no child's name beyond the README's own example, no library path.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{deviceToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8765",
+      "type": "string",
+      "description": "Bridge address. Loopback on the PC; the Tailscale Funnel https address from anywhere else."
+    },
+    {
+      "key": "deviceToken",
+      "value": "",
+      "type": "string",
+      "description": "Filled automatically by Confirm pairing. Never commit a real one."
+    },
+    {
+      "key": "profileId",
+      "value": "",
+      "type": "string",
+      "description": "Set by hand: a profile id from the sync manifest."
+    },
+    {
+      "key": "storyId",
+      "value": "",
+      "type": "string",
+      "description": "Filled automatically by Read sync manifest."
+    },
+    {
+      "key": "jobId",
+      "value": "",
+      "type": "string",
+      "description": "Filled automatically by Queue story generation and Queue illustrations."
+    },
+    {
+      "key": "illustrationId",
+      "value": "",
+      "type": "string",
+      "description": "Filled automatically by Read sync manifest."
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "The one endpoint that answers before pairing. Ask it first whenever anything looks wrong.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "No auth. Returns the bridge version, uptime, and one status per local dependency:\n\n```json\n{\n  \"version\": \"0.1.0\",\n  \"uptimeSeconds\": 12.4,\n  \"statuses\": {\n    \"ollama\":  {\"available\": true,  \"detail\": \"Ollama ready with gemma3:4b.\"},\n    \"comfyui\": {\"available\": false, \"detail\": \"ComfyUI unreachable.\"},\n    \"library\": {\"available\": true,  \"detail\": \"Database open and folders writable.\"}\n  }\n}\n```\n\nEach probe is capped at 3 s and a failing probe never crashes the server, so this endpoint answers `200` even when Ollama and ComfyUI are both down — read `statuses`, not the status code. `comfyui` reporting unavailable is expected until ComfyUI is installed."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pairing",
+      "description": "Human-in-the-loop, by design: the 6-digit code is printed on the PC console and never travels over HTTP. Codes expire after 2 minutes, live in memory as hashes only, and five wrong attempts invalidate the pending pairing.",
+      "item": [
+        {
+          "name": "Request pairing",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pair/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["pair", "request"]
+            },
+            "description": "No auth. Prints `Pairing code: XXXXXX — expires in 2 minutes` on the **PC console** and answers `201`:\n\n```json\n{ \"pairingId\": \"b6c1...\" }\n```\n\nCopy the `pairingId` into the next request, and read the code off the PC screen. The code itself is never sent over HTTP and only its SHA-256 digest is kept, in memory.\n\nErrors: `429 rate_limited` beyond 5 pending requests per rolling minute."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm pairing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (typeof body.deviceToken === 'string' && body.deviceToken.length > 0) {",
+                  "    pm.collectionVariables.set('deviceToken', body.deviceToken);",
+                  "}",
+                  "pm.test('a device token came back and was stored', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.collectionVariables.get('deviceToken')).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pairingId\": \"paste the pairingId from the previous response\",\n  \"code\": \"123456\",\n  \"deviceName\": \"Family tablet\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pair/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["pair", "confirm"]
+            },
+            "description": "No auth. Registers the device and answers `200` with a one-time 256-bit token:\n\n```json\n{ \"deviceToken\": \"...\" }\n```\n\n**The test script stores that token in the `deviceToken` collection variable**, which is what every other request in this collection authenticates with. The bridge cannot hand it out again, so if you clear the variable you must pair afresh.\n\nErrors: `404 pairing_not_found`, `410 pairing_expired`, `403 invalid_pairing_code`. **Five wrong attempts invalidate the pending pairing** — after that even the correct code fails and you need a new Request pairing."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "description": "The paired-device registry. Names and dates only; tokens are stored as SHA-256 hashes and are never listed.",
+      "item": [
+        {
+          "name": "List devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices"]
+            },
+            "description": "Requires auth. Lists paired devices:\n\n```json\n{ \"devices\": [ { \"id\": \"...\", \"name\": \"Family tablet\", \"createdAtUtc\": \"2026-08-22T10:00:00Z\" } ] }\n```\n\nThis is the cheapest way to prove `deviceToken` works: every endpoint except `/health` and the two pairing endpoints answers `401 unauthorized` without a valid bearer token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profiles",
+      "description": "The child's reference photo — the one thing that makes the hero look like the same child on every page. Set `profileId` by hand before using this folder. The bytes never leave the library: they are not logged, not echoed, and never sent to a paired device, only to the local ComfyUI while a page renders.",
+      "item": [
+        {
+          "name": "Upload reference photo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/png",
+                "description": "image/jpeg or image/png only (image/jpg is accepted for the former)."
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profiles/{{profileId}}/photo",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "{{profileId}}", "photo"]
+            },
+            "description": "Requires auth. **The body is the image itself, not JSON** — pick the file under Body → binary, and set `Content-Type` to match it.\n\n```text\nPUT /profiles/profile-1/photo\nAuthorization: Bearer <deviceToken>\nContent-Type: image/jpeg\n\n<raw bytes>\n```\n\nAnswers `200`:\n\n```json\n{\n  \"profileId\": \"profile-1\",\n  \"relativePath\": \"photos/profile-1.png\",\n  \"contentType\": \"image/png\",\n  \"sizeBytes\": 148213\n}\n```\n\nThe declared type is a claim and the bytes are the evidence: the file must start with that format's magic bytes. For the best likeness use a clear, front-facing, well-lit head-and-shoulders photo — the portrait pass sees one centre-cropped 512x512 square.\n\nErrors: `400 unsupported_image_type` (wrong or missing `Content-Type`), `400 invalid_image` (bytes that are not that format, or an empty body), `413 photo_too_large` (over 2 MB), `404 profile_not_found`, `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete reference photo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profiles/{{profileId}}/photo",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "{{profileId}}", "photo"]
+            },
+            "description": "Requires auth. Removes the photo and answers `200`:\n\n```json\n{ \"profileId\": \"profile-1\", \"removed\": true }\n```\n\nIdempotent: a profile that has no photo answers `200` with `\"removed\": false`. Pages rendered afterwards simply stop resembling anyone in particular.\n\nErrors: `404 profile_not_found`, `401 unauthorized`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stories",
+      "description": "Writing a book. One job at a time behind a single worker, because the PC has one 4 GB GPU; jobs live in memory and a bridge restart clears in-flight work.",
+      "item": [
+        {
+          "name": "Queue story generation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (typeof body.jobId === 'string' && body.jobId.length > 0) {",
+                  "    pm.collectionVariables.set('jobId', body.jobId);",
+                  "}",
+                  "pm.test('the job was queued and its id was stored', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "    pm.expect(pm.collectionVariables.get('jobId')).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileId\": \"profile-1\",\n  \"heroName\": \"Nour\",\n  \"ageYears\": 6,\n  \"genderContext\": \"girl\",\n  \"languageCode\": \"ar\",\n  \"theme\": \"A lantern festival by the sea\",\n  \"moral\": \"Sharing a small light makes it bigger\",\n  \"pageCount\": 6,\n  \"illustrationStyle\": \"pictureBook\",\n  \"favoriteTopics\": \"sea turtles and paper boats\",\n  \"recurringWorld\": \"the Lantern Harbour\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stories/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "generate"]
+            },
+            "description": "Requires auth. Queues one story generation job and answers `202` — nothing has been written yet:\n\n```json\n{ \"jobId\": \"…\", \"queuePosition\": 1 }\n```\n\n**The test script stores `jobId`**, so Read story job below polls this job with no copy-paste. Position `1` means next or already starting.\n\nEvery field except the last two is required. `genderContext` is `girl` or `boy`, `languageCode` is `ar`, `en`, `sv` or `so`, `pageCount` is `6`, `8` or `10`, and `illustrationStyle` is `pictureBook`, `watercolor` or `colorful3d`. `favoriteTopics` and `recurringWorld` are optional (≤ 240 characters each); absent, `null` and blank all mean the same thing and the prompt then says nothing about them.\n\nErrors: `400 invalid_field` (before a job exists), `400 invalid_json`, `401 unauthorized`, `413 body_too_large`. Failures reported later on the job itself: `ollama_unavailable`, `ollama_timeout`, `invalid_model_output`, `library_write_failed`, `cancelled`, `internal_error`."
+          },
+          "response": []
+        },
+        {
+          "name": "Read story job",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stories/jobs/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "jobs", "{{jobId}}"]
+            },
+            "description": "Requires auth. Polls one job:\n\n```json\n{\n  \"jobId\": \"…\",\n  \"status\": \"generating\",\n  \"progress\": \"Writing the story (attempt 1 of 3).\",\n  \"createdAtUtc\": \"2026-08-22T10:00:00.000Z\",\n  \"updatedAtUtc\": \"2026-08-22T10:00:04.000Z\"\n}\n```\n\nStatuses run `queued → generating → validating → completed`, or `failed` / `cancelled`. `queuePosition` is present only while `queued`; a failed job carries `\"error\": {\"code\": …}`; a completed one carries the whole book under `story`, with one `pending` illustration row per page. A ten-page story can take several minutes on the 4 GB card — poll, do not assume.\n\nThe generation request is never echoed back: it holds the child's name.\n\nErrors: `404 job_not_found` — which is also the answer for a job another device created, so ids cannot be probed. `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel story job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stories/jobs/{{jobId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "jobs", "{{jobId}}", "cancel"]
+            },
+            "description": "Requires auth. No body. Idempotent; answers `200` with the status the job ended in:\n\n```json\n{ \"jobId\": \"…\", \"status\": \"cancelled\" }\n```\n\nA queued job leaves the line immediately. A running job has its in-flight request to Ollama aborted and is never persisted — cancelling always means \"no story\", never \"half a story\".\n\nErrors: `404 job_not_found`, `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete story everywhere",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stories/{{storyId}}/delete",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "{{storyId}}", "delete"]
+            },
+            "description": "Requires auth. No body. **Permanent, with no undo** — the recovery path for a mistake is a backup. Deletes the pages, the illustration rows and the illustration files, and records the deletion so every other device drops its copy too.\n\n```json\n{\n  \"storyId\": \"…\",\n  \"alreadyDeleted\": false,\n  \"deletedAtUtc\": \"2026-08-22T10:05:00.000Z\",\n  \"removedFileCount\": 6\n}\n```\n\nIdempotent: a story that is already gone answers `200` with `\"alreadyDeleted\": true` and the original deletion time. Profiles and reference photos are never touched. Removing one device's offline copy is a different thing and calls no endpoint at all.\n\nErrors: `404 story_not_found` (an id that was never in this library), `401 unauthorized`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Illustrations",
+      "description": "Drawing the pages. The illustration and story queues share one GPU lock: while a page renders no story is written, and vice versa. The lock is taken per page, so a story queued behind a ten-page book waits for one page, not ten.",
+      "item": [
+        {
+          "name": "Queue illustrations for a story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (typeof body.jobId === 'string' && body.jobId.length > 0) {",
+                  "    pm.collectionVariables.set('jobId', body.jobId);",
+                  "}",
+                  "pm.test('the render job was queued and its id was stored', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "    pm.expect(pm.collectionVariables.get('jobId')).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"illustrationStyle\": \"watercolor\",\n  \"genderContext\": \"girl\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stories/{{storyId}}/illustrate",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "{{storyId}}", "illustrate"]
+            },
+            "description": "Requires auth. Queues rendering of every page that has no image yet — `pending` and `failed` rows both count, `completed` ones are skipped — and answers `202`:\n\n```json\n{ \"jobId\": \"…\", \"pageCount\": 6, \"queuePosition\": 1 }\n```\n\n**The test script stores `jobId`**, so Read illustration job polls this job directly. `pageCount` is how many pages *this job* renders, not how long the story is: after a run where one page failed, a second call answers `\"pageCount\": 1`.\n\nThe body is optional and carries the two things the library does not remember about a story but a picture needs. An absent `illustrationStyle` falls back to `pictureBook`; an absent `genderContext` leaves the hero described as a child.\n\nErrors: `400 invalid_field` (a present-but-invalid value), `404 story_not_found`, `401 unauthorized`. Failures reported later on the job: `comfyui_unavailable`, `comfyui_timeout`, `comfyui_failed`, `invalid_image_output`, `image_write_failed`, `library_write_failed`, `missing_custom_node`, `cancelled`, `internal_error`."
+          },
+          "response": []
+        },
+        {
+          "name": "Read illustration job",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/illustrations/jobs/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["illustrations", "jobs", "{{jobId}}"]
+            },
+            "description": "Requires auth. Polls one illustration job:\n\n```json\n{\n  \"jobId\": \"…\",\n  \"storyId\": \"…\",\n  \"status\": \"rendering\",\n  \"progress\": \"Rendering page 3 of 6.\",\n  \"pageCount\": 6,\n  \"completedPageCount\": 2,\n  \"failedPageCount\": 0,\n  \"createdAtUtc\": \"2026-08-22T10:00:00.000Z\",\n  \"updatedAtUtc\": \"2026-08-22T10:04:12.000Z\"\n}\n```\n\n**A `completed` job may still have failed pages** — read the counts, not the status. `failed` means no image landed at all. `queuePosition` is present only while `queued`. Nothing in this payload is story content: no scene descriptions, no prompts, no file paths.\n\nErrors: `404 job_not_found` (including a job another device created), `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel illustration job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/illustrations/jobs/{{jobId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["illustrations", "jobs", "{{jobId}}", "cancel"]
+            },
+            "description": "Requires auth. No body. Idempotent; answers `200` with the status the job ended in:\n\n```json\n{ \"jobId\": \"…\", \"status\": \"cancelled\" }\n```\n\nA queued job leaves the line immediately. A running job **stops after the page it is currently rendering** — that page is finished and stored, and no page after it is started. Throwing away a nearly finished minute of GPU work would help nobody.\n\nErrors: `404 job_not_found`, `401 unauthorized`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sync",
+      "description": "Manifest → downloads → complete. There is deliberately no change feed: one manifest of metadata plus timestamps is smaller and far harder to get wrong than a cursor a device could lose or replay.",
+      "item": [
+        {
+          "name": "Read sync manifest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const stories = Array.isArray(body.stories) ? body.stories : [];",
+                  "if (stories.length > 0 && typeof stories[0].id === 'string') {",
+                  "    pm.collectionVariables.set('storyId', stories[0].id);",
+                  "}",
+                  "",
+                  "// Prefer a completed illustration: only those can be downloaded.",
+                  "let picked = null;",
+                  "for (const story of stories) {",
+                  "    const rows = Array.isArray(story.illustrations) ? story.illustrations : [];",
+                  "    for (const row of rows) {",
+                  "        if (picked === null) {",
+                  "            picked = row;",
+                  "        }",
+                  "        if (row.status === 'completed') {",
+                  "            picked = row;",
+                  "            break;",
+                  "        }",
+                  "    }",
+                  "    if (picked !== null && picked.status === 'completed') {",
+                  "        break;",
+                  "    }",
+                  "}",
+                  "if (picked !== null && typeof picked.id === 'string') {",
+                  "    pm.collectionVariables.set('illustrationId', picked.id);",
+                  "}",
+                  "",
+                  "pm.test('the manifest came back', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(body).to.have.property('generatedAtUtc');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sync/manifest",
+              "host": ["{{baseUrl}}"],
+              "path": ["sync", "manifest"]
+            },
+            "description": "Requires auth. Everything the calling device needs to decide what to download. **Metadata only**: titles and timestamps travel here, prose and files never do.\n\n```json\n{\n  \"generatedAtUtc\": \"2026-08-22T10:00:00.000Z\",\n  \"lastSyncedAtUtc\": null,\n  \"profiles\": [\n    {\"id\": \"profile-1\", \"displayName\": \"Nour\", \"updatedAtUtc\": \"…\"}\n  ],\n  \"stories\": [\n    {\n      \"id\": \"…\",\n      \"profileId\": \"profile-1\",\n      \"title\": \"…\",\n      \"languageCode\": \"ar\",\n      \"createdAtUtc\": \"…\",\n      \"updatedAtUtc\": \"…\",\n      \"pageCount\": 6,\n      \"illustrations\": [\n        {\"id\": \"…\", \"pageNumber\": 1, \"status\": \"pending\"}\n      ]\n    }\n  ],\n  \"deletions\": [\n    {\"entityType\": \"story\", \"entityId\": \"…\", \"deletedAtUtc\": \"…\"}\n  ]\n}\n```\n\n**The test script stores the first story's id in `storyId`, and an illustration id in `illustrationId` — preferring a `completed` row, since only those can be downloaded.** It is also where you read a real `profileId` from, for the Profiles folder.\n\n`lastSyncedAtUtc` is this device's own watermark and stays `null` until it has reported one successful sync; every device sees only its own.\n\nErrors: `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Download story",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sync/stories/{{storyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sync", "stories", "{{storyId}}"]
+            },
+            "description": "Requires auth. The complete story: title, language, and ordered pages with the prose, the English scene description, and each illustration's id, path and status. Exactly the payload shape a completed generation job returns, so a device parses one format either way.\n\n```json\n{\n  \"story\": {\n    \"id\": \"…\",\n    \"profileId\": \"profile-1\",\n    \"title\": \"…\",\n    \"languageCode\": \"ar\",\n    \"createdAtUtc\": \"…\",\n    \"updatedAtUtc\": \"…\",\n    \"pages\": [\n      {\n        \"id\": \"…\",\n        \"pageNumber\": 1,\n        \"text\": \"…\",\n        \"illustrationScene\": \"…\",\n        \"illustrationId\": \"…\",\n        \"illustrationRelativePath\": \"illustrations/<storyId>/0.png\",\n        \"illustrationStatus\": \"pending\"\n      }\n    ]\n  }\n}\n```\n\nCall it only for stories whose manifest `updatedAtUtc` is newer than the copy you hold.\n\nErrors: `404 story_not_found` — including a story that was deleted. `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Download illustration",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "If-None-Match",
+                "value": "",
+                "disabled": true,
+                "description": "Send back the ETag you stored last time to get 304 instead of the image."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sync/illustrations/{{illustrationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sync", "illustrations", "{{illustrationId}}"]
+            },
+            "description": "Requires auth. **The one endpoint that answers with bytes instead of JSON**: the rendered page as `image/png`, with a strong `ETag` (the SHA-256 of the file contents) and `Cache-Control: private, no-cache`.\n\nEnable the `If-None-Match` header above with a stored tag to get `304 Not Modified` instead of the image. A content hash rather than size-and-mtime, deliberately: a re-render writes the same path with a new timestamp, and re-downloading a byte-identical image on every sync is exactly what the tag exists to prevent.\n\nTwo response headers carry the page's identity so you need not join back to the manifest: `x-illustration-story-id` and `x-illustration-page-number`.\n\nErrors stay typed JSON: `404 illustration_not_found` (unknown id), `409 illustration_not_ready` (the row is not `completed` — a different thing from a missing story, and a row claiming `completed` while its file is gone reads as `409` too), `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Report sync complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"manifestGeneratedAtUtc\": \"2026-08-22T10:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sync/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["sync", "complete"]
+            },
+            "description": "Requires auth. Send the `generatedAtUtc` of the manifest this device finished applying. Upserts one `sync_state` row for the calling device inside a transaction and answers `200` with the stored value:\n\n```json\n{ \"deviceId\": \"…\", \"lastSyncedAtUtc\": \"2026-08-22T10:00:00.000Z\" }\n```\n\nThe watermark is the manifest's own generation time, not the time this report arrived, so anything written while the device was downloading is simply picked up by the next sync.\n\nErrors: `400 invalid_field` (missing or unparsable timestamp), `400 invalid_json`, `401 unauthorized`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Backup",
+      "description": "Encrypted snapshots of the whole master library. The file itself never travels over HTTP — only its name does. It is written into the library's own `exports/` folder, so copy the `.ihmb` file somewhere else yourself: a backup that exists only on the PC it backs up protects against a mistake but not against a dead disk.",
+      "item": [
+        {
+          "name": "Create library backup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"at least eight characters\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/library/backup",
+              "host": ["{{baseUrl}}"],
+              "path": ["library", "backup"]
+            },
+            "description": "Requires auth. Writes one AES-256-GCM encrypted snapshot (PBKDF2-HMAC-SHA256, 200 000 iterations, random salt and nonce) into the library's `exports/` folder and answers `201`:\n\n```json\n{\n  \"fileName\": \"iam-hero-master-20260822T101530Z.ihmb\",\n  \"sizeBytes\": 184913,\n  \"createdAtUtc\": \"2026-08-22T10:15:30.000Z\",\n  \"rowCount\": 47,\n  \"fileCount\": 12\n}\n```\n\nIt holds every database row plus every file under `photos/` and `illustrations/`. **Device token hashes are never in a backup** — a backup that could authenticate a device would be a credential, and this one is a document. `exports/` is excluded, so backups never nest.\n\nErrors: `backup_password_too_short`, `backup_too_large`, `backup_write_failed`, `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Restore library backup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"iam-hero-master-20260822T101530Z.ihmb\",\n  \"password\": \"at least eight characters\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/library/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["library", "restore"]
+            },
+            "description": "Requires auth. Copy the `.ihmb` file back into the library's `exports/` folder first, then name it here. Replaces the library with that file's contents and answers `200`:\n\n```json\n{\n  \"fileName\": \"iam-hero-master-20260822T101530Z.ihmb\",\n  \"backupCreatedAtUtc\": \"2026-08-22T10:15:30.000Z\",\n  \"restoredRowCount\": 47,\n  \"restoredFileCount\": 12,\n  \"restoredDeviceCount\": 2,\n  \"devicesMustRePair\": true\n}\n```\n\n**After a restore every device must pair again**, including the one that asked for the restore: restored device rows exist so the parent recognizes the list, but they cannot authenticate anything. So this collection's `deviceToken` stops working the moment this succeeds.\n\nRestore is all-or-nothing: the file is authenticated, decrypted and fully validated before anything is touched, and the database is refilled inside one transaction. A wrong password, a flipped bit, a foreign file or a payload this build cannot read all fail before any change.\n\nErrors: `backup_password_too_short`, `backup_invalid_file_name`, `backup_not_found`, `backup_unreadable`, `backup_authentication_failed` (wrong password **or** an altered file), `backup_unsupported_version`, `backup_too_large`, `backup_restore_failed` (the one non-atomic window: a file-system failure with the database already restored), `401 unauthorized`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

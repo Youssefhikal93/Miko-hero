@@ -159,6 +159,33 @@ the process closes the socket and database cleanly.
 All requests and responses are JSON. Errors use the typed envelope
 `{"error": {"code": "...", "message": "..."}}`.
 
+### Postman collection
+
+Every endpoint below is also a ready request in
+[`Iam-hero-bridge.postman_collection.json`](../Iam-hero-bridge.postman_collection.json)
+at the repository root — Postman v2.1, importable in one step. **Set two
+variables and nothing else:**
+
+- `baseUrl` — `http://127.0.0.1:8765` on the PC itself, or the Tailscale Funnel
+  address (`https://<machine>.<tailnet>.ts.net`) from anywhere else. The same
+  collection works against both.
+- `deviceToken` — **leave it empty**. Run *Pairing → Confirm pairing* once and
+  its test script stores the returned token here for every other request.
+
+`storyId`, `jobId` and `illustrationId` are filled the same way by the requests
+that produce them, so the collection runs top to bottom without copy-paste;
+`profileId` is the one value typed by hand, read from the sync manifest.
+Authentication is set once at the collection level as `Bearer {{deviceToken}}`,
+and `/health`, `/pair/request` and `/pair/confirm` opt out of it exactly as the
+bridge does.
+
+The file ships with every variable empty except `baseUrl`: no token and no
+family data are committed. `test/postman_collection_test.dart` checks the
+collection against `lib/src/server/bridge_routes.dart` — the same list
+`AppServer.buildHandler` builds its routers from — so a new endpoint without a
+Postman request, or a request for an endpoint that no longer exists, fails the
+suite.
+
 ### `GET /health` — no auth
 
 Returns bridge version, uptime, and dependency statuses:
@@ -1084,6 +1111,11 @@ node classes it "has", which is how the missing-Impact-Pack failure is proved
 without installing anything. The workflow tests assert exact node wiring —
 which node reads which slot of which other node — because that is what a
 rendering bug actually looks like.
+
+`postman_collection_test.dart` needs no services at all: it parses the
+committed collection and holds it against `bridgeRoutes`, both ways — every
+route has a request, and every request has a route — plus the empty variables
+and the three `noauth` opt-outs.
 
 Sync, deletion and backup tests mock nothing: they run the real SQLite
 database, the real file system inside a temporary library, and the real

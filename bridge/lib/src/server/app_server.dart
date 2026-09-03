@@ -21,6 +21,7 @@ import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
 import 'package:iam_hero_bridge/src/server/auth_middleware.dart';
 import 'package:iam_hero_bridge/src/server/backup_handlers.dart';
+import 'package:iam_hero_bridge/src/server/bridge_routes.dart';
 import 'package:iam_hero_bridge/src/server/cors_middleware.dart';
 import 'package:iam_hero_bridge/src/server/devices_handler.dart';
 import 'package:iam_hero_bridge/src/server/generation_handlers.dart';
@@ -164,59 +165,61 @@ class AppServer {
   late final SyncHandlers _syncHandlers;
   late final BackupHandlers _backupHandlers;
 
+  /// The handler wired to each route of [bridgeRoutes], keyed by
+  /// [BridgeRoute.key].
+  ///
+  /// Handlers differ in arity — a route with a `<param>` segment receives it
+  /// as an extra positional argument — which is why these are `Function`
+  /// rather than `Handler`; `shelf_router` takes the same type.
+  Map<String, Function> _handlersByRoute() {
+    return <String, Function>{
+      'GET /health': _healthHandler.call,
+      'POST /pair/request': _pairingHandlers.requestPairing,
+      'POST /pair/confirm': _pairingHandlers.confirmPairing,
+      'GET /devices': _devicesHandler.listDevices,
+      'POST /stories/generate': _generationHandlers.createJob,
+      'GET /stories/jobs/<jobId>': _generationHandlers.readJob,
+      'POST /stories/jobs/<jobId>/cancel': _generationHandlers.cancelJob,
+      'POST /stories/<storyId>/illustrate': _illustrationHandlers.createJob,
+      'GET /illustrations/jobs/<jobId>': _illustrationHandlers.readJob,
+      'POST /illustrations/jobs/<jobId>/cancel':
+          _illustrationHandlers.cancelJob,
+      'PUT /profiles/<profileId>/photo': _profilePhotoHandlers.putPhoto,
+      'DELETE /profiles/<profileId>/photo': _profilePhotoHandlers.deletePhoto,
+      'POST /stories/<storyId>/delete': _syncHandlers.deleteStory,
+      'GET /sync/manifest': _syncHandlers.readManifest,
+      'GET /sync/stories/<storyId>': _syncHandlers.downloadStory,
+      'GET /sync/illustrations/<illustrationId>':
+          _syncHandlers.downloadIllustration,
+      'POST /sync/complete': _syncHandlers.completeSync,
+      'POST /library/backup': _backupHandlers.createBackup,
+      'POST /library/restore': _backupHandlers.restoreBackup,
+    };
+  }
+
   /// Builds the fully wired request handler without binding a socket.
+  ///
+  /// Both routers are built from [bridgeRoutes], so that list is the only
+  /// description of which endpoints exist and which of them are public.
   ///
   /// Tests bind this to an ephemeral port themselves; the production entry
   /// point uses [start].
   Handler buildHandler() {
-    final Router publicApi = Router(notFoundHandler: _typedNotFound)
-      ..get('/health', _healthHandler.call)
-      ..post('/pair/request', _pairingHandlers.requestPairing)
-      ..post('/pair/confirm', _pairingHandlers.confirmPairing);
+    final Map<String, Function> handlers = _handlersByRoute();
+    final Router publicApi = Router(notFoundHandler: _typedNotFound);
+    final Router protectedRouter = Router(notFoundHandler: _typedNotFound);
+    for (final BridgeRoute route in bridgeRoutes) {
+      final Function? handler = handlers[route.key];
+      if (handler == null) {
+        throw StateError('No handler is wired for ${route.key}.');
+      }
+      final Router router = route.requiresAuth ? protectedRouter : publicApi;
+      router.add(route.method, route.path, handler);
+    }
 
     final Handler protectedApi = const Pipeline()
         .addMiddleware(requireDeviceAuth(deviceStore: deviceStore))
-        .addHandler(
-          (Router(notFoundHandler: _typedNotFound)
-                ..get('/devices', _devicesHandler.listDevices)
-                ..post('/stories/generate', _generationHandlers.createJob)
-                ..get('/stories/jobs/<jobId>', _generationHandlers.readJob)
-                ..post(
-                  '/stories/jobs/<jobId>/cancel',
-                  _generationHandlers.cancelJob,
-                )
-                ..post(
-                  '/stories/<storyId>/illustrate',
-                  _illustrationHandlers.createJob,
-                )
-                ..get(
-                  '/illustrations/jobs/<jobId>',
-                  _illustrationHandlers.readJob,
-                )
-                ..post(
-                  '/illustrations/jobs/<jobId>/cancel',
-                  _illustrationHandlers.cancelJob,
-                )
-                ..put(
-                  '/profiles/<profileId>/photo',
-                  _profilePhotoHandlers.putPhoto,
-                )
-                ..delete(
-                  '/profiles/<profileId>/photo',
-                  _profilePhotoHandlers.deletePhoto,
-                )
-                ..post('/stories/<storyId>/delete', _syncHandlers.deleteStory)
-                ..get('/sync/manifest', _syncHandlers.readManifest)
-                ..get('/sync/stories/<storyId>', _syncHandlers.downloadStory)
-                ..get(
-                  '/sync/illustrations/<illustrationId>',
-                  _syncHandlers.downloadIllustration,
-                )
-                ..post('/sync/complete', _syncHandlers.completeSync)
-                ..post('/library/backup', _backupHandlers.createBackup)
-                ..post('/library/restore', _backupHandlers.restoreBackup))
-              .call,
-        );
+        .addHandler(protectedRouter.call);
 
     final Handler api = Cascade(
       statusCodes: <int>[404],
