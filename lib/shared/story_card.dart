@@ -9,117 +9,245 @@ import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 
-/// Library card that exposes only observable story actions.
-class StoryCard extends StatelessWidget {
-  /// Creates a book card with the actions allowed by its surrounding feature.
-  const StoryCard({required this.story, required this.actions, super.key});
+/// Shape one story takes inside the shared mosaic.
+enum StoryCardVariant {
+  /// Two-column cover tile: title, page count and date, heart, Demo badge.
+  large,
 
-  /// Story represented by the card.
+  /// One-column cover tile carrying nothing but the cover and the title.
+  small,
+
+  /// Two-column row: cover thumbnail, title, meta, and the overflow control.
+  wide,
+}
+
+/// Story tile that exposes only observable story actions.
+///
+/// Every variant is one full-size tap target that opens the story. The
+/// secondary commands the surrounding feature allows live behind a single
+/// overflow menu on the [StoryCardVariant.large] and [StoryCardVariant.wide]
+/// shapes, so the tile face stays a book cover. The card never decides which
+/// commands exist: the feature does, by passing them in [StoryCardActions].
+class StoryCard extends StatelessWidget {
+  /// Creates a book tile with the actions allowed by its surrounding feature.
+  const StoryCard({
+    required this.story,
+    required this.actions,
+    this.variant = StoryCardVariant.large,
+    super.key,
+  });
+
+  /// Story represented by the tile.
   final StoryBook story;
 
   /// Commands exposed by the current library, review, or home surface.
   final StoryCardActions actions;
 
+  /// Shape this tile takes in its mosaic.
+  final StoryCardVariant variant;
+
+  /// Height of a two-column cover tile.
+  static const double largeHeight = 188;
+
+  /// Height of a one-column cover tile.
+  static const double smallHeight = 158;
+
+  /// Height of a two-column story row.
+  static const double wideHeight = 96;
+
   @override
-  /// Renders a responsive cover, metadata, and explicit actions.
+  /// Renders the requested shape without changing what the story can do.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: actions.open,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return switch (variant) {
+      StoryCardVariant.large => _large(context, text),
+      StoryCardVariant.small => _small(context),
+      StoryCardVariant.wide => _wide(context, text),
+    };
+  }
+
+  /// Builds the cover tile that carries the full story identity.
+  Widget _large(BuildContext context, AppLocalizations text) {
+    return _StoryTileSurface(
+      height: largeHeight,
+      onTap: actions.open,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          _StoryCoverArt(story: story),
+          const _CoverScrim(),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Stack(
+              children: <Widget>[
+                if (_isDemo)
+                  const Align(
+                    alignment: AlignmentDirectional.topStart,
+                    child: StoryDemoBadge(),
+                  ),
+                Align(
+                  alignment: AlignmentDirectional.topEnd,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if (story.isFavorite) const _FavoriteHeart(size: 22),
+                      if (_hasSecondaryActions)
+                        _StoryOverflowMenu(
+                          story: story,
+                          actions: actions,
+                          color: Colors.white,
+                        ),
+                    ],
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.bottomStart,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        story.content.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _meta(context, text),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.frost,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the compact cover tile used for the books behind the newest one.
+  Widget _small(BuildContext context) {
+    return _StoryTileSurface(
+      height: smallHeight,
+      onTap: actions.open,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          _StoryCoverArt(story: story),
+          const _CoverScrim(),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Align(
+              alignment: AlignmentDirectional.bottomStart,
+              child: Text(
+                story.content.title,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the short row a long shelf reads as a list rather than a wall.
+  Widget _wide(BuildContext context, AppLocalizations text) {
+    return _StoryTileSurface(
+      height: wideHeight,
+      onTap: actions.open,
+      bordered: true,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 14, 6, 14),
+        child: Row(
           children: <Widget>[
-            StoryCover(story: story, height: 190),
-            Padding(
-              padding: const EdgeInsets.all(18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox.square(
+                dimension: 68,
+                child: _StoryCoverArt(story: story),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    story.content.title,
-                    style: Theme.of(context).textTheme.titleLarge,
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          story.content.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      if (story.isFavorite) const _FavoriteHeart(size: 18),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    DateFormat.yMMMd(
-                      Localizations.localeOf(context).toString(),
-                    ).format(story.createdAt.toLocal()),
-                    style: const TextStyle(color: AppTheme.muted),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: <Widget>[
+                      if (_isDemo) ...<Widget>[
+                        const StoryDemoBadge(),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(
+                        child: Text(
+                          _meta(context, text),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.mutedDeep,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  _actions(text),
                 ],
               ),
             ),
+            if (_hasSecondaryActions)
+              _StoryOverflowMenu(story: story, actions: actions)
+            else
+              const SizedBox(width: 8),
           ],
         ),
       ),
     );
   }
 
-  /// Keeps destructive and primary actions visually distinct.
-  ///
-  /// The reading action owns its own full-width row and the secondary icons wrap
-  /// below it, so a one-column shelf on a 360 px phone keeps every 48 px touch
-  /// target no matter how many actions the surrounding feature allows.
-  Widget _actions(AppLocalizations text) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        FilledButton.tonalIcon(
-          onPressed: actions.open,
-          icon: const Icon(Icons.chrome_reader_mode_rounded),
-          label: Text(text.openStory),
-        ),
-        if (_iconActions(text).isNotEmpty) ...<Widget>[
-          const SizedBox(height: 6),
-          Wrap(alignment: WrapAlignment.end, children: _iconActions(text)),
-        ],
-      ],
-    );
+  /// Reads the story's length and age the way the shelf refers to a book.
+  String _meta(BuildContext context, AppLocalizations text) {
+    final pages = text.storyPageCount(story.content.pages.length);
+    final created = DateFormat.yMMMd(
+      Localizations.localeOf(context).toString(),
+    ).format(story.createdAt.toLocal());
+    return '$pages · $created';
   }
 
-  /// Secondary story commands allowed by the current feature surface.
-  List<Widget> _iconActions(AppLocalizations text) {
-    return <Widget>[
-      if (actions.favorite != null)
-        IconButton(
-          onPressed: actions.favorite,
-          tooltip: story.isFavorite ? text.removeFavorite : text.addFavorite,
-          icon: Icon(
-            story.isFavorite
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-          ),
-        ),
-      if (actions.collections != null)
-        IconButton(
-          onPressed: actions.collections,
-          tooltip: text.manageCollections,
-          icon: const Icon(Icons.folder_copy_outlined),
-        ),
-      if (actions.illustrate != null)
-        IconButton(
-          onPressed: actions.illustrate,
-          tooltip: text.illustrateStory,
-          icon: const Icon(Icons.palette_outlined),
-        ),
-      if (actions.share != null)
-        IconButton(
-          onPressed: actions.share,
-          tooltip: text.shareStoryFile,
-          icon: const Icon(Icons.ios_share_rounded),
-        ),
-      if (actions.delete != null)
-        IconButton(
-          onPressed: actions.delete,
-          tooltip: text.delete,
-          icon: const Icon(Icons.delete_outline_rounded),
-        ),
-    ];
-  }
+  /// Whether the surrounding feature allows anything besides opening the book.
+  bool get _hasSecondaryActions => actions.secondaryCommands.isNotEmpty;
+
+  /// Whether this book is offline sample content rather than written prose.
+  bool get _isDemo => !BridgeStoryProvenance.marksStory(story);
 }
 
 /// Observable story-card commands grouped to keep widget construction stable.
@@ -151,15 +279,248 @@ class StoryCardActions {
 
   /// Asks the paired PC to draw this story's page pictures when available.
   final VoidCallback? illustrate;
+
+  /// Every allowed command except opening, in one deliberate menu order.
+  ///
+  /// The favorite marker comes first because it is the one command a child
+  /// uses, and deletion comes last because it is the one that cannot be
+  /// undone. A feature that allows nothing here gets no overflow control at
+  /// all rather than an empty menu.
+  List<StoryCardCommand> get secondaryCommands {
+    return <StoryCardCommand>[
+      if (favorite != null)
+        StoryCardCommand(kind: StoryCardCommandKind.favorite, run: favorite!),
+      if (collections != null)
+        StoryCardCommand(
+          kind: StoryCardCommandKind.collections,
+          run: collections!,
+        ),
+      if (illustrate != null)
+        StoryCardCommand(
+          kind: StoryCardCommandKind.illustrate,
+          run: illustrate!,
+        ),
+      if (share != null)
+        StoryCardCommand(kind: StoryCardCommandKind.share, run: share!),
+      if (delete != null)
+        StoryCardCommand(kind: StoryCardCommandKind.delete, run: delete!),
+    ];
+  }
+}
+
+/// Secondary story command a feature allowed, and what it is.
+enum StoryCardCommandKind {
+  /// Toggles the child-facing favorite marker.
+  favorite,
+
+  /// Opens the parent-gated collection editor.
+  collections,
+
+  /// Asks the paired PC for this story's pictures.
+  illustrate,
+
+  /// Writes the parent-gated encrypted single-story file.
+  share,
+
+  /// Deletes the story behind the parent gate.
+  delete,
+}
+
+/// One entry of the overflow menu: what it is and the command it runs.
+class StoryCardCommand {
+  /// Pairs a command kind with the callback its feature supplied.
+  const StoryCardCommand({required this.kind, required this.run});
+
+  /// Which of the five secondary commands this entry is.
+  final StoryCardCommandKind kind;
+
+  /// The feature's callback, run unchanged so gating stays where it lives.
+  final VoidCallback run;
+}
+
+/// The one overflow control the large and wide tiles carry.
+class _StoryOverflowMenu extends StatelessWidget {
+  /// Creates a menu over the commands the feature allowed.
+  const _StoryOverflowMenu({
+    required this.story,
+    required this.actions,
+    this.color = AppTheme.frost,
+  });
+
+  /// Story every listed command applies to.
+  final StoryBook story;
+
+  /// Commands allowed by the surrounding feature.
+  final StoryCardActions actions;
+
+  /// Ink the control is drawn in, lighter when it sits on cover artwork.
+  final Color color;
+
+  @override
+  /// Lists allowed commands only, and runs each one exactly as it was given.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    return PopupMenuButton<StoryCardCommand>(
+      tooltip: text.moreStoryActions,
+      icon: Icon(Icons.more_horiz_rounded, color: color),
+      onSelected: (command) => command.run(),
+      itemBuilder: (context) => <PopupMenuEntry<StoryCardCommand>>[
+        for (final command in actions.secondaryCommands)
+          PopupMenuItem<StoryCardCommand>(
+            value: command,
+            child: Row(
+              children: <Widget>[
+                Icon(_iconFor(command.kind), size: 20),
+                const SizedBox(width: 12),
+                // A menu is only as wide as the longest label it can show, so
+                // the label wraps instead of running past its own edge.
+                Expanded(child: Text(_labelFor(text, command.kind))),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Keeps every command recognizable by the icon it had on the card face.
+  IconData _iconFor(StoryCardCommandKind kind) {
+    return switch (kind) {
+      StoryCardCommandKind.favorite =>
+        story.isFavorite
+            ? Icons.favorite_rounded
+            : Icons.favorite_border_rounded,
+      StoryCardCommandKind.collections => Icons.folder_copy_outlined,
+      StoryCardCommandKind.illustrate => Icons.palette_outlined,
+      StoryCardCommandKind.share => Icons.ios_share_rounded,
+      StoryCardCommandKind.delete => Icons.delete_outline_rounded,
+    };
+  }
+
+  /// Reuses the wording each command already had as an icon tooltip.
+  String _labelFor(AppLocalizations text, StoryCardCommandKind kind) {
+    return switch (kind) {
+      StoryCardCommandKind.favorite =>
+        story.isFavorite ? text.removeFavorite : text.addFavorite,
+      StoryCardCommandKind.collections => text.manageCollections,
+      StoryCardCommandKind.illustrate => text.illustrateStory,
+      StoryCardCommandKind.share => text.shareStoryFile,
+      StoryCardCommandKind.delete => text.delete,
+    };
+  }
+}
+
+/// Shared tile body: one rounded surface whose whole face opens the story.
+class _StoryTileSurface extends StatelessWidget {
+  /// Creates a tile of fixed [height] around [child].
+  const _StoryTileSurface({
+    required this.height,
+    required this.onTap,
+    required this.child,
+    this.bordered = false,
+  });
+
+  /// Height the tile keeps so mosaic rows line up.
+  final double height;
+
+  /// The story-opening command, which owns the whole tile.
+  final VoidCallback onTap;
+
+  /// Tile content drawn inside the clipped surface.
+  final Widget child;
+
+  /// Whether the tile needs a hairline, used where no cover fills it.
+  final bool bordered;
+
+  @override
+  /// Keeps the open action a full-size tap target on every variant.
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.tile,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: bordered
+            ? const BorderSide(color: AppTheme.hairline)
+            : BorderSide.none,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(height: height, child: child),
+      ),
+    );
+  }
+}
+
+/// The favourite marker a story carries once a child has starred it.
+class _FavoriteHeart extends StatelessWidget {
+  /// Creates the heart at the size its tile has room for.
+  const _FavoriteHeart({required this.size});
+
+  /// Glyph size in logical pixels.
+  final double size;
+
+  @override
+  /// Shows state only; favouriting itself lives in the overflow menu.
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 4),
+      child: Icon(Icons.favorite_rounded, size: size, color: AppTheme.candle),
+    );
+  }
+}
+
+/// Darkening wash between cover artwork and the text printed on it.
+class _CoverScrim extends StatelessWidget {
+  /// Creates the shared bottom-weighted scrim.
+  const _CoverScrim();
+
+  @override
+  /// Keeps a title readable over whatever the PC happened to draw.
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          stops: <double>[0, 0.65],
+          colors: <Color>[Color(0xD106080F), Color(0x1406080F)],
+        ),
+      ),
+    );
+  }
+}
+
+/// Labels demo stories so sample content cannot pass as AI output.
+///
+/// Bridge-generated stories carry no badge: their text is real AI output
+/// whether the PC has drawn their pictures yet or not.
+class StoryDemoBadge extends StatelessWidget {
+  /// Creates the demo badge in its one shared size.
+  const StoryDemoBadge({super.key});
+
+  @override
+  /// Renders the localized badge on a dark, always-legible pill.
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        AppLocalizations.of(context).demoBadge,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
 }
 
 /// Story cover: the book's own first picture once the PC has drawn one.
 ///
 /// Until then, and always for demo content, the deterministic gradient stands
-/// in for it. A real drawn cover is deliberately darkened rather than shown at
-/// full strength, because the title and the DEMO badge sit on top of it and
-/// have to stay readable over whatever the PC happened to draw.
-class StoryCover extends ConsumerWidget {
+/// in for it. Used by the parent review screen, which shows one book at a
+/// time; the mosaic tiles compose the same artwork themselves.
+class StoryCover extends StatelessWidget {
   /// Creates a cover for the supplied story.
   const StoryCover({required this.story, required this.height, super.key});
 
@@ -171,15 +532,13 @@ class StoryCover extends ConsumerWidget {
 
   @override
   /// Makes demo artwork unmistakable while preserving the final layout.
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cover = _coverBytes(ref);
+  Widget build(BuildContext context) {
     return SizedBox(
       height: height,
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
-          DecoratedBox(decoration: BoxDecoration(gradient: _gradient())),
-          if (cover != null) _coverImage(cover),
+          _StoryCoverArt(story: story),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Stack(
@@ -193,13 +552,13 @@ class StoryCover extends ConsumerWidget {
                   ),
                 ),
                 Align(
-                  alignment: Alignment.bottomLeft,
+                  alignment: AlignmentDirectional.bottomStart,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       if (!BridgeStoryProvenance.marksStory(story)) ...<Widget>[
-                        _demoBadge(context),
+                        const StoryDemoBadge(),
                         const SizedBox(height: 10),
                       ],
                       Text(
@@ -223,6 +582,32 @@ class StoryCover extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Cover artwork alone: the drawn picture when there is one, else a gradient.
+///
+/// A real drawn cover is deliberately darkened rather than shown at full
+/// strength, because a title, a badge and a heart sit on top of it and have to
+/// stay readable over whatever the PC happened to draw.
+class _StoryCoverArt extends ConsumerWidget {
+  /// Creates the artwork layer of one story's cover.
+  const _StoryCoverArt({required this.story});
+
+  /// Story whose first page and style define the artwork.
+  final StoryBook story;
+
+  @override
+  /// Paints the cached page image over its stable fallback gradient.
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cover = _coverBytes(ref);
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        DecoratedBox(decoration: BoxDecoration(gradient: _gradient())),
+        if (cover != null) _coverImage(cover),
+      ],
+    );
+  }
 
   /// Reads the cached first-page image of a PC story, or null for anything else.
   Uint8List? _coverBytes(WidgetRef ref) {
@@ -238,7 +623,7 @@ class StoryCover extends ConsumerWidget {
         .value;
   }
 
-  /// Paints the drawn cover behind the card content, dimmed for readability.
+  /// Paints the drawn cover behind the tile content, dimmed for readability.
   Widget _coverImage(Uint8List bytes) {
     return Image.memory(
       bytes,
@@ -247,24 +632,6 @@ class StoryCover extends ConsumerWidget {
       color: Colors.black45,
       colorBlendMode: BlendMode.darken,
       gaplessPlayback: true,
-    );
-  }
-
-  /// Labels demo stories so sample content cannot pass as AI output.
-  ///
-  /// Bridge-generated stories carry no badge: their text is real AI output
-  /// whether the PC has drawn their pictures yet or not.
-  Widget _demoBadge(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        AppLocalizations.of(context).demoBadge,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
-      ),
     );
   }
 

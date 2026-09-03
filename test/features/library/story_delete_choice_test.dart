@@ -158,10 +158,12 @@ FakeBridgeHttpClient _unreachableBridge() {
 
 /// Opens the story's delete action from the child's shelf.
 Future<void> _tapDelete(WidgetTester tester) async {
-  final delete = find.byIcon(Icons.delete_outline_rounded).first;
-  await tester.ensureVisible(delete);
+  final overflow = find.byIcon(Icons.more_horiz_rounded).first;
+  await tester.ensureVisible(overflow);
   await tester.pumpAndSettle();
-  await tester.tap(delete);
+  await tester.tap(overflow);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Delete').last);
   await tester.pumpAndSettle();
 }
 

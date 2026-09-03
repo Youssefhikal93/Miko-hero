@@ -160,7 +160,54 @@ class AppLocalizationsSo extends AppLocalizations {
   String get photoRequired => 'Dooro sawir tixraac ah.';
 
   @override
-  String get createStoryTitle => 'Abuur sheeko';
+  String get createStoryTitle => 'Sheeko cusub';
+
+  @override
+  String get whoIsTheHero => 'Yaa ah halyeyga?';
+
+  @override
+  String get add => 'Ku dar';
+
+  @override
+  String heroAgeGender(int age, String gender) {
+    return '$age · $gender';
+  }
+
+  @override
+  String get whatHappens => 'Maxaa dhacaya?';
+
+  @override
+  String get lessonHint => 'Iyo casharka ay barayso';
+
+  @override
+  String get howLong => 'Intee le\'eg?';
+
+  @override
+  String get pages => 'bog';
+
+  @override
+  String get lookAndLanguage => 'Muuqaalka iyo luqadda';
+
+  @override
+  String get storyLanguageEnglish => 'English';
+
+  @override
+  String get storyLanguageArabic => 'العربية';
+
+  @override
+  String get storyLanguageSwedish => 'Svenska';
+
+  @override
+  String get storyLanguageSomali => 'Soomaali';
+
+  @override
+  String get writeTheStory => 'Qor sheekada';
+
+  @override
+  String get demoGeneratorLabel => 'Tijaabo';
+
+  @override
+  String get localAiGeneratorLabel => 'AI maxalli ah';
 
   @override
   String get chooseHeroProfile => 'Dooro bogga halyeyga';
@@ -202,7 +249,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get longLength => 'Dheer · 10 bog';
 
   @override
-  String get pictureBookStyle => 'Buug sawir jilicsan';
+  String get pictureBookStyle => 'Buug sawir';
 
   @override
   String get watercolorStyle => 'Midab-biyood';
@@ -754,6 +801,14 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get noDrafts => 'Sheeko dib-u-eegis sugaysa ma jirto.';
+
+  @override
+  String get moreStoryActions => 'Ficillo kale oo sheekada';
+
+  @override
+  String storyPageCount(int count) {
+    return '$count bogag';
+  }
 
   @override
   String get addFavorite => 'Ku dar kuwa la jecel yahay';
