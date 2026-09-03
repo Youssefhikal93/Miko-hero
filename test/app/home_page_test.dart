@@ -10,16 +10,18 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/security/parent_security_service.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
-import 'package:miko_hero/features/home/home_greeting.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
 
 import '../support/seeded_device.dart';
 
-/// Verifies the home mosaic through the real application widget.
+/// Verifies that the home mosaic is wired to the real application.
 ///
 /// Everything runs against the real router, controllers, and preference
 /// storage, exactly as the other application-level suites do: only the device
-/// boundaries are replaced.
+/// boundaries are replaced. What Home *decides* — which book is featured, what
+/// the strip holds, which line is true, which child "See all" names — is
+/// asserted without a widget in `test/features/home/home_view_test.dart`;
+/// these tests prove those answers reach the screen and its routes.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -143,19 +145,6 @@ void main() {
     expect(find.text('The moon garden'), findsNothing);
   });
 
-  testWidgets('the drafts row stays away while nothing waits', (tester) async {
-    await _storeFamily(
-      profiles: <ChildProfile>[_miko()],
-      stories: <StoryBook>[_story()],
-    );
-    await _pumpHome(tester, service);
-
-    expect(
-      find.byKey(const ValueKey<String>('home-drafts-waiting')),
-      findsNothing,
-    );
-  });
-
   testWidgets('the drafts row counts drafts and reaches the review queue', (
     tester,
   ) async {
@@ -214,28 +203,6 @@ void main() {
       find.byKey(const ValueKey<String>('home-hero-switcher')),
       findsNothing,
     );
-  });
-
-  group('the greeting follows the clock', () {
-    test('every part of the day has its own hours', () {
-      expect(homeTimeOfDay(DateTime(2026, 9, 3, 4, 59)), HomeTimeOfDay.night);
-      expect(homeTimeOfDay(DateTime(2026, 9, 3, 5)), HomeTimeOfDay.morning);
-      expect(
-        homeTimeOfDay(DateTime(2026, 9, 3, 11, 59)),
-        HomeTimeOfDay.morning,
-      );
-      expect(homeTimeOfDay(DateTime(2026, 9, 3, 12)), HomeTimeOfDay.afternoon);
-      expect(
-        homeTimeOfDay(DateTime(2026, 9, 3, 16, 59)),
-        HomeTimeOfDay.afternoon,
-      );
-      expect(homeTimeOfDay(DateTime(2026, 9, 3, 17)), HomeTimeOfDay.evening);
-      expect(
-        homeTimeOfDay(DateTime(2026, 9, 3, 21, 59)),
-        HomeTimeOfDay.evening,
-      );
-      expect(homeTimeOfDay(DateTime(2026, 9, 3, 22)), HomeTimeOfDay.night);
-    });
   });
 }
 
