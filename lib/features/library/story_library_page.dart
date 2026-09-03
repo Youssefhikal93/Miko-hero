@@ -19,10 +19,24 @@ import 'package:miko_hero/shared/parent_access_gate.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
+/// Query parameter naming the child whose shelf the library opens on.
+const String libraryChildQueryParameter = 'child';
+
+/// Route that opens the shelf already showing the books of [profileId].
+String libraryRouteForChild(String profileId) {
+  return Uri(
+    path: '/library',
+    queryParameters: <String, String>{libraryChildQueryParameter: profileId},
+  ).toString();
+}
+
 /// The shelf: every approved book, one child at a time.
 class StoryLibraryPage extends ConsumerWidget {
   /// Creates the routed library destination.
-  const StoryLibraryPage({super.key});
+  const StoryLibraryPage({this.profileId, super.key});
+
+  /// Child the route asked for, absent when the shelf was opened plainly.
+  final String? profileId;
 
   @override
   /// Rebuilds immediately after local generation or deletion changes a shelf.
@@ -30,7 +44,8 @@ class StoryLibraryPage extends ConsumerWidget {
     final state = ref.watch(appControllerProvider);
     return AppStateBoundary(
       state: state,
-      builder: (snapshot) => _Shelf(state: snapshot),
+      builder: (snapshot) =>
+          _Shelf(state: snapshot, requestedProfileId: profileId),
     );
   }
 }
@@ -38,9 +53,10 @@ class StoryLibraryPage extends ConsumerWidget {
 /// Loaded shelf content independent from persistence state plumbing.
 class _Shelf extends ConsumerStatefulWidget {
   /// Creates the shelf from one immutable application snapshot.
-  const _Shelf({required this.state});
+  const _Shelf({required this.state, required this.requestedProfileId});
 
   final AppState state;
+  final String? requestedProfileId;
 
   @override
   /// Keeps the chosen child, filter, and search across library rebuilds.
@@ -117,14 +133,26 @@ class _ShelfState extends ConsumerState<_Shelf> {
     );
   }
 
-  /// Resolves the chosen child, falling back to the first shelf in the family.
+  /// Resolves whose shelf is on screen, in order of how explicit the wish was.
   ///
-  /// A child deleted while their shelf was open simply hands the selection
-  /// back to the first profile instead of leaving the page on a missing one.
+  /// A tapped chip wins, then the child the route named, then the child the
+  /// family is currently reading as, and only then the first profile. That is
+  /// what makes Home's "See all" land on the shelf it was already showing,
+  /// without storing anything new. A child deleted while their shelf was open
+  /// simply falls through to the next candidate instead of leaving the page on
+  /// a missing one.
   ChildProfile? _selectedProfile(List<ChildProfile> profiles) {
     if (profiles.isEmpty) return null;
-    for (final profile in profiles) {
-      if (profile.id == _selectedProfileId) return profile;
+    final wanted = <String?>[
+      _selectedProfileId,
+      widget.requestedProfileId,
+      widget.state.activeProfileId,
+    ];
+    for (final profileId in wanted) {
+      if (profileId == null) continue;
+      for (final profile in profiles) {
+        if (profile.id == profileId) return profile;
+      }
     }
     return profiles.first;
   }

@@ -114,6 +114,45 @@ void main() {
     expect(find.text('The moon garden'), findsOneWidget);
   });
 
+  testWidgets('see all opens the shelf on the child Home is reading as', (
+    tester,
+  ) async {
+    _storeFamily(
+      profiles: <Map<String, Object>>[_miko(), _abbas()],
+      stories: <Map<String, Object>>[
+        _story(),
+        _story(
+          id: 'story-2',
+          profileId: 'abbas',
+          heroName: 'Abbas',
+          title: 'Two kites over the harbour',
+          createdAtHour: 14,
+        ),
+        _story(
+          id: 'story-3',
+          profileId: 'abbas',
+          heroName: 'Abbas',
+          title: 'The lantern path',
+          createdAtHour: 13,
+        ),
+      ],
+      activeProfileId: 'abbas',
+    );
+    await tester.pumpWidget(_app(service));
+    await tester.pumpAndSettle();
+
+    final seeAll = find.byKey(const ValueKey<String>('home-see-all'));
+    await tester.ensureVisible(seeAll);
+    await tester.tap(seeAll);
+    await tester.pumpAndSettle();
+
+    expect(find.text('The shelf'), findsOneWidget);
+    expect(_chipIsSelected(tester, 'abbas'), isTrue);
+    expect(_chipIsSelected(tester, 'miko'), isFalse);
+    expect(find.text('The lantern path'), findsOneWidget);
+    expect(find.text('The moon garden'), findsNothing);
+  });
+
   testWidgets('the drafts row stays away while nothing waits', (tester) async {
     _storeFamily(
       profiles: <Map<String, Object>>[_miko()],
@@ -231,19 +270,29 @@ Widget _app(ParentSecurityService service) {
   );
 }
 
+/// Reports whether the shelf chip of one child is the selected one.
+bool _chipIsSelected(WidgetTester tester, String profileId) {
+  return tester
+      .widget<ChoiceChip>(
+        find.byKey(ValueKey<String>('shelf-child-$profileId')),
+      )
+      .selected;
+}
+
 /// Saves a verifier the way settings would, before the app is first built.
 Future<void> _configurePin(ParentSecurityService service, String pin) async {
   final repository = await LocalRepository.open();
   await repository.saveParentSecurity(await service.createRecord(pin));
 }
 
-/// Stores one family, with Miko active, and whatever library it should have.
+/// Stores one family, Miko active unless another child is named, and a library.
 void _storeFamily({
   required List<Map<String, Object>> profiles,
   List<Map<String, Object>> stories = const <Map<String, Object>>[],
+  String activeProfileId = 'miko',
 }) {
   SharedPreferences.setMockInitialValues(<String, Object>{
-    'active_profile_id': 'miko',
+    'active_profile_id': activeProfileId,
     'child_profiles': jsonEncode(profiles),
     'story_library': jsonEncode(stories),
   });
@@ -275,16 +324,23 @@ Map<String, Object> _abbas() {
 }
 
 /// Builds one stored story written by the offline demo generator.
-Map<String, Object> _story({String reviewStatus = 'approved'}) {
+Map<String, Object> _story({
+  String reviewStatus = 'approved',
+  String id = 'story-1',
+  String profileId = 'miko',
+  String heroName = 'Miko',
+  String title = 'The moon garden',
+  int createdAtHour = 12,
+}) {
   return <String, Object>{
-    'id': 'story-1',
-    'createdAt': DateTime.utc(2026, 8, 17, 12).toIso8601String(),
+    'id': id,
+    'createdAt': DateTime.utc(2026, 8, 17, createdAtHour).toIso8601String(),
     'reviewStatus': reviewStatus,
     'content': <String, Object>{
-      'title': 'The moon garden',
+      'title': title,
       'request': <String, Object>{
-        'profileId': 'miko',
-        'heroName': 'Miko',
+        'profileId': profileId,
+        'heroName': heroName,
         'gender': 'girl',
         'prompt': <String, Object>{
           'theme': 'a moon garden',

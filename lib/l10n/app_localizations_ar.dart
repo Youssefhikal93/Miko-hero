@@ -24,19 +24,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settings => 'الإعدادات';
 
   @override
-  String get welcomeTitle => 'مغامرة جديدة تبدأ هنا';
-
-  @override
-  String get welcomeBody => 'أنشئ قصصًا خاصة ومصورة يصبح فيها كل طفل هو البطل.';
-
-  @override
   String get createFirstStory => 'أنشئ القصة الأولى';
-
-  @override
-  String get createAnotherStory => 'أنشئ قصة جديدة';
-
-  @override
-  String get recentStories => 'أحدث القصص';
 
   @override
   String get profileIncompleteTitle => 'أضف ملف بطل';
@@ -259,16 +247,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get localAiGeneratorLabel => 'ذكاء اصطناعي محلي';
 
   @override
-  String get chooseHeroProfile => 'اختر ملف البطل';
-
-  @override
-  String get selectHeroProfile => 'اختر طفلًا';
-
-  @override
   String get profileSelectionRequired => 'اختر الطفل الذي سيكون بطل القصة.';
-
-  @override
-  String get storyLanguage => 'لغة القصة';
 
   @override
   String get theme => 'موضوع المغامرة';
@@ -280,24 +259,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get moral => 'الدرس أو القيمة';
 
   @override
-  String get moralHint => 'مثال: اللطف والشجاعة';
-
-  @override
-  String get storyLength => 'طول القصة';
-
-  @override
-  String get illustrationStyle => 'أسلوب الرسوم';
-
-  @override
-  String get shortLength => 'قصيرة · 6 صفحات';
-
-  @override
-  String get mediumLength => 'متوسطة · 8 صفحات';
-
-  @override
-  String get longLength => 'طويلة · 10 صفحات';
-
-  @override
   String get pictureBookStyle => 'كتاب مصور';
 
   @override
@@ -307,14 +268,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get threeDStyle => 'ثلاثي الأبعاد ملون';
 
   @override
-  String get generateStory => 'إنشاء قصة تجريبية';
-
-  @override
   String get demoModeNotice =>
       'ينشئ الوضع التجريبي قصة نموذجية مميزة بوضوح دون كمبيوتر ودون ذكاء اصطناعي. غيّر مولّد القصص إلى الذكاء الاصطناعي المحلي في الإعدادات للكتابة على كمبيوتر العائلة.';
-
-  @override
-  String get profileNeeded => 'أضف ملف بطل واحدًا على الأقل أولًا.';
 
   @override
   String get themeRequired => 'صف موضوع المغامرة.';
@@ -1441,9 +1396,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'يكتب القصص الذكاء الاصطناعي على كمبيوتر العائلة. يجب أن يكون الكمبيوتر وجسره ونموذجه قيد التشغيل.';
-
-  @override
-  String get generateLocalAiStory => 'إنشاء القصة على الكمبيوتر';
 
   @override
   String get localAiSubmitting => 'جارٍ إرسال الطلب إلى الكمبيوتر…';

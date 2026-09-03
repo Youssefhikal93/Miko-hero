@@ -24,20 +24,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get settings => 'Dejinta';
 
   @override
-  String get welcomeTitle => 'Tacabur cusub ayaa halkan ka bilaabmaya';
-
-  @override
-  String get welcomeBody =>
-      'Abuur sheekooyin gaar ah oo sawir leh, ilmo kastana uu halyeyga noqdo.';
-
-  @override
   String get createFirstStory => 'Abuur sheekada ugu horreysa';
-
-  @override
-  String get createAnotherStory => 'Abuur sheeko kale';
-
-  @override
-  String get recentStories => 'Sheekooyinkii u dambeeyay';
 
   @override
   String get profileIncompleteTitle => 'Ku dar bog halyey';
@@ -262,16 +249,7 @@ class AppLocalizationsSo extends AppLocalizations {
   String get localAiGeneratorLabel => 'AI maxalli ah';
 
   @override
-  String get chooseHeroProfile => 'Dooro bogga halyeyga';
-
-  @override
-  String get selectHeroProfile => 'Dooro ilmo';
-
-  @override
   String get profileSelectionRequired => 'Dooro ilmaha noqonaya halyeyga.';
-
-  @override
-  String get storyLanguage => 'Luqadda sheekada';
 
   @override
   String get theme => 'Mawduuca tacaburka';
@@ -283,24 +261,6 @@ class AppLocalizationsSo extends AppLocalizations {
   String get moral => 'Casharka ama qiimaha';
 
   @override
-  String get moralHint => 'Tusaale: naxariis iyo geesinimo';
-
-  @override
-  String get storyLength => 'Dhererka sheekada';
-
-  @override
-  String get illustrationStyle => 'Qaabka sawirrada';
-
-  @override
-  String get shortLength => 'Gaaban · 6 bog';
-
-  @override
-  String get mediumLength => 'Dhexdhexaad · 8 bog';
-
-  @override
-  String get longLength => 'Dheer · 10 bog';
-
-  @override
   String get pictureBookStyle => 'Buug sawir';
 
   @override
@@ -310,14 +270,8 @@ class AppLocalizationsSo extends AppLocalizations {
   String get threeDStyle => '3D midabbo badan';
 
   @override
-  String get generateStory => 'Abuur sheeko tijaabo ah';
-
-  @override
   String get demoModeNotice =>
       'Habka tijaabadu wuxuu abuuraa sheeko tusaale ah oo si cad loo calaamadeeyay, PC la\'aan iyo AI la\'aan. Ku beddel abuuraha sheekada AI-ga maxalliga ah ee goobaha si loogu qoro PC-ga qoyska.';
-
-  @override
-  String get profileNeeded => 'Marka hore ku dar ugu yaraan hal bog halyey.';
 
   @override
   String get themeRequired => 'Sharax mawduuca tacaburka.';
@@ -1471,9 +1425,6 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get localAiModeNotice =>
       'Sheekooyinka waxaa qora AI-ga PC-ga qoyska. PC-ga, buundadiisa iyo moodelkiisu waa inay shaqaynayaan.';
-
-  @override
-  String get generateLocalAiStory => 'Ku samee sheekada PC-ga';
 
   @override
   String get localAiSubmitting => 'Codsiga waxaa loo dirayaa PC-ga…';
