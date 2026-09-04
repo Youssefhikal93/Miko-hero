@@ -41,6 +41,18 @@ const List<BridgeRoute> bridgeRoutes = <BridgeRoute>[
     path: '/devices/<deviceId>',
     requiresAuth: true,
   ),
+  // Management: what the owner reads and removes from Postman. Registered
+  // before the story routes below, which is safe because none of them can
+  // shadow another — `/stories/<storyId>` is two segments where
+  // `/stories/jobs/<jobId>` is three, and `/stories/generate` is a POST.
+  BridgeRoute(method: 'GET', path: '/profiles', requiresAuth: true),
+  BridgeRoute(
+    method: 'DELETE',
+    path: '/profiles/<profileId>',
+    requiresAuth: true,
+  ),
+  BridgeRoute(method: 'GET', path: '/stories', requiresAuth: true),
+  BridgeRoute(method: 'GET', path: '/stories/<storyId>', requiresAuth: true),
   BridgeRoute(method: 'POST', path: '/stories/generate', requiresAuth: true),
   BridgeRoute(method: 'GET', path: '/stories/jobs/<jobId>', requiresAuth: true),
   BridgeRoute(

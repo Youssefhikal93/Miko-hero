@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "6b0f2a4c-9d31-4f77-9a2e-7c1f5d0a3b18",
     "name": "Iam-hero bridge",
-    "description": "Every endpoint the Iam-hero PC bridge serves, in the order a happy path uses them.\n\n**Set two things and nothing else:**\n\n1. `baseUrl` — `http://127.0.0.1:8765` on the PC itself, or the Tailscale Funnel address (`https://<machine>.<tailnet>.ts.net`) from anywhere else.\n2. `deviceToken` — leave it empty. Run **Pairing → Confirm pairing** once and its test script stores the returned token here for every other request.\n\n`storyId`, `jobId` and `illustrationId` are filled in the same way by the requests that produce them, so the collection runs top to bottom without copy-paste. `profileId` is the one value you type yourself: use the id the sync manifest reports under `profiles`, or `profile-1` if you queued a story with the example body below.\n\nAuthentication is set once at the collection level as `Bearer {{deviceToken}}`. `GET /health` and the two pairing endpoints opt out of it, exactly as the bridge does.\n\nAll errors use the typed envelope `{\"error\": {\"code\": \"...\", \"message\": \"...\"}}`. Every request's description names the codes it can answer with. Full documentation: `bridge/README.md`.\n\nNothing in this file is real: no token, no child's name beyond the README's own example, no library path.",
+    "description": "Every endpoint the Iam-hero PC bridge serves, in the order a happy path uses them.\n\n**Set two things and nothing else:**\n\n1. `baseUrl` — `http://127.0.0.1:8765` on the PC itself, or the Tailscale Funnel address (`https://<machine>.<tailnet>.ts.net`) from anywhere else.\n2. `deviceToken` — leave it empty. Run **Pairing → Confirm pairing** once and its test script stores the returned token here for every other request.\n\n`profileId`, `storyId`, `jobId` and `illustrationId` are filled in the same way by the requests that produce them, so the collection runs top to bottom without copy-paste: **Management → List profiles** fills `profileId` the first time it finds one and never overwrites a value you typed yourself.\n\n**Management → Delete profile everywhere is irreversible** and takes that child's whole shelf with it. Read the folder rather than running it end to end.\n\nAuthentication is set once at the collection level as `Bearer {{deviceToken}}`. `GET /health` and the two pairing endpoints opt out of it, exactly as the bridge does.\n\nAll errors use the typed envelope `{\"error\": {\"code\": \"...\", \"message\": \"...\"}}`. Every request's description names the codes it can answer with. Full documentation: `bridge/README.md`.\n\nNothing in this file is real: no token, no child's name beyond the README's own example, no library path.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -38,7 +38,7 @@
       "key": "profileId",
       "value": "",
       "type": "string",
-      "description": "Set by hand: a profile id from the sync manifest."
+      "description": "Filled by Management → List profiles when empty, or set by hand. Never commit a real one."
     },
     {
       "key": "storyId",
@@ -198,6 +198,95 @@
               "path": ["devices", "{{deviceId}}"]
             },
             "description": "Requires auth. Set `deviceId` from the list above (any row whose `isCaller` is false). Removes that device's token, so its very next call answers `401 unauthorized` and the family member pairs again with a new code when wanted. Answers `200`:\n\n```json\n{ \"id\": \"...\", \"removed\": true }\n```\n\nErrors: `409 cannot_remove_self` (a device may not remove itself, so the parent can never lock themselves out), `404 device_not_found` (unknown or already removed), `401 unauthorized`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Management",
+      "description": "What the owner can see and remove without opening the app: who is in the master library, what has been written for them, one whole book, and the one irreversible delete. Read-only except the last request. No photo bytes are ever returned, no page prose appears in a listing, and nothing in this folder is written to a log.",
+      "item": [
+        {
+          "name": "List profiles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const first = (body.profiles || [])[0];",
+                  "if (first && !pm.collectionVariables.get('profileId')) {",
+                  "    pm.collectionVariables.set('profileId', first.id);",
+                  "}",
+                  "pm.test('the profiles were listed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(body.profiles).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles"]
+            },
+            "description": "Requires auth. Every child the master library knows, oldest first:\n\n```json\n{\n  \"profiles\": [\n    {\n      \"id\": \"profile-1\",\n      \"displayName\": \"Nour\",\n      \"hasPhoto\": true,\n      \"storyCount\": 3,\n      \"createdAtUtc\": \"2026-08-22T10:00:00.000Z\",\n      \"updatedAtUtc\": \"2026-09-01T18:20:00.000Z\"\n    }\n  ]\n}\n```\n\n**The test script fills `profileId`** the first time it finds one, and never overwrites a value you set yourself — so the Profiles folder below works without reading a sync manifest first.\n\n`hasPhoto` is a yes-or-no: no endpoint ever returns the photo bytes or its path. There is no age here — the bridge stores no birth date, and the age a story was written for travels in the generation request without being kept.\n\nErrors: `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "List stories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stories?profileId={{profileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories"],
+              "query": [
+                {
+                  "key": "profileId",
+                  "value": "{{profileId}}",
+                  "disabled": true,
+                  "description": "Optional. Enable to list one child's shelf instead of the whole library."
+                }
+              ]
+            },
+            "description": "Requires auth. Every story with its illustration progress, oldest first:\n\n```json\n{\n  \"stories\": [\n    {\n      \"id\": \"…\",\n      \"profileId\": \"profile-1\",\n      \"title\": \"Nour and the Sea Lanterns\",\n      \"languageCode\": \"ar\",\n      \"pageCount\": 6,\n      \"illustrations\": { \"pending\": 1, \"completed\": 4, \"failed\": 1 },\n      \"createdAtUtc\": \"2026-08-22T10:04:11.000Z\",\n      \"updatedAtUtc\": \"2026-08-22T10:31:02.000Z\"\n    }\n  ]\n}\n```\n\nTitles only — page prose lives one request down. The three illustration counts always add up to the story's illustration rows, so `pending` covers anything not yet drawn and not failed.\n\nThe `profileId` query parameter ships **disabled**; enable it to list one child's shelf. A value naming no profile answers `400 invalid_field` naming the parameter rather than an empty list, so a typo can never read as \"this child has no books\". Any other query parameter is refused the same way, by name.\n\nErrors: `400 invalid_field`, `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Read one story",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stories/{{storyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "{{storyId}}"]
+            },
+            "description": "Requires auth. The whole book — every page's prose, its English scene description, and its illustration id and status:\n\n```json\n{\n  \"story\": {\n    \"id\": \"…\",\n    \"profileId\": \"profile-1\",\n    \"title\": \"Nour and the Sea Lanterns\",\n    \"languageCode\": \"ar\",\n    \"createdAtUtc\": \"2026-08-22T10:04:11.000Z\",\n    \"updatedAtUtc\": \"2026-08-22T10:31:02.000Z\",\n    \"pages\": [\n      {\n        \"id\": \"…\",\n        \"pageNumber\": 1,\n        \"text\": \"…\",\n        \"illustrationScene\": \"…\",\n        \"illustrationId\": \"…\",\n        \"illustrationRelativePath\": \"illustrations/<storyId>/0.png\",\n        \"illustrationStatus\": \"completed\"\n      }\n    ]\n  }\n}\n```\n\nByte for byte the answer **Sync → Download story** gives a paired device: one serializer and one shape, so the owner never reads a story in a form the family's devices do not.\n\n`storyId` is filled by **Sync → Read sync manifest**, or copy one from List stories above.\n\nErrors: `404 story_not_found` (which is also the answer for a deleted story), `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete profile everywhere",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profiles/{{profileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "{{profileId}}"]
+            },
+            "description": "Requires auth. **Irreversible, and it takes the child's whole shelf with it.** Removes the profile row, every story it owns, every page, every illustration row, the rendered image files and the reference photo. The rows go in one transaction, so either all of them go or none do:\n\n```json\n{\n  \"profileId\": \"profile-1\",\n  \"deletedAtUtc\": \"2026-09-03T09:12:44.000Z\",\n  \"deletedStoryCount\": 3,\n  \"deletedPageCount\": 18,\n  \"deletedIllustrationCount\": 18,\n  \"removedFileCount\": 15,\n  \"photoRemoved\": true\n}\n```\n\n`removedFileCount` counts files actually deleted from disk, which is lower than `deletedIllustrationCount` whenever some pages were never drawn.\n\nOne `deletion_records` entry is written **per deleted story** — the same record a single story delete writes — so a paired device that never saw this happen learns each book is gone from its next sync manifest, through the path it already understands. The profile's own disappearance needs no record: a manifest carries the complete profile list, so a child no longer in it is a child who is gone.\n\nUnlike deleting a story, this is **not** idempotent: nothing records that a profile once existed, so a second call is indistinguishable from a mistyped id and answers `404 profile_not_found` — the same typed error the photo endpoints answer for an unknown child.\n\nErrors: `404 profile_not_found`, `401 unauthorized`."
           },
           "response": []
         }

@@ -113,6 +113,30 @@ class _ApiFieldFailures extends JsonFieldFailures {
 /// The vocabulary an HTTP request body's fields are refused in.
 const JsonFieldFailures apiFieldFailures = _ApiFieldFailures();
 
+/// How a URL query string names its parameters and refuses them.
+///
+/// The same `400 invalid_field` envelope as a body field, in the words the
+/// caller typed it in: a filter is refused as a query parameter, because
+/// telling someone their *body* is wrong when they mistyped a URL sends them
+/// looking in the wrong place.
+class _ApiQueryFailures extends JsonFieldFailures {
+  const _ApiQueryFailures();
+
+  @override
+  String describeField(String path) => 'Query parameter "$path"';
+
+  @override
+  String describeContainer(String path) =>
+      path.isEmpty ? 'The query string' : 'Query parameter "$path"';
+
+  @override
+  Object failure(String path, String message) =>
+      ApiError(400, ApiErrorCode.invalidField, message);
+}
+
+/// The vocabulary a URL query parameter is refused in.
+const JsonFieldFailures apiQueryFailures = _ApiQueryFailures();
+
 /// Serializes [body] as one JSON response with `application/json`.
 Response jsonResponse(int status, Map<String, Object?> body) {
   return Response(

@@ -7,11 +7,12 @@ import 'package:test/test.dart';
 /// Name of the committed collection, at the repository root.
 const String _collectionFileName = 'Iam-hero-bridge.postman_collection.json';
 
-/// The eight folders the collection is organized into.
+/// The nine folders the collection is organized into.
 const List<String> _expectedFolders = <String>[
   'Health',
   'Pairing',
   'Devices',
+  'Management',
   'Profiles',
   'Stories',
   'Illustrations',
@@ -177,7 +178,7 @@ void main() {
       );
     });
 
-    test('is organized into the eight documented folders', () {
+    test('is organized into the nine documented folders', () {
       final List<Object?> folders = collection['item']! as List<Object?>;
       final List<String> names = folders
           .map(

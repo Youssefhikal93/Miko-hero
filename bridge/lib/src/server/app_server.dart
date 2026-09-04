@@ -12,7 +12,9 @@ import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
 import 'package:iam_hero_bridge/src/illustration/illustration_job.dart';
 import 'package:iam_hero_bridge/src/illustration/illustration_queue.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
+import 'package:iam_hero_bridge/src/library/library_catalog.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
+import 'package:iam_hero_bridge/src/library/profile_deleter.dart';
 import 'package:iam_hero_bridge/src/library/profile_photo_store.dart';
 import 'package:iam_hero_bridge/src/library/story_deleter.dart';
 import 'package:iam_hero_bridge/src/pairing/pairing_service.dart';
@@ -27,6 +29,7 @@ import 'package:iam_hero_bridge/src/server/devices_handler.dart';
 import 'package:iam_hero_bridge/src/server/generation_handlers.dart';
 import 'package:iam_hero_bridge/src/server/health_handler.dart';
 import 'package:iam_hero_bridge/src/server/illustration_handlers.dart';
+import 'package:iam_hero_bridge/src/server/management_handlers.dart';
 import 'package:iam_hero_bridge/src/server/pairing_handlers.dart';
 import 'package:iam_hero_bridge/src/server/profile_photo_handlers.dart';
 import 'package:iam_hero_bridge/src/server/request_limits.dart';
@@ -50,8 +53,8 @@ import 'package:uuid/uuid.dart';
 /// 4. request body size limit,
 /// 5. routing: public endpoints (`/health`, `/pair/*`) bypass auth; every
 ///    other endpoint sits behind [requireDeviceAuth] — story generation,
-///    illustration rendering, reference photos, synchronization, deletion
-///    and master-library backup included.
+///    illustration rendering, reference photos, synchronization, the owner's
+///    management listings and deletions, and master-library backup included.
 ///
 /// The two generation queues share one [GpuGate], created here, because the
 /// machine has one GPU: a story and an illustration must never render at the
@@ -116,14 +119,22 @@ class AppServer {
     _devicesHandler = DevicesHandler(deviceStore: deviceStore);
     _generationHandlers = GenerationHandlers(queue: _generationQueue);
     _illustrationHandlers = IllustrationHandlers(queue: _illustrationQueue);
-    _profilePhotoHandlers = ProfilePhotoHandlers(
-      store: ProfilePhotoStore(library: library),
-    );
+    final photoStore = ProfilePhotoStore(library: library);
+    final syncReader = SyncReader(library: library);
+    _profilePhotoHandlers = ProfilePhotoHandlers(store: photoStore);
     _syncHandlers = SyncHandlers(
-      reader: SyncReader(library: library),
+      reader: syncReader,
       stateStore: SyncStateStore(library: library),
       deleter: StoryDeleter(library: library, uuid: uuid),
       illustrationFiles: IllustrationFileReader(library: library),
+    );
+    // The management endpoints share the photo store and the sync reader
+    // rather than building their own: whether a child has a photo, and what
+    // one story looks like, must not have two answers.
+    _managementHandlers = ManagementHandlers(
+      catalog: LibraryCatalog(library: library, photos: photoStore),
+      deleter: ProfileDeleter(library: library, photos: photoStore, uuid: uuid),
+      stories: syncReader,
     );
     _backupHandlers = BackupHandlers(
       service: LibraryBackupService(library: library),
@@ -162,6 +173,7 @@ class AppServer {
   late final GenerationHandlers _generationHandlers;
   late final IllustrationHandlers _illustrationHandlers;
   late final ProfilePhotoHandlers _profilePhotoHandlers;
+  late final ManagementHandlers _managementHandlers;
   late final SyncHandlers _syncHandlers;
   late final BackupHandlers _backupHandlers;
 
@@ -178,6 +190,10 @@ class AppServer {
       'POST /pair/confirm': _pairingHandlers.confirmPairing,
       'GET /devices': _devicesHandler.listDevices,
       'DELETE /devices/<deviceId>': _devicesHandler.removeDevice,
+      'GET /profiles': _managementHandlers.listProfiles,
+      'DELETE /profiles/<profileId>': _managementHandlers.deleteProfile,
+      'GET /stories': _managementHandlers.listStories,
+      'GET /stories/<storyId>': _managementHandlers.readStory,
       'POST /stories/generate': _generationHandlers.createJob,
       'GET /stories/jobs/<jobId>': _generationHandlers.readJob,
       'POST /stories/jobs/<jobId>/cancel': _generationHandlers.cancelJob,

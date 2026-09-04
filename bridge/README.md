@@ -172,9 +172,17 @@ variables and nothing else:**
 - `deviceToken` — **leave it empty**. Run *Pairing → Confirm pairing* once and
   its test script stores the returned token here for every other request.
 
-`storyId`, `jobId` and `illustrationId` are filled the same way by the requests
-that produce them, so the collection runs top to bottom without copy-paste;
-`profileId` is the one value typed by hand, read from the sync manifest.
+`profileId`, `storyId`, `jobId` and `illustrationId` are filled the same way by
+the requests that produce them, so the collection runs top to bottom without
+copy-paste: *Management → List profiles* fills `profileId` the first time it
+finds one and never overwrites a value typed by hand. `deviceId` stays the one
+value always typed by hand, on purpose — removing a pairing should not be one
+click away from a listing.
+
+The Management folder also holds the one irreversible request in the
+collection, *Delete profile everywhere*, so read that folder rather than
+running it end to end.
+
 Authentication is set once at the collection level as `Bearer {{deviceToken}}`,
 and `/health`, `/pair/request` and `/pair/confirm` opt out of it exactly as the
 bridge does.
@@ -284,6 +292,120 @@ Failure modes:
   parent looking at a list they can no longer refresh.
 - `404 device_not_found` — no device is paired under that id, including one
   already removed.
+
+### `GET /profiles` — requires auth
+
+Every child the master library knows, oldest first:
+
+```json
+{
+  "profiles": [
+    {
+      "id": "profile-1",
+      "displayName": "Nour",
+      "hasPhoto": true,
+      "storyCount": 3,
+      "createdAtUtc": "2026-08-22T10:00:00.000Z",
+      "updatedAtUtc": "2026-09-01T18:20:00.000Z"
+    }
+  ]
+}
+```
+
+`hasPhoto` is a yes-or-no. The photo bytes never leave the library, and
+neither does its path: whether a child has a reference photo is something the
+parent needs to know, and what the child looks like is not something an HTTP
+answer should carry.
+
+There is **no age here**. The bridge stores a child's name and nothing else
+about them; the age a story was written for travels inside the generation
+request and is used to pitch the prose, not kept. The app owns the birth date.
+
+Failure: `401 unauthorized`.
+
+### `DELETE /profiles/<profileId>` — requires auth
+
+Deletes the child and everything the library holds for them — the profile row,
+every story, every page, every illustration row, the rendered image files and
+the reference photo:
+
+```json
+{
+  "profileId": "profile-1",
+  "deletedAtUtc": "2026-09-03T09:12:44.000Z",
+  "deletedStoryCount": 3,
+  "deletedPageCount": 18,
+  "deletedIllustrationCount": 18,
+  "removedFileCount": 15,
+  "photoRemoved": true
+}
+```
+
+The rows go in **one transaction**: either the whole child goes or nothing
+does. Files are removed after it commits, for the reason a story deletion
+gives — an orphaned file is harmless, a row pointing at a missing file is not
+— so `removedFileCount` is lower than `deletedIllustrationCount` whenever some
+pages were never drawn.
+
+One `deletion_records` entry is written **per deleted story**, exactly the
+record `POST /stories/<storyId>/delete` writes, so a paired device that never
+saw this happen learns each book is gone from its next manifest through the
+path it already understands. The profile's own disappearance needs no record:
+a manifest carries the complete profile list, so a child no longer in it is a
+child who is gone.
+
+Unlike a story deletion this is **not idempotent**. Nothing records that a
+profile once existed, so a second call cannot be told apart from a mistyped id
+and answers `404 profile_not_found` — the same typed error the photo endpoints
+answer, malformed ids included.
+
+Failures: `404 profile_not_found`, `401 unauthorized`.
+
+### `GET /stories` — requires auth
+
+Every story with its illustration progress, oldest first:
+
+```json
+{
+  "stories": [
+    {
+      "id": "…",
+      "profileId": "profile-1",
+      "title": "Nour and the Sea Lanterns",
+      "languageCode": "ar",
+      "pageCount": 6,
+      "illustrations": { "pending": 1, "completed": 4, "failed": 1 },
+      "createdAtUtc": "2026-08-22T10:04:11.000Z",
+      "updatedAtUtc": "2026-08-22T10:31:02.000Z"
+    }
+  ]
+}
+```
+
+Titles only — no page prose; a listing is a table of contents. The three
+illustration counts always add up to the story's illustration rows, because
+anything that is neither `completed` nor `failed` is counted as pending.
+
+`?profileId=<id>` narrows the listing to one child's shelf. It is read through
+the same `JsonReader` every request body goes through, so it gets the same
+treatment: one known parameter, a 64-character limit, and never the value in
+the message. A `profileId` that names no profile is a **`400 invalid_field`
+naming the parameter**, not an empty list — an empty shelf and a typo look
+identical otherwise, and the parent would read the wrong one as an answer. Any
+other query parameter is refused the same way, by name, so a misspelled
+`?profileID=` cannot quietly return the whole library.
+
+Failures: `400 invalid_field`, `401 unauthorized`.
+
+### `GET /stories/<storyId>` — requires auth
+
+One whole book — every page's prose, its English scene description, and its
+illustration id and status. **Byte for byte the answer
+`GET /sync/stories/<storyId>` gives a paired device**: one serializer, one
+shape, documented under that endpoint below. A second shape for the parent
+would be a second thing to keep true.
+
+Failures: `404 story_not_found` (a deleted story included), `401 unauthorized`.
 
 ### `POST /stories/generate` — requires auth
 
@@ -679,16 +801,22 @@ simply picked up by the next sync.
 A device that loses its notes needs no recovery path: it fetches one manifest
 and downloads whatever it cannot account for.
 
-### Two kinds of deletion
+### Three kinds of deletion
 
 | Kind | Where | What the bridge does |
 | ---- | ----- | -------------------- |
 | Remove the offline copy | in the app, on one device | **nothing** — the app deletes its own local copy; the story stays in the master library and will simply appear in the next manifest again |
 | Delete everywhere | `POST /stories/<id>/delete` | deletes the pages, illustration rows and illustration files, and records the deletion so every other device drops its copy too |
+| Delete the child | `DELETE /profiles/<id>` | the same, for every story that child owns at once, plus the profile row and the reference photo |
 
 The app's local "remove offline copy" needs no bridge endpoint at all, and
-must not call one: freeing space on a tablet is not a family decision. Only
-"delete everywhere" is.
+must not call one: freeing space on a tablet is not a family decision. The
+other two are.
+
+Deleting a child writes one story deletion record per book rather than a new
+kind of record, so devices need to understand nothing new; the profile's own
+disappearance is visible because a manifest always carries the complete
+profile list.
 
 Rows and the deletion record commit together in one transaction; the
 illustration files are removed immediately after that commit, because the
@@ -1168,6 +1296,12 @@ call is refused and the app there tells its holder to pair again.
   refused, so a restored row can never reach another folder.
 - **Bounded sync**: the manifest is metadata only — never prose, never file
   bytes — and every device sees only its own sync watermark.
+- **Management listings are metadata too**: `GET /profiles` and `GET /stories`
+  carry names, titles and counts — no page prose, no scene descriptions, no
+  photo bytes and no file paths. Page prose exists in exactly one answer,
+  shared by `GET /stories/<storyId>` and `GET /sync/stories/<storyId>`. A
+  refused filter names the parameter and never repeats its value, and nothing
+  in this group is logged.
 - **Backups are documents, not credentials**: device token hashes are never
   written into one, so a stolen backup file cannot talk to any bridge. The
   file is encrypted with AES-256-GCM under a PBKDF2-HMAC-SHA256 key (200 000
