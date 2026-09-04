@@ -6,6 +6,7 @@ import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
+import 'package:miko_hero/shared/empty_state.dart';
 
 /// Protects parent-only destinations while preserving the surrounding shell.
 class ParentAccessGate extends ConsumerWidget {
@@ -64,25 +65,11 @@ class _ParentUnlockPanel extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Icon(AppIcons.lock, size: 42),
-                  const SizedBox(height: 14),
-                  Text(
-                    text.parentAreaLocked,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(text.enterParentPin, textAlign: TextAlign.center),
-                  const SizedBox(height: 20),
-                  const _ParentUnlockForm(closeDialogOnSuccess: false),
-                ],
-              ),
-            ),
+          child: EmptyState(
+            icon: AppIcons.lock,
+            title: text.parentAreaLocked,
+            body: text.enterParentPin,
+            action: const _ParentUnlockForm(closeDialogOnSuccess: false),
           ),
         ),
       ),
@@ -271,18 +258,13 @@ class _ParentAccessError extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final text = AppLocalizations.of(context);
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(AppIcons.error, size: 42),
-          const SizedBox(height: 12),
-          Text(text.somethingWentWrong),
-          const SizedBox(height: 16),
-          FilledButton.tonal(
-            onPressed: () => ref.invalidate(parentAccessControllerProvider),
-            child: Text(text.retry),
-          ),
-        ],
+      child: EmptyState(
+        icon: AppIcons.error,
+        title: text.somethingWentWrong,
+        action: FilledButton.tonal(
+          onPressed: () => ref.invalidate(parentAccessControllerProvider),
+          child: Text(text.retry),
+        ),
       ),
     );
   }

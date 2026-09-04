@@ -11,6 +11,7 @@ import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/empty_state.dart';
 import 'package:miko_hero/shared/reading_text_style.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
@@ -319,21 +320,12 @@ class _NoDrafts extends StatelessWidget {
   @override
   /// Routes back to the child-facing library without inventing drafts.
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          children: <Widget>[
-            const Icon(AppIcons.factCheck, size: 48),
-            const SizedBox(height: 12),
-            Text(text.noDrafts, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: () => context.go('/library'),
-              child: Text(text.library),
-            ),
-          ],
-        ),
+    return EmptyState(
+      icon: AppIcons.factCheck,
+      title: text.noDrafts,
+      action: FilledButton.tonal(
+        onPressed: () => context.go('/library'),
+        child: Text(text.library),
       ),
     );
   }

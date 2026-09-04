@@ -15,8 +15,10 @@ import 'package:miko_hero/features/library/story_share_actions.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/accent_choice_chip.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/empty_state.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/parent_gated_action.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -298,13 +300,11 @@ class _ChildChip extends StatelessWidget {
   /// Carries this child's saved color rather than the active child's accent.
   Widget build(BuildContext context) {
     final accent = Color(profile.themeColorValue);
-    return ChoiceChip(
+    return AccentChoiceChip(
       key: ValueKey<String>('shelf-child-${profile.id}'),
       selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => onSelected(),
-      selectedColor: accent.withValues(alpha: 0.18),
-      side: BorderSide(color: selected ? accent : AppTheme.hairline),
+      onSelected: onSelected,
+      accent: accent,
       avatar: HeroFace(
         profile: profile,
         size: 28,
@@ -376,13 +376,11 @@ class _FilterChips extends StatelessWidget {
     IconData? icon,
   }) {
     final selected = filter == selectedFilter;
-    return ChoiceChip(
+    return AccentChoiceChip(
       key: ValueKey<String>('shelf-filter-${_filterKey(filter)}'),
       selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => onSelected(filter),
-      selectedColor: accent.withValues(alpha: 0.18),
-      side: BorderSide(color: selected ? accent : AppTheme.hairline),
+      onSelected: () => onSelected(filter),
+      accent: accent,
       avatar: icon == null
           ? null
           : Icon(icon, size: 16, color: selected ? accent : AppTheme.muted),
@@ -523,14 +521,9 @@ class _NoMatchingStories extends StatelessWidget {
   /// Keeps a fruitless search distinct from a filter with nothing in it.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          isSearching ? text.noStoriesMatchSearch : text.noStoriesInFilter,
-          textAlign: TextAlign.center,
-        ),
-      ),
+    return EmptyState(
+      icon: isSearching ? AppIcons.search : AppIcons.collection,
+      title: isSearching ? text.noStoriesMatchSearch : text.noStoriesInFilter,
     );
   }
 }
@@ -545,28 +538,13 @@ class _EmptyShelf extends StatelessWidget {
   @override
   /// Makes the no-content state useful without inventing sample books.
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Center(
-          child: Column(
-            children: <Widget>[
-              const Icon(AppIcons.stories, size: 54),
-              const SizedBox(height: 16),
-              Text(
-                text.emptyLibraryTitle,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(text.emptyLibraryBody, textAlign: TextAlign.center),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () => context.go('/create'),
-                child: Text(text.createFirstStory),
-              ),
-            ],
-          ),
-        ),
+    return EmptyState(
+      icon: AppIcons.stories,
+      title: text.emptyLibraryTitle,
+      body: text.emptyLibraryBody,
+      action: FilledButton(
+        onPressed: () => context.go('/create'),
+        child: Text(text.createFirstStory),
       ),
     );
   }

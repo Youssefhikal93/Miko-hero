@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/shared/accent_choice_chip.dart';
 
 import '../../support/seeded_device.dart';
 
@@ -32,14 +33,14 @@ void main() {
     await _storeFamily();
     await pumpApp(tester, route: '/library');
 
-    await tester.tap(find.byKey(const ValueKey<String>('shelf-child-abbas')));
+    await tester.tap(_chip('Abbas hero'));
     await tester.pumpAndSettle();
 
     expect(find.text('Two kites over the harbour'), findsOneWidget);
     expect(find.text('The moon garden'), findsNothing);
     expect(find.text('The lantern path'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey<String>('shelf-child-miko')));
+    await tester.tap(_chip('Miko hero'));
     await tester.pumpAndSettle();
 
     expect(find.text('The moon garden'), findsOneWidget);
@@ -53,15 +54,13 @@ void main() {
     await pumpApp(tester, route: '/library');
 
     expect(find.text('All 2'), findsOneWidget);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('shelf-filter-collection:Bedtime')),
-    );
+    await tester.tap(_chip('Bedtime'));
     await tester.pumpAndSettle();
 
     expect(find.text('The moon garden'), findsOneWidget);
     expect(find.text('The lantern path'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey<String>('shelf-filter-all')));
+    await tester.tap(_chip('All 2'));
     await tester.pumpAndSettle();
 
     expect(find.text('The lantern path'), findsOneWidget);
@@ -94,6 +93,14 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+/// Finds the shelf chip that says [label], child chip or filter chip alike.
+///
+/// The shelf's two rows are the same shared chip, so a test asks for one the
+/// way a parent picks one: by what it says.
+Finder _chip(String label) {
+  return find.widgetWithText(AccentChoiceChip, label);
 }
 
 /// Stores two children whose shelves must stay apart.

@@ -11,6 +11,7 @@ import 'package:miko_hero/features/home/home_view.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/empty_state.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
@@ -108,32 +109,14 @@ class _ProfileSetupPrompt extends StatelessWidget {
   @override
   /// Presents the single blocking requirement without adding onboarding steps.
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(
-              AppIcons.heroPortrait,
-              size: 38,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 14),
-            Text(
-              text.profileIncompleteTitle,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 6),
-            Text(text.profileIncompleteBody),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: () => context.go('/profiles/new'),
-              icon: const Icon(AppIcons.addHero),
-              label: Text(text.setUpProfile),
-            ),
-          ],
-        ),
+    return EmptyState(
+      icon: AppIcons.heroPortrait,
+      title: text.profileIncompleteTitle,
+      body: text.profileIncompleteBody,
+      action: FilledButton.icon(
+        onPressed: () => context.go('/profiles/new'),
+        icon: const Icon(AppIcons.addHero),
+        label: Text(text.setUpProfile),
       ),
     );
   }

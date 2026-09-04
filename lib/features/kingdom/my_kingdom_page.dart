@@ -13,6 +13,7 @@ import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/empty_state.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Family profile hub for switching heroes and personalizing their app colors.
@@ -170,27 +171,14 @@ class _EmptyKingdom extends StatelessWidget {
   @override
   /// Keeps the new destination useful before the first child has been added.
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          children: <Widget>[
-            const Icon(AppIcons.kingdom, size: 54),
-            const SizedBox(height: 14),
-            Text(
-              text.noProfilesTitle,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(text.noProfilesBody, textAlign: TextAlign.center),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: () => context.go('/profiles/new'),
-              icon: const Icon(AppIcons.addHero),
-              label: Text(text.addProfile),
-            ),
-          ],
-        ),
+    return EmptyState(
+      icon: AppIcons.kingdom,
+      title: text.noProfilesTitle,
+      body: text.noProfilesBody,
+      action: FilledButton.icon(
+        onPressed: () => context.go('/profiles/new'),
+        icon: const Icon(AppIcons.addHero),
+        label: Text(text.addProfile),
       ),
     );
   }

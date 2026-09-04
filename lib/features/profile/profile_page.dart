@@ -14,6 +14,7 @@ import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/empty_state.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/parent_gated_action.dart';
@@ -126,27 +127,14 @@ class _NoProfiles extends StatelessWidget {
   @override
   /// Explains why at least one profile is needed before story creation.
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          children: <Widget>[
-            const Icon(AppIcons.heroFamily, size: 52),
-            const SizedBox(height: 14),
-            Text(
-              text.noProfilesTitle,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(text.noProfilesBody, textAlign: TextAlign.center),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: () => context.go('/profiles/new'),
-              icon: const Icon(AppIcons.addHero),
-              label: Text(text.addProfile),
-            ),
-          ],
-        ),
+    return EmptyState(
+      icon: AppIcons.heroFamily,
+      title: text.noProfilesTitle,
+      body: text.noProfilesBody,
+      action: FilledButton.icon(
+        onPressed: () => context.go('/profiles/new'),
+        icon: const Icon(AppIcons.addHero),
+        label: Text(text.addProfile),
       ),
     );
   }

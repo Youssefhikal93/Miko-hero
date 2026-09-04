@@ -11,6 +11,7 @@ import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/security/parent_security_service.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
+import 'package:miko_hero/shared/accent_choice_chip.dart';
 
 import '../support/seeded_device.dart';
 
@@ -139,8 +140,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('The shelf'), findsOneWidget);
-    expect(_chipIsSelected(tester, 'abbas'), isTrue);
-    expect(_chipIsSelected(tester, 'miko'), isFalse);
+    expect(_chipIsSelected(tester, 'Abbas hero'), isTrue);
+    expect(_chipIsSelected(tester, 'Miko hero'), isFalse);
     expect(find.text('The lantern path'), findsOneWidget);
     expect(find.text('The moon garden'), findsNothing);
   });
@@ -216,12 +217,10 @@ Future<void> _pumpHome(WidgetTester tester, ParentSecurityService service) {
   );
 }
 
-/// Reports whether the shelf chip of one child is the selected one.
-bool _chipIsSelected(WidgetTester tester, String profileId) {
+/// Reports whether the shelf chip naming [heroName] is the selected one.
+bool _chipIsSelected(WidgetTester tester, String heroName) {
   return tester
-      .widget<ChoiceChip>(
-        find.byKey(ValueKey<String>('shelf-child-$profileId')),
-      )
+      .widget<AccentChoiceChip>(find.widgetWithText(AccentChoiceChip, heroName))
       .selected;
 }
 

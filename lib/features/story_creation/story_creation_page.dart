@@ -14,6 +14,7 @@ import 'package:miko_hero/features/story_creation/generation_progress_controller
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/features/story_creation/story_request_draft.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/accent_choice_chip.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
@@ -330,7 +331,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
             .map((language) {
               return Padding(
                 padding: const EdgeInsetsDirectional.only(end: 8),
-                child: ChoiceChip(
+                child: AccentChoiceChip(
                   key: ValueKey<String>('story-language-${language.code}'),
                   // Each chip is written in its own script, so the Arabic one
                   // needs the Arabic-capable face whatever the interface uses.
@@ -338,11 +339,10 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                     _storyLanguageName(text, language),
                     style: AppTheme.scriptStyleFor(language),
                   ),
-                  showCheckmark: false,
                   selected: _draft.language == language,
                   onSelected: _draft.isGenerating
                       ? null
-                      : (_) => setState(
+                      : () => setState(
                           () => _draft = _draft.withLanguage(language),
                         ),
                 ),
