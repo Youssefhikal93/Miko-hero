@@ -14,6 +14,7 @@ String localAiFailureMessage(AppLocalizations text, Object error) {
   if (error is! BridgeException) return text.somethingWentWrong;
   return switch (error.failure) {
     BridgeFailure.unreachable => text.bridgeUnreachable,
+    BridgeFailure.blockedByBrowser => text.bridgeBlockedByBrowser,
     BridgeFailure.timedOut => text.bridgeTimedOut,
     BridgeFailure.notPaired => text.bridgeNotPaired,
     BridgeFailure.unauthorized => text.bridgeUnauthorized,
@@ -22,6 +23,8 @@ String localAiFailureMessage(AppLocalizations text, Object error) {
     BridgeFailure.pairingExpired => text.bridgePairingExpired,
     BridgeFailure.invalidPairingCode => text.bridgeInvalidPairingCode,
     BridgeFailure.invalidRequest => text.bridgeInvalidRequest,
+    BridgeFailure.deviceNotFound => text.bridgeDeviceNotFound,
+    BridgeFailure.cannotRemoveThisDevice => text.bridgeCannotRemoveThisDevice,
     BridgeFailure.jobNotFound => text.bridgeJobNotFound,
     BridgeFailure.storyNotFound => text.bridgeStoryNotFound,
     BridgeFailure.profileNotFound => text.bridgeProfileNotFound,

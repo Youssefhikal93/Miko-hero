@@ -2586,6 +2586,72 @@ abstract class AppLocalizations {
   /// **'Pairing removed from this device'**
   String get pairedDeviceForgotten;
 
+  /// No description provided for @pairedDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices paired with the PC'**
+  String get pairedDevicesTitle;
+
+  /// No description provided for @pairedDevicesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything listed here can reach the PC. Remove one and it has to pair again.'**
+  String get pairedDevicesBody;
+
+  /// No description provided for @pairedDevicesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC lists no paired devices.'**
+  String get pairedDevicesEmpty;
+
+  /// No description provided for @pairedDeviceThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · this device'**
+  String pairedDeviceThisDevice(String name);
+
+  /// No description provided for @pairedDeviceSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired {date}'**
+  String pairedDeviceSince(String date);
+
+  /// No description provided for @pairedDeviceLastSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen {date}'**
+  String pairedDeviceLastSeen(String date);
+
+  /// No description provided for @pairedDeviceNeverSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used since pairing'**
+  String get pairedDeviceNeverSeen;
+
+  /// No description provided for @removePairedDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removePairedDevice;
+
+  /// No description provided for @removePairedDeviceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String removePairedDeviceTitle(String name);
+
+  /// No description provided for @removePairedDeviceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'That device loses access to the PC at once. It can pair again with a new code.'**
+  String get removePairedDeviceBody;
+
+  /// No description provided for @pairedDeviceRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} can no longer reach the PC'**
+  String pairedDeviceRemoved(String name);
+
   /// No description provided for @openAiConnectionSettings.
   ///
   /// In en, this message translates to:
@@ -2634,6 +2700,12 @@ abstract class AppLocalizations {
   /// **'The PC did not answer. Check that the bridge is running and that the address is correct.'**
   String get bridgeUnreachable;
 
+  /// No description provided for @bridgeBlockedByBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'The browser did not let this page contact the PC. On the PC itself, or on a device that runs Tailscale, open the browser\'s site settings for this page, set \"Local network access\" to Allow, and reload. If it still fails, check that the bridge is running and that the address is correct.'**
+  String get bridgeBlockedByBrowser;
+
   /// No description provided for @bridgeTimedOut.
   ///
   /// In en, this message translates to:
@@ -2681,6 +2753,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The PC refused this story request.'**
   String get bridgeInvalidRequest;
+
+  /// No description provided for @bridgeDeviceNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC no longer lists that device.'**
+  String get bridgeDeviceNotFound;
+
+  /// No description provided for @bridgeCannotRemoveThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Use “Forget this device” to unpair this device.'**
+  String get bridgeCannotRemoveThisDevice;
 
   /// No description provided for @bridgeJobNotFound.
   ///
@@ -3005,6 +3089,342 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That picture has not been made yet.'**
   String get bridgeIllustrationNotReady;
+
+  /// No description provided for @heroSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the hero is drawn'**
+  String get heroSheetTitle;
+
+  /// No description provided for @heroSheetIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC reads this child\'s photo once and draws the same hero in every story. You decide what that hero always wears and carries.'**
+  String get heroSheetIntro;
+
+  /// No description provided for @heroSheetReadFromPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Read from the photo'**
+  String get heroSheetReadFromPhoto;
+
+  /// No description provided for @heroSheetHair.
+  ///
+  /// In en, this message translates to:
+  /// **'Hair'**
+  String get heroSheetHair;
+
+  /// No description provided for @heroSheetSkinTone.
+  ///
+  /// In en, this message translates to:
+  /// **'Skin'**
+  String get heroSheetSkinTone;
+
+  /// No description provided for @heroSheetEyeColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Eyes'**
+  String get heroSheetEyeColor;
+
+  /// No description provided for @heroSheetNotReadYet.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC has not read this photo yet.'**
+  String get heroSheetNotReadYet;
+
+  /// No description provided for @heroSheetOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Always wears'**
+  String get heroSheetOutfit;
+
+  /// No description provided for @heroSheetProp.
+  ///
+  /// In en, this message translates to:
+  /// **'Always carries'**
+  String get heroSheetProp;
+
+  /// No description provided for @heroSheetWardrobeHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'A short phrase in English, because the drawing model reads English.'**
+  String get heroSheetWardrobeHelper;
+
+  /// No description provided for @heroSheetReadAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Read again from the photo'**
+  String get heroSheetReadAgain;
+
+  /// No description provided for @heroSheetRereadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC read the photo again.'**
+  String get heroSheetRereadDone;
+
+  /// No description provided for @heroSheetRereadPending.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC is busy. It will read the photo again shortly.'**
+  String get heroSheetRereadPending;
+
+  /// No description provided for @heroSheetRereadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC could not read the photo again.'**
+  String get heroSheetRereadFailed;
+
+  /// No description provided for @heroSheetSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'What the hero wears could not be saved on the PC.'**
+  String get heroSheetSaveFailed;
+
+  /// No description provided for @heroSheetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC did not answer, so the hero\'s look is not shown.'**
+  String get heroSheetUnavailable;
+
+  /// No description provided for @settingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything a parent decides for this device.'**
+  String get settingsSubtitle;
+
+  /// No description provided for @settingsFamilyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get settingsFamilyTitle;
+
+  /// No description provided for @settingsFamilyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The heroes on this device, and the language the app speaks.'**
+  String get settingsFamilyBody;
+
+  /// No description provided for @settingsReadingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get settingsReadingTitle;
+
+  /// No description provided for @settingsReadingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'How story pages look, and how they are read aloud.'**
+  String get settingsReadingBody;
+
+  /// No description provided for @settingsPcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC'**
+  String get settingsPcTitle;
+
+  /// No description provided for @settingsPcBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Where stories are written, which devices the PC trusts, and the offline library.'**
+  String get settingsPcBody;
+
+  /// No description provided for @settingsSafetyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get settingsSafetyTitle;
+
+  /// No description provided for @settingsSafetyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The parent PIN and the topics stories stay away from.'**
+  String get settingsSafetyBody;
+
+  /// No description provided for @settingsSafetyTopicsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Chosen for each child in My Kingdom.'**
+  String get settingsSafetyTopicsBody;
+
+  /// No description provided for @settingsDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data'**
+  String get settingsDataTitle;
+
+  /// No description provided for @settingsDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups, what stays on this device, and deleting all of it.'**
+  String get settingsDataBody;
+
+  /// No description provided for @settingsAboutSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'What this app is and what writes its stories'**
+  String get settingsAboutSummary;
+
+  /// No description provided for @settingsNoHeroes.
+  ///
+  /// In en, this message translates to:
+  /// **'No hero profiles on this device yet'**
+  String get settingsNoHeroes;
+
+  /// No description provided for @settingsReadingTextSizeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size: {size}'**
+  String settingsReadingTextSizeValue(String size);
+
+  /// No description provided for @settingsReadingMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get settingsReadingMixed;
+
+  /// No description provided for @settingsReadingEasyOn.
+  ///
+  /// In en, this message translates to:
+  /// **'easy-reading font on'**
+  String get settingsReadingEasyOn;
+
+  /// No description provided for @settingsReadingEasyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'easy-reading font off'**
+  String get settingsReadingEasyOff;
+
+  /// No description provided for @settingsReadingEasySome.
+  ///
+  /// In en, this message translates to:
+  /// **'easy-reading font for some heroes'**
+  String get settingsReadingEasySome;
+
+  /// No description provided for @settingsPcDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo stories'**
+  String get settingsPcDemo;
+
+  /// No description provided for @settingsPcNotPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC · not paired yet'**
+  String get settingsPcNotPaired;
+
+  /// No description provided for @settingsPcPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired with the PC'**
+  String get settingsPcPaired;
+
+  /// No description provided for @settingsPcNeverSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'not synced yet'**
+  String get settingsPcNeverSynced;
+
+  /// No description provided for @settingsPcSyncedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'synced {moment}'**
+  String settingsPcSyncedAt(String moment);
+
+  /// No description provided for @settingsSafetyPinOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent PIN on'**
+  String get settingsSafetyPinOn;
+
+  /// No description provided for @settingsSafetyPinOff.
+  ///
+  /// In en, this message translates to:
+  /// **'No parent PIN'**
+  String get settingsSafetyPinOff;
+
+  /// No description provided for @settingsDataSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories on this device: {count}'**
+  String settingsDataSummary(int count);
+
+  /// No description provided for @settingsNarrationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading aloud'**
+  String get settingsNarrationTitle;
+
+  /// No description provided for @settingsNarrationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading speed, how much is read, and the sleep timer are chosen in the reader each time a story is read aloud. None of it is stored on this device.'**
+  String get settingsNarrationBody;
+
+  /// No description provided for @settingsDangerZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot be undone'**
+  String get settingsDangerZone;
+
+  /// No description provided for @nameSpellingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Name in each language'**
+  String get nameSpellingsTitle;
+
+  /// No description provided for @nameSpellingsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'How {name}\'s name is written in each story language. Leave one empty to use the name exactly as you typed it.'**
+  String nameSpellingsBody(String name);
+
+  /// No description provided for @nameSpellingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Same name, that language\'s letters'**
+  String get nameSpellingsHint;
+
+  /// No description provided for @suggestNameSpellings.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the PC'**
+  String get suggestNameSpellings;
+
+  /// No description provided for @nameSpellingsSuggesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking the PC how to write the name…'**
+  String get nameSpellingsSuggesting;
+
+  /// No description provided for @nameSpellingsSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC filled these in. Check them before you save.'**
+  String get nameSpellingsSuggested;
+
+  /// No description provided for @nameSpellingsSuggestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC could not suggest spellings. You can type them yourself.'**
+  String get nameSpellingsSuggestFailed;
+
+  /// No description provided for @nameSpellingsNeedName.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the name first.'**
+  String get nameSpellingsNeedName;
+
+  /// No description provided for @nameSpellingsNeedPc.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the family PC to have these filled in for you.'**
+  String get nameSpellingsNeedPc;
+
+  /// No description provided for @nameSpellingTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'That is too long for a name.'**
+  String get nameSpellingTooLong;
 }
 
 class _AppLocalizationsDelegate

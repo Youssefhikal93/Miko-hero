@@ -2,13 +2,19 @@ import 'package:flutter/widgets.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 
-/// Snapshot schema written by this version; 4 introduced reading comfort.
+/// Snapshot schema written by this version; 5 introduced name spellings.
 ///
 /// Version 2 introduced profile birth dates; version 3 added the per-child
 /// castle, photo frame, backdrop, and favourite symbol; version 4 added each
-/// child's reader text size, easy-reading font, and finished-story rewards.
-const appStateSchemaVersion = 4;
+/// child's reader text size, easy-reading font, and finished-story rewards;
+/// version 5 added how each child's name is written in each story language.
+///
+/// Every one of those additions is absent-means-default, so a snapshot written
+/// by any earlier version still reads: a profile with no `nameSpellings` is a
+/// profile whose name is written the one way the parent typed it.
+const appStateSchemaVersion = 5;
 
 /// Oldest snapshot schema this version still reads; 1 predates birth dates.
 const minimumAppStateSchemaVersion = 1;
@@ -136,6 +142,25 @@ class AppState {
       if (profile.id == profileId) return profile;
     }
     return null;
+  }
+
+  /// Resolves one stored book by identity, or null when it is already gone.
+  StoryBook? storyById(String storyId) {
+    for (final story in stories) {
+      if (story.id == storyId) return story;
+    }
+    return null;
+  }
+
+  /// Resolves one stored book or reports it as recoverably missing.
+  ///
+  /// A parent reaches this by acting on a card whose story another screen
+  /// deleted meanwhile, so it is an [UnknownEntityException] the surface is
+  /// expected to catch rather than a programming error.
+  StoryBook requireStoryById(String storyId) {
+    final story = storyById(storyId);
+    if (story == null) throw const UnknownEntityException('story');
+    return story;
   }
 
   /// Returns the newest-first shelf belonging to one child profile.

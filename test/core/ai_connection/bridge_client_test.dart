@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 
 import '../../support/fake_bridge_http_client.dart';
 
@@ -179,6 +180,30 @@ void main() {
     );
   });
 
+  test('in a browser a refused connection is named as the browser\'s', () async {
+    // A browser reports a blocked call (site permission, origin, or a PC that
+    // is off) as one opaque exception; the parent is told about the permission
+    // because that is the cause they cannot see.
+    final blocked = BridgeClient(
+      httpClient: FakeBridgeHttpClient((request) async {
+        throw http.ClientException('Failed to fetch', request.url);
+      }),
+      baseUrl: baseUrl,
+      runsInBrowser: true,
+    );
+
+    await expectLater(
+      blocked.readHealth(),
+      throwsA(
+        isA<BridgeException>().having(
+          (error) => error.failure,
+          'failure',
+          BridgeFailure.blockedByBrowser,
+        ),
+      ),
+    );
+  });
+
   test('an answer that is not the agreed shape is refused', () async {
     final httpClient = FakeBridgeHttpClient((request) async {
       return bridgeJsonResponse(<String, Object>{'unexpected': true});
@@ -192,6 +217,92 @@ void main() {
           (error) => error.failure,
           'failure',
           BridgeFailure.invalidResponse,
+        ),
+      ),
+    );
+  });
+
+  test('a spelling suggestion asks about a name and no profile', () async {
+    final httpClient = FakeBridgeHttpClient((request) async {
+      expect(request.url.path, '/profiles/spellings/suggest');
+      return bridgeJsonResponse(<String, Object>{
+        'spellings': <String, Object>{
+          'ar': 'مليكة',
+          'en': 'Malika',
+          'sv': 'Malika',
+          'so': 'Maliika',
+        },
+      });
+    });
+    final client = BridgeClient(
+      httpClient: httpClient,
+      baseUrl: baseUrl,
+      deviceToken: 'device-token',
+    );
+
+    final spellings = await client.suggestNameSpellings(
+      heroName: 'Malika',
+      genderContext: 'girl',
+    );
+
+    expect(spellings[AppLanguage.arabic], 'مليكة');
+    expect(spellings[AppLanguage.somali], 'Maliika');
+    final body = httpClient.jsonBodiesFor('/profiles/spellings/suggest').single;
+    expect(body['heroName'], 'Malika');
+    expect(body['gender'], 'girl');
+    expect(
+      body.containsKey('profileId'),
+      isFalse,
+      reason: 'the PC is asked about a string, not about a child',
+    );
+    expect(
+      utf8.decode(httpClient.requests.single.bodyBytes),
+      contains('Malika'),
+      reason: 'the body is explicit UTF-8, as every other bridge call is',
+    );
+  });
+
+  test('a spelling answer missing a language is refused whole', () async {
+    final httpClient = FakeBridgeHttpClient((request) async {
+      return bridgeJsonResponse(<String, Object>{
+        'spellings': <String, Object>{'ar': 'مليكة', 'en': 'Malika'},
+      });
+    });
+    final client = BridgeClient(
+      httpClient: httpClient,
+      baseUrl: baseUrl,
+      deviceToken: 'device-token',
+    );
+
+    expect(
+      client.suggestNameSpellings(heroName: 'Malika'),
+      throwsA(
+        isA<BridgeException>().having(
+          (error) => error.failure,
+          'failure',
+          BridgeFailure.invalidResponse,
+        ),
+      ),
+    );
+  });
+
+  test('a PC that cannot spell the name is a typed generation failure', () {
+    final httpClient = FakeBridgeHttpClient((request) async {
+      return bridgeErrorResponse('ollama_unavailable', 503);
+    });
+    final client = BridgeClient(
+      httpClient: httpClient,
+      baseUrl: baseUrl,
+      deviceToken: 'device-token',
+    );
+
+    expect(
+      client.suggestNameSpellings(heroName: 'Malika'),
+      throwsA(
+        isA<BridgeException>().having(
+          (error) => error.failure,
+          'failure',
+          BridgeFailure.generationFailed,
         ),
       ),
     );

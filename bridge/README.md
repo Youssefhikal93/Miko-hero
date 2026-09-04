@@ -52,17 +52,26 @@ The bridge loads one JSON configuration file, resolved in this order:
 If the file does not exist it is created with defaults and its location is
 printed. All machine-specific values live in this file; nothing is hardcoded.
 
+**The whole file is strict.** Every key below is optional and falls back to
+its documented default, but a key that is not in the table is refused at
+startup with its own name in the message — the rule the `illustration` section
+has always followed, now applied to the top level too. A misspelled
+`ollamaModle` used to be dropped in silence, which meant every story ran on
+the default model with nothing anywhere saying so. If the bridge refuses to
+start after an upgrade, the message names the key to fix or delete.
+
 | Field           | Default                 | Meaning                                   |
 | --------------- | ----------------------- | ----------------------------------------- |
 | `bindAddress`   | `127.0.0.1`             | Interface the HTTP server binds to. Startup accepts only `localhost`, `127.0.0.0/8`, `::1`, private IPv4 (`10/8`, `172.16/12`, `192.168/16`), link-local (`169.254/16`, `fe80::/10`), private IPv6 (`fc00::/7`), or Tailscale (`100.64/10`). Wildcard, public, and other hostname addresses are refused. |
 | `port`          | `8765`                  | TCP port of the HTTP server               |
 | `libraryPath`   | `<cwd>/iam_hero_library`| Root folder of the master library         |
-| `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API          |
-| `comfyUiBaseUrl`| `http://127.0.0.1:8188` | Base URL of the local ComfyUI API         |
+| `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API. Must be an absolute `http(s)` URL; trailing slashes are ignored |
+| `comfyUiBaseUrl`| `http://127.0.0.1:8188` | Base URL of the local ComfyUI API. Same rule as `ollamaBaseUrl`   |
 | `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories. `gemma3:4b` is the floor, not a recommendation — see [`docs/STORY_QUALITY_UPGRADE.md`](../docs/STORY_QUALITY_UPGRADE.md) |
+| `visionModel`   | `gemma3:4b`             | Ollama model tag used to read a child's reference photo **once**, to derive their [character sheet](#one-child-one-drawn-hero). Separate from `ollamaModel` because the writers worth upgrading to (`qwen3.5:*` and friends) cannot see an image at all. A tag without vision just means no sheet, and the story planner invents the appearance line as it always did |
 | `generationTimeoutSeconds` | `900`        | Budget for **one** generation call (30–3600); a job makes two |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
-| `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800)   |
+| `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800). ComfyUI's short metadata calls — submit, poll, node check, interrupt — are separately capped at 30 s, or at this value when it is smaller |
 | `allowedWebOrigins` | `[]`             | Extra web origins allowed to call the bridge from a browser (CORS). Every entry must be an exact origin: scheme + host + optional port, with no wildcard, credentials, path, query, fragment, or trailing slash. Loopback origins (`localhost`, `127.0.0.0/8`, `[::1]`, any port) are always allowed. `http://` is accepted only for loopback and the private/LAN, link-local, and Tailscale ranges accepted by `bindAddress`; every public origin must be listed explicitly with `https://`. |
 | `illustration`  | see below               | How pages are rendered. Optional as a whole |
 
@@ -76,6 +85,7 @@ Example `bridge_config.json`:
   "ollamaBaseUrl": "http://127.0.0.1:11434",
   "comfyUiBaseUrl": "http://127.0.0.1:8188",
   "ollamaModel": "qwen3:8b",
+  "visionModel": "gemma3:4b",
   "generationTimeoutSeconds": 900,
   "maxGenerationAttempts": 3,
   "illustrationTimeoutSeconds": 300,
@@ -151,6 +161,41 @@ the process closes the socket and database cleanly.
 All requests and responses are JSON. Errors use the typed envelope
 `{"error": {"code": "...", "message": "..."}}`.
 
+### Postman collection
+
+Every endpoint below is also a ready request in
+[`Iam-hero-bridge.postman_collection.json`](../Iam-hero-bridge.postman_collection.json)
+at the repository root — Postman v2.1, importable in one step. **Set two
+variables and nothing else:**
+
+- `baseUrl` — `http://127.0.0.1:8765` on the PC itself, or the Tailscale Funnel
+  address (`https://<machine>.<tailnet>.ts.net`) from anywhere else. The same
+  collection works against both.
+- `deviceToken` — **leave it empty**. Run *Pairing → Confirm pairing* once and
+  its test script stores the returned token here for every other request.
+
+`profileId`, `storyId`, `jobId` and `illustrationId` are filled the same way by
+the requests that produce them, so the collection runs top to bottom without
+copy-paste: *Management → List profiles* fills `profileId` the first time it
+finds one and never overwrites a value typed by hand. `deviceId` stays the one
+value always typed by hand, on purpose — removing a pairing should not be one
+click away from a listing.
+
+The Management folder also holds the one irreversible request in the
+collection, *Delete profile everywhere*, so read that folder rather than
+running it end to end.
+
+Authentication is set once at the collection level as `Bearer {{deviceToken}}`,
+and `/health`, `/pair/request` and `/pair/confirm` opt out of it exactly as the
+bridge does.
+
+The file ships with every variable empty except `baseUrl`: no token and no
+family data are committed. `test/postman_collection_test.dart` checks the
+collection against `lib/src/server/bridge_routes.dart` — the same list
+`AppServer.buildHandler` builds its routers from — so a new endpoint without a
+Postman request, or a request for an endpoint that no longer exists, fails the
+suite.
+
 ### `GET /health` — no auth
 
 Returns bridge version, uptime, and dependency statuses:
@@ -202,15 +247,167 @@ code stops working and a fresh request is needed.
 
 ### `GET /devices` — requires auth
 
-Requires `Authorization: Bearer <deviceToken>`. Lists paired devices
-(name + created date only — never tokens):
+Requires `Authorization: Bearer <deviceToken>`. Lists the devices that can
+still authenticate (names and moments only — never tokens or token hashes):
 
 ```json
-{ "devices": [ { "id": "...", "name": "Family tablet", "createdAtUtc": "2026-08-22T10:00:00Z" } ] }
+{
+  "devices": [
+    {
+      "id": "...",
+      "name": "Family tablet",
+      "createdAtUtc": "2026-08-22T10:00:00Z",
+      "lastSeenAtUtc": "2026-09-01T18:30:00Z",
+      "isCaller": true
+    }
+  ]
+}
 ```
+
+`lastSeenAtUtc` is when that device last presented a valid token; it is
+`null` for a device that paired and has not called since. Every
+authenticated request stamps it, so it moves on the caller's own row before
+this answer is built. `isCaller` marks the row belonging to the device
+asking, which is how the app shows "this device" and hides a removal it
+would be refused anyway — a device never has to store its own id.
+
+Revoked devices are not listed.
 
 Every endpoint except `/health`, `/pair/request`, and `/pair/confirm`
 requires a valid bearer token; anything else gets `401 unauthorized`.
+
+### `DELETE /devices/<deviceId>` — requires auth
+
+Removes another device's pairing. The token row is kept but marked revoked,
+so the removed device's **very next call fails with `401 unauthorized`** and
+the PC still remembers the device once existed.
+
+```json
+{ "id": "...", "removed": true }
+```
+
+Failure modes:
+
+- `409 cannot_remove_self` — a device may not remove its own pairing.
+  Unpairing the device you are holding is a local decision made on that
+  device (the app's *Forget this device*), and a self-removal would leave the
+  parent looking at a list they can no longer refresh.
+- `404 device_not_found` — no device is paired under that id, including one
+  already removed.
+
+### `GET /profiles` — requires auth
+
+Every child the master library knows, oldest first:
+
+```json
+{
+  "profiles": [
+    {
+      "id": "profile-1",
+      "displayName": "Nour",
+      "hasPhoto": true,
+      "storyCount": 3,
+      "createdAtUtc": "2026-08-22T10:00:00.000Z",
+      "updatedAtUtc": "2026-09-01T18:20:00.000Z"
+    }
+  ]
+}
+```
+
+`hasPhoto` is a yes-or-no. The photo bytes never leave the library, and
+neither does its path: whether a child has a reference photo is something the
+parent needs to know, and what the child looks like is not something an HTTP
+answer should carry.
+
+There is **no age here**. The bridge stores a child's name and nothing else
+about them; the age a story was written for travels inside the generation
+request and is used to pitch the prose, not kept. The app owns the birth date.
+
+Failure: `401 unauthorized`.
+
+### `DELETE /profiles/<profileId>` — requires auth
+
+Deletes the child and everything the library holds for them — the profile row,
+every story, every page, every illustration row, the rendered image files and
+the reference photo:
+
+```json
+{
+  "profileId": "profile-1",
+  "deletedAtUtc": "2026-09-03T09:12:44.000Z",
+  "deletedStoryCount": 3,
+  "deletedPageCount": 18,
+  "deletedIllustrationCount": 18,
+  "removedFileCount": 15,
+  "photoRemoved": true
+}
+```
+
+The rows go in **one transaction**: either the whole child goes or nothing
+does. Files are removed after it commits, for the reason a story deletion
+gives — an orphaned file is harmless, a row pointing at a missing file is not
+— so `removedFileCount` is lower than `deletedIllustrationCount` whenever some
+pages were never drawn.
+
+One `deletion_records` entry is written **per deleted story**, exactly the
+record `POST /stories/<storyId>/delete` writes, so a paired device that never
+saw this happen learns each book is gone from its next manifest through the
+path it already understands. The profile's own disappearance needs no record:
+a manifest carries the complete profile list, so a child no longer in it is a
+child who is gone.
+
+Unlike a story deletion this is **not idempotent**. Nothing records that a
+profile once existed, so a second call cannot be told apart from a mistyped id
+and answers `404 profile_not_found` — the same typed error the photo endpoints
+answer, malformed ids included.
+
+Failures: `404 profile_not_found`, `401 unauthorized`.
+
+### `GET /stories` — requires auth
+
+Every story with its illustration progress, oldest first:
+
+```json
+{
+  "stories": [
+    {
+      "id": "…",
+      "profileId": "profile-1",
+      "title": "Nour and the Sea Lanterns",
+      "languageCode": "ar",
+      "pageCount": 6,
+      "illustrations": { "pending": 1, "completed": 4, "failed": 1 },
+      "createdAtUtc": "2026-08-22T10:04:11.000Z",
+      "updatedAtUtc": "2026-08-22T10:31:02.000Z"
+    }
+  ]
+}
+```
+
+Titles only — no page prose; a listing is a table of contents. The three
+illustration counts always add up to the story's illustration rows, because
+anything that is neither `completed` nor `failed` is counted as pending.
+
+`?profileId=<id>` narrows the listing to one child's shelf. It is read through
+the same `JsonReader` every request body goes through, so it gets the same
+treatment: one known parameter, a 64-character limit, and never the value in
+the message. A `profileId` that names no profile is a **`400 invalid_field`
+naming the parameter**, not an empty list — an empty shelf and a typo look
+identical otherwise, and the parent would read the wrong one as an answer. Any
+other query parameter is refused the same way, by name, so a misspelled
+`?profileID=` cannot quietly return the whole library.
+
+Failures: `400 invalid_field`, `401 unauthorized`.
+
+### `GET /stories/<storyId>` — requires auth
+
+One whole book — every page's prose, its English scene description, and its
+illustration id and status. **Byte for byte the answer
+`GET /sync/stories/<storyId>` gives a paired device**: one serializer, one
+shape, documented under that endpoint below. A second shape for the parent
+would be a second thing to keep true.
+
+Failures: `404 story_not_found` (a deleted story included), `401 unauthorized`.
 
 ### `POST /stories/generate` — requires auth
 
@@ -220,6 +417,7 @@ Queues one story generation job. Body:
 {
   "profileId": "profile-1",
   "heroName": "Nour",
+  "heroNameSpelling": "نور",
   "ageYears": 6,
   "genderContext": "girl",
   "languageCode": "ar",
@@ -232,7 +430,10 @@ Queues one story generation job. Body:
 }
 ```
 
-Every field except the last two is required. `genderContext` is `girl` or
+`profileId`, `heroName`, `ageYears`, `genderContext`, `languageCode`, `theme`,
+`moral`, `pageCount` and `illustrationStyle` are required;
+`heroNameSpelling`, `favoriteTopics` and `recurringWorld` are optional.
+`genderContext` is `girl` or
 `boy` (the app's unspecified state never reaches here), `languageCode` is
 `ar`, `en`, `sv` or `so`, `pageCount` is `6`, `8` or `10`, and
 `illustrationStyle` is `pictureBook`, `watercolor` or `colorful3d`. Anything
@@ -244,6 +445,20 @@ all mean the same thing — nothing was filled in — and the prompt then says
 nothing about them at all. A present value of the wrong type or over the
 limit is still `400 invalid_field`. A device that never sends them keeps
 working unchanged.
+
+`heroNameSpelling` is **optional** (≤ 60 characters) and is how the family
+writes this child's name **in `languageCode`** — `مليكة` for an Arabic book,
+`Malika` for an English one. Ask *Suggest name spellings* below for it, or let
+the parent type it. Given one:
+
+- both prompts name the hero with it, and carry one line forbidding any other
+  spelling of the name anywhere in the answer — no transliteration, no
+  translation, no second script;
+- the language check stops tolerating letters of another script at all (see
+  **Language purity**).
+
+Absent, `null` and blank all mean the same thing: the story is written with
+`heroName` exactly as it always was.
 
 On success:
 
@@ -346,6 +561,12 @@ previous photo (including one stored in the other format — a profile never
 has two), and the profile row's `updated_at_utc` moves inside a transaction
 so the next sync manifest shows the change.
 
+The response does not wait for the child's
+[character sheet](#one-child-one-drawn-hero) to be re-derived from the new
+photo. That runs behind the answer as a best-effort task, and is skipped when
+the GPU is busy; a story that needs a sheet and does not find one derives it
+itself.
+
 Typed failures: `400 unsupported_image_type` (wrong or missing
 `Content-Type`), `400 invalid_image` (bytes that are not that format, or an
 empty body), `413 photo_too_large` (over 2 MB), `404 profile_not_found`.
@@ -362,6 +583,149 @@ Removes the photo. Idempotent — a profile that has none answers `200` with
 ```json
 { "profileId": "profile-1", "removed": true }
 ```
+
+### `GET /profiles/<profileId>/hero-sheet` — requires auth
+
+How this child's hero is **drawn** — see
+[One child, one drawn hero](#one-child-one-drawn-hero) for what the sheet is
+and where each half of it comes from.
+
+```json
+{
+  "profileId": "profile-1",
+  "sheet": {
+    "hair": "short curly black hair",
+    "skinTone": "warm brown",
+    "eyeColor": "dark brown",
+    "outfit": "wearing a red knitted cardigan over a white collared shirt",
+    "prop": "carrying a small brass lantern",
+    "photoHash": "9f2c…",
+    "updatedAtUtc": "2026-09-03T20:14:02.000Z"
+  }
+}
+```
+
+A child whose photo has never been read answers `200` with `"sheet": null`.
+That is a state, not a failure: it is what a family sees before their first
+illustrated book, and the app shows it as "the PC has not read this photo yet".
+
+A sheet may also carry **only** `outfit` and `prop`, with the three derived
+values and `photoHash` empty, when a parent said what their hero wears before
+any photo reached the PC. `isDerived` is that distinction on the bridge side,
+and a sheet that is not derived is treated as no sheet at all by the story
+planner.
+
+Typed failures: `404 profile_not_found` (an unknown or malformed id).
+
+### `PUT /profiles/<profileId>/hero-sheet` — requires auth
+
+Sets what this child's hero always wears and carries, and nothing else.
+
+```json
+{
+  "outfit": "wearing a mustard-yellow raincoat over a striped shirt",
+  "prop": "carrying a small brass lantern"
+}
+```
+
+The sheet has two owners and this endpoint writes one of them. `hair`,
+`skinTone`, `eyeColor` and `photoHash` are the PC's — it is the only thing that
+ever looks at the photo — and are refused here as unknown fields; the only way
+to move them is to have the photo read again. `outfit` and `prop` were never in
+the photo (see the wardrobe reasoning below), so they are the parent's.
+
+Both fields are optional, and a blank one clears that half of the wardrobe: a
+parent may undress a hero as deliberately as they dressed one. Each is at most
+80 characters — the same limit the vision pass's own fields have — because the
+one line they join is repeated into every page's scene description.
+
+Answers `200` with the same body `GET` returns. A profile whose photo has never
+been read still gets its wardrobe stored, and the derived half fills in the
+first time a photo is read.
+
+Typed failures: `400 invalid_field` (an unknown field, or one over the limit),
+`404 profile_not_found`.
+
+### `POST /profiles/<profileId>/hero-sheet/rederive` — requires auth
+
+Reads the stored reference photo again and rewrites the three derived traits,
+**ignoring the photo-hash cache**. That cache is the whole reason the sheet is
+cheap, and asking to read the photo again is exactly a request to stop trusting
+it for one call. The outfit and the prop are not touched.
+
+Answers `202`:
+
+```json
+{
+  "profileId": "profile-1",
+  "started": true,
+  "sheet": { "hair": "long straight brown hair", "…": "…" }
+}
+```
+
+`202` rather than `200` because the PC accepts the request rather than
+promising it is finished. The re-read takes its turn at the
+[one-GPU gate](#one-gpu-one-job--story-or-picture-never-both) like a story or a
+render does, and unlike the nudge behind a photo upload it **waits** for the
+card instead of stepping aside — a parent asked for this. The `sheet` in the
+answer is the best the PC has by the time it answers: usually the fresh one,
+and the old one when the card was still busy drawing a book.
+
+Nothing here fails the caller. A profile with no photo, an Ollama that is down,
+and a model that answered in the wrong shape all leave whatever was already
+stored, because none of them is something a parent could act on.
+
+Typed failures: `404 profile_not_found`.
+
+### `POST /profiles/spellings/suggest` — requires auth
+
+Asks the story model how one child's given name is written in each of the four
+story languages. Body:
+
+```json
+{ "heroName": "Malika", "gender": "girl" }
+```
+
+`heroName` is required (≤ 60 characters). `gender` is optional, `girl` or
+`boy`, and only refines the wording — leave it out and the prompt asks about a
+child. Anything else is `400 invalid_field` before any model call.
+
+```json
+{
+  "spellings": {
+    "ar": "مليكة",
+    "en": "Malika",
+    "sv": "Malika",
+    "so": "Maliika"
+  }
+}
+```
+
+The four values go back to the device, where the **parent confirms or corrects
+them** before they become part of that child's profile. They then travel with
+every story request as `heroNameSpelling`.
+
+Four things make this endpoint unlike the others:
+
+- **It names no profile and writes nothing.** The suggestion is about a string;
+  whose name it is stays the device's business, and nothing about it is stored
+  on the PC.
+- **It is answered inside the request**, not as a job — four short names are one
+  small call, and a parent is waiting in the profile editor for it. One Ollama
+  call with a JSON schema, on the **story** model (`ollamaModel`), taking its
+  turn at the same GPU gate as generation and rendering, and unloading that
+  model on the way out like every other tenant.
+- **Its budget is 15 seconds**, because the whole HTTP request is capped at 20.
+  A cold model on a busy card will miss that and answer
+  `503 ollama_unavailable`; asking again once the model is resident is cheap,
+  and the parent may always type the four spellings by hand.
+- **All four or none.** An answer that is not four names in the right scripts —
+  an Arabic spelling in Latin letters, a pronunciation guide, a missing
+  language — is refused whole rather than half-filling the editor.
+
+Errors: `400 invalid_field`, `400 invalid_json`, `401 unauthorized`,
+`503 ollama_unavailable` (unreachable, too slow, or an unusable answer). The
+name is never written to a log line, here or anywhere else.
 
 ### `POST /stories/<storyId>/illustrate` — requires auth
 
@@ -606,16 +970,22 @@ simply picked up by the next sync.
 A device that loses its notes needs no recovery path: it fetches one manifest
 and downloads whatever it cannot account for.
 
-### Two kinds of deletion
+### Three kinds of deletion
 
 | Kind | Where | What the bridge does |
 | ---- | ----- | -------------------- |
 | Remove the offline copy | in the app, on one device | **nothing** — the app deletes its own local copy; the story stays in the master library and will simply appear in the next manifest again |
 | Delete everywhere | `POST /stories/<id>/delete` | deletes the pages, illustration rows and illustration files, and records the deletion so every other device drops its copy too |
+| Delete the child | `DELETE /profiles/<id>` | the same, for every story that child owns at once, plus the profile row and the reference photo |
 
 The app's local "remove offline copy" needs no bridge endpoint at all, and
-must not call one: freeing space on a tablet is not a family decision. Only
-"delete everywhere" is.
+must not call one: freeing space on a tablet is not a family decision. The
+other two are.
+
+Deleting a child writes one story deletion record per book rather than a new
+kind of record, so devices need to understand nothing new; the profile's own
+disappearance is visible because a manifest always carries the complete
+profile list.
 
 Rows and the deletion record commit together in one transaction; the
 illustration files are removed immediately after that commit, because the
@@ -634,7 +1004,8 @@ backup, which is why the two features arrived together.
 One authenticated file with everything the library is:
 
 - every database row — profiles, stories, pages, illustrations, deletion
-  records, sync state, and devices **as names only**,
+  records, sync state, and devices **as names only** (name, paired and
+  last-seen moments, revocation),
 - every file under `photos/` and `illustrations/`, base64 inside the payload.
 
 **Device token hashes are never in a backup.** A backup that could
@@ -730,23 +1101,70 @@ invent and write a whole book at once produces six unrelated scenes with the
 moral announced on the last page.
 
 1. **Outline pass.** A deliberately tiny schema: a working title, exactly one
-   beat per page, and a one-line **hero appearance sheet** — clothing colours,
-   hair, one recurring prop. The prompt asks for a real arc: a warm ordinary
-   opening, a challenge or discovery growing through the middle, and a last
-   page resolved by something the child themself chose or did.
+   beat per page, a one-line **hero appearance sheet** — clothing colours,
+   hair, one recurring prop — a **lesson moment**, and a **turn page**. The
+   prompt asks for a real arc: a warm ordinary opening, a challenge or
+   discovery growing through the middle, and a last page resolved by something
+   the child themself chose or did.
 2. **Page pass.** The approved outline is embedded verbatim in the prompt, so
    the pages tell that plan rather than a new story. Beat N becomes page N.
 
 The appearance sheet is appended to every page's `illustrationScene` (em-dash
 separated, inside the existing 2000-character cap), which is what makes the
 hero wear the same clothes on page one and page ten when ComfyUI draws them.
-It is invented by the model and the prompt forbids describing a photograph or
-a real person.
+Either way it describes a drawn character, and the prompt forbids describing a
+photograph or a real person.
+
+Where the line comes from depends on whether the child has a **character
+sheet** (see [One child, one drawn hero](#one-child-one-drawn-hero)):
+
+- **With a sheet** — the stored line is put in the prompt and the planner is
+  told to copy it verbatim. Whatever it actually answers is ignored; the stored
+  line is the one that reaches the pages. A wrong copy therefore costs nothing,
+  not even a retry.
+- **Without one** — no photo, or the vision pass never managed to run — the
+  planner invents the line per story, exactly as it did before sheets existed.
 
 The prompt also carries the reader's age into a concrete reading level
 (sentence length and vocabulary bands for ≤4, ≤7, ≤10 and older), asks for the
 child's name only where it reads naturally rather than in every sentence, and
 weaves in `favoriteTopics` and `recurringWorld` when they were sent.
+
+### The lesson is the spine
+
+The parent's moral used to reach the model as one line, and two rules then
+forbade the model to state it — so a story about "listening to your parents"
+came back as a nice adventure with nothing in it to listen to. The plan now
+carries the lesson itself:
+
+- **`lessonMoment`** — one sentence, in the story's own language, naming the
+  concrete situation where the hero faces the lesson. Not the moral restated:
+  the moment it is tested. It is embedded verbatim in the page prompt.
+- **`turnPage`** — the page where the hero chooses the lesson. **The middle is
+  defined as every page after page 1 and before the last page.** Page 1 is the
+  warm ordinary opening, so a turn there leaves the hero no room to do the
+  opposite first; the last page is the resolution, so a turn there is the
+  moral announced at the end — the exact failure this plan exists to prevent.
+  A six-page book may turn on 2, 3, 4 or 5.
+
+The outline prompt tells the planner the middle challenge **is** the lesson:
+the hero does the opposite of it first, that costs something real, and on the
+turn page the hero chooses the lesson instead. The page prompt names the turn
+page and demands the choice be shown in action and in the body, never
+reported afterwards.
+
+A missing, blank, oversized or wrong-language lesson moment, and a turn page
+outside the middle, are all `invalid_model_output` — the plan is refused and
+re-planned, exactly like a hero appearance line in the wrong script. The
+lesson moment's language is checked by the same purity check as the title and
+the beats, so an English lesson moment on an Arabic book is refused.
+
+**One character may say it out loud.** The old rule forbade the model to state
+the moral at all. It still must never lecture and never address the reader —
+no "and so we learn", no "remember, children", no closing lesson sentence, no
+narrator explaining the point — but a parent or a friend may say the lesson
+once, in ordinary dialogue, and never on the last page. Real picture books do
+that; forbidding it was part of why the lesson evaporated.
 
 ### Job lifecycle
 
@@ -776,8 +1194,10 @@ queued ──▶ generating ──▶ validating ──▶ completed
   fails the job fails as `library_write_failed` and no rows remain.
 - **failed / cancelled** — no story, no partial rows, ever.
 
-After any running job reaches one of those terminal states, the bridge asks
-Ollama to unload the configured model before releasing the shared GPU lease.
+After any running job reaches one of those terminal states, the shared GPU
+gate asks Ollama to unload the configured model before the card changes hands
+or goes idle. The gate owns that rule for both queues; a queue never unloads
+on its own.
 
 ### Language purity
 
@@ -794,6 +1214,16 @@ like a wrong page count.
   whitespace and Arabic vowel marks are not letters and never count.
 
 Not 100 %, on purpose: an invented creature's name is not a language failure.
+
+**Unless the request carried `heroNameSpelling`.** That tolerance only ever
+existed for a name the model had no way to write, and a confirmed spelling is
+exactly that gap closed: with `مليكة` in the request there is no reason left
+for a Latin letter to appear in Arabic prose, and the prompt has already said
+so. So a spelled request is checked at **every letter** — one stray Latin word
+fails the attempt and costs a retry, the same way `en`, `sv` and `so` have
+always refused a single Arabic letter. Nothing else about the check moves: a
+request with no spelling is checked exactly as it always was.
+
 This is script-level defense in depth behind the prompt, not a spellchecker —
 correct grammar is the model's job, and the reason the model choice matters.
 Scene descriptions are exempt, because they are deliberately English.
@@ -828,6 +1258,15 @@ Typed failure codes: `invalid_request`, `ollama_unavailable`,
 Job ids, statuses, attempt counters, timings and typed error codes — and
 nothing else. Prompts, story text, titles, child names and model output are
 never written to the console or to any log.
+
+The character-sheet pass logs one verdict — `hero sheet derived`, `refreshed`,
+`unchanged`, `deferred` or `unavailable` — with no profile id, no photo hash,
+and not one word of the sheet itself.
+
+The name-spelling pass logs `name spellings suggested` or
+`name spellings unavailable`, plus the gate's own `spelling model unloaded`.
+The name it was asked about never appears in any of them, and neither does any
+spelling it answered with.
 
 ## Illustrations
 
@@ -906,9 +1345,11 @@ first stage runs once per job — one extra render on top of the pages:
    512x512 and redrawn as a cheerful storybook portrait: an img2img pass at
    denoise 0.62, in the book's own style prefix, with a negative prompt that
    adds `photo, photorealistic, dslr, skin pores` and friends in front of the
-   usual guards. Its seed is derived from `reference:<storyId>`, so a re-run
-   reproduces the same portrait and a re-rendered page still matches the pages
-   that already landed. The denoise is the whole tradeoff in one number: lower
+   usual guards. Its seed is derived from
+   `reference:<profileId>:<sha256 of the photo>` — **the child and the photo,
+   never the story** — so every book of one child redraws the same face, a
+   re-run reproduces it, and a re-rendered page still matches the pages that
+   already landed. The denoise is the whole tradeoff in one number: lower
    keeps more of the real child and more of the photograph, higher cartoonifies
    harder and starts inventing a different child.
 2. **Render the pages.** Exactly as above, except the checkpoint's model output
@@ -918,8 +1359,8 @@ first stage runs once per job — one extra render on top of the pages:
    their negative prompt: a page must stay free to be whatever its style
    demands instead of arguing with its reference.
 
-Stage one takes the same one-GPU lease a page takes, so no story is ever
-generated alongside it. If it fails for any reason the job renders the pages
+Stage one takes the same turn on the one-GPU gate a page takes, so no story
+is ever generated alongside it. If it fails for any reason the job renders the pages
 with **no reference at all** — never with the raw photo, which is the output
 this pass exists to avoid. The portrait is derived from the child's photo and
 is treated as private content: it stays inside ComfyUI's folders, exactly as
@@ -927,6 +1368,97 @@ the photo already does, and is never written into the library or logged.
 
 Without a photo the graph is plain text-to-image, there is no stage one, and
 the hero simply will not resemble anyone in particular.
+
+The portrait file inside ComfyUI's input folder is still named per story
+(`iam-hero-ref-<storyId>.png`). It is scratch — one job writes it and that same
+job's pages read it — and two books of one child in different styles must not
+overwrite each other mid-render. What has to be stable across books is the
+face, and that is the seed's job.
+
+### One child, one drawn hero
+
+A child's hero used to be reinvented twice per book: the portrait was seeded
+from the story id, so every book drew a different cartoon of the same face, and
+the story planner invented a fresh appearance line every time. A family reading
+three books saw three different children.
+
+Two things now come from the **child**, not the book:
+
+1. **The face.** The portrait seed is `reference:<profileId>:<photo hash>`, as
+   above. Same photo, same face, in every book. A new photo is the one thing
+   that deliberately draws a new one.
+2. **The character sheet.** One row per profile in `hero_character_sheets`
+   (schema v4), holding `hair`, `skinTone` and `eyeColor` — read from the photo
+   — plus one `outfit` and one `prop`, and the `photo_hash` the first three came
+   from. Its one English line is what the story planner is told to copy, and it
+   ends up appended to every page's scene description exactly as an invented
+   line used to be.
+
+**How the sheet is derived.** One Ollama `/api/generate` call with an `images`
+array and a three-string schema, on `visionModel`. The prompt asks for a
+**drawn cartoon character** and nothing else: it forbids mentioning a photo, a
+picture, a camera or a real person, and forbids every identifying detail — no
+name, age, expression, background, glasses, jewellery, scars or birthmarks. It
+asks for three colours, and that is all it can answer.
+
+**Clothing deliberately does not come from the model.** Asked what the
+character wears, a vision model describes the jumper in the picture — which is
+both an identifying detail and a costume that would change with every new
+photo. So the `outfit` and the `prop` are picked from two small curated
+wardrobes, hashed per profile: one child keeps one coat for as long as the
+profile exists, a new photo repaints the hair and colouring and leaves the hero
+dressed as the last book left them, and every entry was written once to be
+English, drawn and appropriate for a picture book.
+
+**When it runs.** Twice over, so that neither path is load-bearing on its own,
+plus once more when a parent asks:
+
+- **On `PUT /profiles/<id>/photo`**, as a detached best-effort task using the
+  bytes that were just uploaded. Detached because a request has 20 seconds and
+  a vision call does not fit in them; **skipped outright when the GPU is busy**,
+  because a book being rendered must not queue behind a nicety.
+- **Lazily, before a story**, from the story queue, if the sheet is missing or
+  its `photo_hash` no longer matches. This is the guarantee — a restart, a busy
+  card, an Ollama that was down, a restored backup all end here — and the story
+  that triggers it already has its sheet.
+- **On `POST /profiles/<id>/hero-sheet/rederive`**, when a parent asks from the
+  app. The only path that ignores the `photo_hash` cache, and the only one that
+  waits for the card rather than stepping aside.
+
+The same photo never costs a second model call, however many books the child
+gets, unless a parent asks for one.
+
+**The parent's half.** The wardrobe is chosen for a child, not fixed forever:
+`PUT /profiles/<id>/hero-sheet` replaces the `outfit` and the `prop` with
+whatever the parent typed, and touches nothing the photo was read into. A
+parent may also write a wardrobe before any photo has reached the PC. The row
+then exists with its three derived values empty — `isDerived` is false — and the
+story planner treats it exactly as it treats no sheet at all and invents the
+appearance itself, until the first photo fills the other half in. Which is also
+why a re-derive keeps the wardrobe: the two halves have two owners.
+
+**On the card.** The pass is a third Ollama tenant at the one-GPU gate (the
+fourth is the name-spelling pass). It takes a turn like either queue, and the
+gate unloads its model before the card changes hands, so ComfyUI never starts a
+render with a vision model still resident.
+
+**Not backed up, not synced.** The sheet is derived data: a
+[master-library backup](#master-library-backups) carries the photos, and the
+sheet is read again from those. A **restore empties the table** rather than
+leaving it — the restored profiles are a different set, and a sheet describing a
+child the library no longer has would be both wrong and, since it references
+`profiles(id)`, a foreign-key failure on the restore itself.
+
+It is **not in the sync manifest** either, and that one is a choice rather than
+an omission. The manifest is broadcast metadata: every paired device downloads
+all of it, every sync, and applies it wholesale. How one named child is drawn is
+not that. The three `/profiles/<id>/hero-sheet` endpoints hand the sheet to a
+device that asked for one child by id, when a parent opened that child's editor,
+and the app keeps no copy — so the sheet still lives in exactly one place.
+
+**Never logged.** The log lines are `hero sheet derived`, `refreshed`,
+`unchanged`, `deferred` or `unavailable` — verdicts with no profile id and not
+one word of the sheet or the photo.
 
 ### What face likeness actually means here
 
@@ -1007,6 +1539,12 @@ prompts, file paths and image bytes never reach the console or a log.
 Codes expire after 2 minutes, live only in memory (a restart clears them),
 and wrong attempts are capped at five.
 
+To undo a pairing later, the parent opens the app's AI connection settings on
+any *other* paired device, finds the device by name in **Devices paired with
+the PC** — with when it was paired and when the PC last heard from it — and
+removes it, which is `DELETE /devices/<deviceId>`. The removed device's next
+call is refused and the app there tells its holder to pair again.
+
 ## Security model
 
 - **Loopback by default.** Binds to `127.0.0.1`; LAN exposure requires an
@@ -1017,6 +1555,10 @@ and wrong attempts are capped at five.
 - **Pairing codes** are 6 digits, expire in 2 minutes, exist only in
   memory as hashes, are compared in constant time, and invalidate after
   five wrong entries. Request rate limit: 5 per minute.
+- **Revocation is immediate.** `DELETE /devices/<deviceId>` marks the token
+  row revoked, and the next call carrying that token fails authentication.
+  A device cannot revoke itself. Each accepted call records only the moment
+  it happened, in `devices.last_seen_at_utc` — never what was asked for.
 - **Bounded requests**: bodies larger than 25 MB are rejected with `413`;
   slow handlers time out with a typed error instead of hanging.
 - **Privacy by design**: request bodies, photo bytes, story content, scene
@@ -1030,8 +1572,9 @@ and wrong attempts are capped at five.
   request instead of orphaning it.
 - **Bounded rendering**: one page at a time behind the same one-GPU lock, a
   configurable per-page timeout (default 5 minutes) that interrupts the
-  abandoned render so the card is freed, a 16 MB ceiling on a downloaded
-  image, and a PNG magic-byte check before anything is stored.
+  abandoned render so the card is freed, a 30-second cap on every metadata
+  call to ComfyUI inside that budget, a 16 MB ceiling on a downloaded image,
+  and a PNG magic-byte check before anything is stored.
 - **Reference photos**: at most 2 MB, accepted only as JPEG or PNG, and only
   when the bytes match the declared type. Stored under the profile id inside
   `photos/`, so an id that could escape the folder is refused before the
@@ -1044,6 +1587,12 @@ and wrong attempts are capped at five.
   refused, so a restored row can never reach another folder.
 - **Bounded sync**: the manifest is metadata only — never prose, never file
   bytes — and every device sees only its own sync watermark.
+- **Management listings are metadata too**: `GET /profiles` and `GET /stories`
+  carry names, titles and counts — no page prose, no scene descriptions, no
+  photo bytes and no file paths. Page prose exists in exactly one answer,
+  shared by `GET /stories/<storyId>` and `GET /sync/stories/<storyId>`. A
+  refused filter names the parameter and never repeats its value, and nothing
+  in this group is logged.
 - **Backups are documents, not credentials**: device token hashes are never
   written into one, so a stolen backup file cannot talk to any bridge. The
   file is encrypted with AES-256-GCM under a PBKDF2-HMAC-SHA256 key (200 000
@@ -1073,6 +1622,11 @@ node classes it "has", which is how the missing-Impact-Pack failure is proved
 without installing anything. The workflow tests assert exact node wiring —
 which node reads which slot of which other node — because that is what a
 rendering bug actually looks like.
+
+`postman_collection_test.dart` needs no services at all: it parses the
+committed collection and holds it against `bridgeRoutes`, both ways — every
+route has a request, and every request has a route — plus the empty variables
+and the three `noauth` opt-outs.
 
 Sync, deletion and backup tests mock nothing: they run the real SQLite
 database, the real file system inside a temporary library, and the real

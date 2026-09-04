@@ -27,6 +27,34 @@ String interfaceFontFamilyFor(AppLanguage language) {
 }
 
 /// Iam - hero visual system shared by every target platform.
+///
+/// This is the single source of the redesign palette and of the small text
+/// styles that repeat across screens. No feature names a colour or a caption
+/// metric of its own; `test/app/app_theme_test.dart` scans `lib/features` and
+/// `lib/shared` and fails when one does.
+///
+/// Two long-standing ambiguities are settled here, and the tokens below are
+/// named so that the answers stay visible:
+///
+/// **Quiet ink: [frost] or [mutedDeep]?** The surface underneath decides.
+/// [mutedDeep] is the quiet ink on the app's own dark chrome — a tile, a card,
+/// a row — where it reads as deliberately recessive. [frost] is the quiet ink
+/// printed *on artwork*, where [mutedDeep] would sink into whatever the PC
+/// happened to draw. The two meta styles differ in nothing else: [caption] and
+/// [coverCaption] are the same size and carry only that one difference.
+///
+/// **[candle] as the accent, or the bedtime palette?** They never compete.
+/// [candle] is the *default* accent: the primary a family is lit by until a
+/// child saves a colour, plus the fixed warm emphasis the design prints
+/// regardless of who is reading (the favourite heart, the drafts notice, the
+/// new-story tile). Once a child has saved a colour, that colour is the accent
+/// and [candle] speaks only in those fixed warm places. The `bedtime` tokens
+/// are not an accent at all: they are a whole page palette the reader swaps in
+/// for the duration of bedtime mode — [bedtimeProse] for the prose,
+/// [bedtimeSurface] for the page, [bedtimeWash] over the illustration — and
+/// they replace, rather than tint, what they cover. The one place the two meet
+/// is the narration highlight, which uses [candle] while bedtime is on because
+/// a cold accent would fight warm prose.
 abstract final class AppTheme {
   /// Deep background the whole application sits on.
   static const night = Color(0xFF0A0D18);
@@ -38,6 +66,11 @@ abstract final class AppTheme {
   static const sunken = Color(0xFF141930);
 
   /// Warm candle used for primary emphasis and the default hero accent.
+  ///
+  /// The accent only until a child saves a colour of their own; after that it
+  /// stays exactly where the design prints warmth for everybody — the
+  /// favourite heart, the parent drafts notice, the new-story tile, and the
+  /// narration highlight while bedtime mode is on.
   static const candle = Color(goldenProfileThemeColorValue);
 
   /// Lighter candle used for warm inline emphasis such as link-style actions.
@@ -50,12 +83,18 @@ abstract final class AppTheme {
   static const light = Color(0xFFF2EFEA);
 
   /// Bright secondary tone for icons and small chrome labels.
+  ///
+  /// Also the quiet ink for meta text printed *on artwork*, where [mutedDeep]
+  /// would disappear into the picture. See [coverCaption].
   static const frost = Color(0xFFC6CBDC);
 
   /// Secondary text color for supporting sentences.
   static const muted = Color(0xFF9AA1B8);
 
   /// Quietest text color, used for captions and inactive labels.
+  ///
+  /// The quiet ink on the app's own chrome — tiles, cards and rows. Meta text
+  /// over a cover uses [frost] instead. See [caption].
   static const mutedDeep = Color(0xFF6E7793);
 
   /// Hairline border separating tiles from the background.
@@ -98,6 +137,140 @@ abstract final class AppTheme {
   static const bedtimeWash = LinearGradient(
     colors: <Color>[Color(0xB3140A02), Color(0x8CFF9A3C)],
   );
+
+  /// Violet the redesign closes its cover placeholders on.
+  ///
+  /// Deliberately not [purple]: that token names a kingdom palette a parent can
+  /// pick for a child, so borrowing it would make an unrelated decoration
+  /// choice and a story's artwork move together. Read by
+  /// `StoryArtwork.placeholderColors` for the colorful-3D style, and by nothing
+  /// else.
+  static const violet = Color(0xFF8A31CB);
+
+  /// Ink printed directly on cover artwork.
+  ///
+  /// "Cover" is any story picture a caption sits on: a shelf tile, the review
+  /// cover, or a reader page's placeholder. Pure white, because the artwork
+  /// underneath is a photograph-like render rather than a known surface.
+  static const onCover = Color(0xFFFFFFFF);
+
+  /// Softer on-cover ink for decorative glyphs rather than words.
+  static const onCoverMuted = Color(0xCCFFFFFF);
+
+  /// Translucent disc a placeholder face sits in on top of artwork.
+  static const onCoverVeil = Color(0x3DFFFFFF);
+
+  /// Bottom-weighted wash drawn between cover artwork and the text on it.
+  ///
+  /// Keeps a title readable over whatever the PC happened to draw. Painted by
+  /// every story tile that prints words on its own cover.
+  static const coverScrim = LinearGradient(
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+    stops: <double>[0, 0.65],
+    colors: <Color>[Color(0xD106080F), Color(0x1406080F)],
+  );
+
+  /// Darkening blend laid over a drawn cover before content is printed on it.
+  static const coverShade = Color(0x73000000);
+
+  /// Pill behind a badge that has to stay legible on any artwork.
+  static const coverPill = Color(0x66000000);
+
+  /// Ink for an action that cannot be undone, and for the check that blocks one.
+  ///
+  /// Used by the delete-everything control in Settings and by the required-photo
+  /// message that stops a profile being saved without one. Recoverable form
+  /// errors keep `ColorScheme.error`, which Material already derives.
+  static const danger = Color(0xFFFF5252);
+
+  /// Ink for a dependency that reports itself ready.
+  static const ready = Color(0xFF69F0AE);
+
+  /// Ink for a dependency that is reachable but not yet usable.
+  static const attention = Color(0xFFFFAB40);
+
+  /// Faint corner glow the shared page backdrop is lit from.
+  ///
+  /// `ScreenLayout` places it; the colour is a palette decision and lives here.
+  static const ambientGlow = Color(0x222F2340);
+
+  /// Neutral square a child's photo occupies before one has been chosen.
+  static const mediaWell = Color(0xFF222635);
+
+  /// Quiet meta line under a title on the app's own chrome.
+  ///
+  /// Merged onto the surrounding interface style, so it names only what makes
+  /// it a caption. Used by every story tile, Home tile and shelf row.
+  static const caption = TextStyle(fontSize: 13, color: mutedDeep);
+
+  /// The same meta line, printed on cover artwork instead of on a tile.
+  static const coverCaption = TextStyle(fontSize: 13, color: frost);
+
+  /// Tracked capitals naming a strip of content, such as "ON THE SHELF".
+  static const overline = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.3,
+    color: mutedDeep,
+  );
+
+  /// The same capitals as an eyebrow inside a tile, in the tile's warm ink.
+  static const overlineTile = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.3,
+    color: candleLight,
+  );
+
+  /// Quiet label above a name, set in sentence case rather than capitals.
+  ///
+  /// Less tracked and lighter than [overline] precisely because it is not
+  /// capitalised. Used by Home's "Reading as" header.
+  static const overlineSoft = TextStyle(
+    fontSize: 11,
+    letterSpacing: 1.1,
+    color: mutedDeep,
+  );
+
+  /// Label of a badge that rides on artwork, such as the demo marker.
+  static const badgeLabel = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w900,
+  );
+
+  /// Two-letter language code inside its accent-tinted square.
+  ///
+  /// Carries no colour: the caller supplies the active accent it is drawn in.
+  static const codeBadge = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 0.7,
+  );
+
+  /// Overrides that turn a resolved `labelLarge` into a form section heading.
+  ///
+  /// Merged rather than used alone so the heading keeps the label slot's own
+  /// metrics; only the tracking, weight and ink are decided here.
+  static const sectionLabel = TextStyle(
+    color: mutedDeep,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.3,
+  );
+
+  /// Style a label needs when it is written in [language]'s own script.
+  ///
+  /// Null while [language] reads the Latin face the interface already speaks
+  /// in, so a caller can hand the result straight to a widget's `style`. This
+  /// is the only way a feature asks for an interface face: the helper behind it
+  /// stays private to the theme's own decisions.
+  static TextStyle? scriptStyleFor(AppLanguage language) {
+    if (language.usesLatinScript) return null;
+    return TextStyle(
+      fontFamily: interfaceFontFamilyFor(language),
+      fontVariations: const <FontVariation>[],
+    );
+  }
 
   /// Creates a dark Material theme from the active child's saved opaque color.
   ///

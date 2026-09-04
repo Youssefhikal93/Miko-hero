@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/core/storage/library_transaction.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 
 /// Supplies application-wide preference and deletion commands to settings.
@@ -16,23 +16,13 @@ class SettingsController {
   final Ref _ref;
 
   /// Persists an interface locale before rebuilding localized widgets.
-  Future<void> setLocale(Locale locale) async {
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.saveLocale(locale);
-    final current = _ref.read(appControllerProvider).requireValue;
-    _ref
-        .read(appControllerProvider.notifier)
-        .commit(current.withLocale(locale));
+  Future<void> setLocale(Locale locale) {
+    return _ref.read(libraryTransactionProvider).setLocale(locale);
   }
 
   /// Deletes all family content while preserving the interface locale.
   Future<void> clearFamilyData() async {
-    final repository = await _ref.read(localRepositoryProvider.future);
-    await repository.clearAll();
-    final current = _ref.read(appControllerProvider).requireValue;
-    _ref
-        .read(appControllerProvider.notifier)
-        .commit(current.withoutFamilyData());
+    await _ref.read(libraryTransactionProvider).clearFamilyData();
     _ref.invalidate(generationQueueControllerProvider);
   }
 }

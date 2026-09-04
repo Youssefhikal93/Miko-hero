@@ -1,10 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/export/pdf_file_service.dart';
 import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
@@ -12,6 +11,7 @@ import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/reader/story_export_controller.dart';
 
+import '../../support/fake_encrypted_file_picker.dart';
 import '../../support/in_memory_illustration_store.dart';
 
 /// A one-pixel PNG, so a cached picture really carries the PNG magic bytes.
@@ -29,31 +29,32 @@ void main() {
     final store = InMemoryIllustrationStore();
     await store.write('illustration-1', base64Decode(_pngPixel));
     await store.write('illustration-2', base64Decode(_pngPixel));
-    final drawn = _CapturingPdfFileService();
-    final textOnly = _CapturingPdfFileService();
+    final drawn = FakeEncryptedFilePicker();
+    final textOnly = FakeEncryptedFilePicker();
 
     await _export(store, drawn);
     await _export(InMemoryIllustrationStore(), textOnly);
 
-    expect(ascii.decode(drawn.saved!.take(4).toList()), '%PDF');
-    expect(drawn.saved!.length, greaterThan(textOnly.saved!.length));
+    expect(ascii.decode(drawn.savedBytes!.take(4).toList()), '%PDF');
+    expect(drawn.savedFileName, 'Miko Hero.pdf');
+    expect(drawn.savedBytes!.length, greaterThan(textOnly.savedBytes!.length));
   });
 
   test('an unreadable cache still exports the story as text', () async {
     final store = InMemoryIllustrationStore()
       ..unwritableIllustrationId = 'illustration-1';
-    final refused = _CapturingPdfFileService();
-    final textOnly = _CapturingPdfFileService();
+    final refused = FakeEncryptedFilePicker();
+    final textOnly = FakeEncryptedFilePicker();
 
     await _export(store, refused);
     await _export(InMemoryIllustrationStore(), textOnly);
 
-    expect(ascii.decode(refused.saved!.take(4).toList()), '%PDF');
-    expect(refused.saved!.length, textOnly.saved!.length);
+    expect(ascii.decode(refused.savedBytes!.take(4).toList()), '%PDF');
+    expect(refused.savedBytes!.length, textOnly.savedBytes!.length);
   });
 
   test('a story still awaiting review is never exported', () async {
-    final file = _CapturingPdfFileService();
+    final file = FakeEncryptedFilePicker();
     final container = _container(InMemoryIllustrationStore(), file);
     addTearDown(container.dispose);
 
@@ -63,14 +64,14 @@ void main() {
           .export(_story(reviewStatus: StoryReviewStatus.draft), 'Save story'),
       throwsStateError,
     );
-    expect(file.saved, isNull);
+    expect(file.savedBytes, isNull);
   });
 }
 
 /// Exports one drawn story through the real controller and PDF renderer.
 Future<void> _export(
   InMemoryIllustrationStore store,
-  _CapturingPdfFileService file,
+  FakeEncryptedFilePicker file,
 ) async {
   final container = _container(store, file);
   addTearDown(container.dispose);
@@ -83,31 +84,14 @@ Future<void> _export(
 /// Builds a scope with only the image cache and the save dialog replaced.
 ProviderContainer _container(
   InMemoryIllustrationStore store,
-  _CapturingPdfFileService file,
+  FakeEncryptedFilePicker file,
 ) {
   return ProviderContainer(
     overrides: [
       illustrationStoreProvider.overrideWithValue(store),
-      pdfFileServiceProvider.overrideWithValue(file),
+      encryptedFilePickerProvider.overrideWithValue(file),
     ],
   );
-}
-
-/// Records what the export handed to the platform save flow.
-class _CapturingPdfFileService extends PdfFileService {
-  /// Bytes of the last rendered PDF, or null when nothing was saved.
-  Uint8List? saved;
-
-  @override
-  /// Accepts the rendered PDF without touching the platform file picker.
-  Future<bool> save(
-    Uint8List bytes,
-    StoryBook story,
-    String dialogTitle,
-  ) async {
-    saved = bytes;
-    return true;
-  }
 }
 
 /// Creates one bridge-generated book whose pages name their drawn pictures.

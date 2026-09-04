@@ -1,4 +1,5 @@
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 
 /// Health of the PC bridge and of the local services it depends on.
 ///
@@ -52,6 +53,79 @@ bool _available(Object? encodedStatus) {
     throw const BridgeException(BridgeFailure.invalidResponse);
   }
   return available;
+}
+
+/// One device the PC currently trusts, exactly as `GET /devices` lists it.
+///
+/// No token or token hash is part of this shape and none ever crosses the
+/// boundary: the PC lists names and moments only.
+class BridgePairedDevice {
+  /// Creates one validated entry of the paired-device list.
+  const BridgePairedDevice({
+    required this.id,
+    required this.name,
+    required this.pairedAtUtc,
+    this.lastSeenAtUtc,
+    this.isCaller = false,
+  });
+
+  /// Identity used to remove this device from the PC.
+  final String id;
+
+  /// Name the parent typed when this device was paired.
+  final String name;
+
+  /// When the PC registered the device.
+  final DateTime pairedAtUtc;
+
+  /// When the device last called the PC, absent until it has called once.
+  final DateTime? lastSeenAtUtc;
+
+  /// Whether this row is the device asking, as the PC itself decided.
+  ///
+  /// The phone never stores its own device id, so the PC marks its caller's
+  /// row instead: that is what lets this device show "this device" and hide a
+  /// remove control that the PC would refuse anyway.
+  final bool isCaller;
+
+  /// Validates one listed device, tolerating fields an older PC omits.
+  factory BridgePairedDevice.fromJson(Map<String, Object?> json) {
+    final id = json['id'];
+    final name = json['name'];
+    final createdAtUtc = json['createdAtUtc'];
+    final isCaller = json['isCaller'];
+    if (id is! String ||
+        id.isEmpty ||
+        name is! String ||
+        name.trim().isEmpty ||
+        createdAtUtc is! String ||
+        (isCaller != null && isCaller is! bool)) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgePairedDevice(
+      id: id,
+      name: name.trim(),
+      pairedAtUtc: parseBridgeTimestamp(createdAtUtc),
+      lastSeenAtUtc: _optionalTimestamp(json['lastSeenAtUtc']),
+      isCaller: isCaller as bool? ?? false,
+    );
+  }
+
+  /// Validates the whole `{"devices": [...]}` answer, in the PC's own order.
+  static List<BridgePairedDevice> listFromJson(Map<String, Object?> json) {
+    final devices = json['devices'];
+    if (devices is! List) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return List<BridgePairedDevice>.unmodifiable(
+      devices.map((encoded) {
+        if (encoded is! Map<String, Object?>) {
+          throw const BridgeException(BridgeFailure.invalidResponse);
+        }
+        return BridgePairedDevice.fromJson(encoded);
+      }),
+    );
+  }
 }
 
 /// Lifecycle of one generation job as the bridge reports it.
@@ -307,6 +381,30 @@ class BridgeStoryPage {
   }
 }
 
+/// Validates one `POST /profiles/spellings/suggest` answer.
+///
+/// The PC either spelled the name in every story language or it did not answer
+/// at all, so a partial map is refused rather than half-filling the editor.
+/// Nothing here is stored on the PC: this is a suggestion about a string, and
+/// the parent confirms or corrects it before it becomes part of a profile.
+Map<AppLanguage, String> bridgeNameSpellingsFromJson(
+  Map<String, Object?> json,
+) {
+  final spellings = json['spellings'];
+  if (spellings is! Map<String, Object?>) {
+    throw const BridgeException(BridgeFailure.invalidResponse);
+  }
+  final suggested = <AppLanguage, String>{};
+  for (final language in AppLanguage.values) {
+    final spelling = spellings[language.code];
+    if (spelling is! String || spelling.trim().isEmpty) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    suggested[language] = spelling.trim();
+  }
+  return Map<AppLanguage, String>.unmodifiable(suggested);
+}
+
 /// Stored reference photo of one child exactly as the PC recorded it.
 ///
 /// The photo itself never comes back: the app already holds the bytes it sent,
@@ -348,6 +446,108 @@ class BridgeProfilePhoto {
       sizeBytes: sizeBytes,
     );
   }
+}
+
+/// Longest outfit or prop the PC accepts on a hero sheet.
+///
+/// The bridge's own column limit, repeated here so a parent is told before the
+/// PC refuses rather than after. Short is not a style preference: the outfit
+/// and the prop are joined into the one line that is repeated into every page's
+/// scene description, and a paragraph of costume crowds the scene out of its
+/// own prompt.
+const maximumHeroSheetFieldLength = 80;
+
+/// How one child's hero is drawn, exactly as the PC keeps it.
+///
+/// Two halves with two owners. The PC read [hair], [skinTone] and [eyeColor]
+/// from the child's reference photo — [photoHash] is the fingerprint of the
+/// photo it read them from — and the parent chose [outfit] and [prop]. Only the
+/// second half can be sent back.
+///
+/// A sheet whose derived half is empty is a real state, not a broken payload: a
+/// parent can dress a hero before any photo has reached the PC. [isDerived]
+/// says which one this is.
+class BridgeHeroSheet {
+  /// Creates one validated hero sheet.
+  const BridgeHeroSheet({
+    required this.hair,
+    required this.skinTone,
+    required this.eyeColor,
+    required this.outfit,
+    required this.prop,
+    required this.photoHash,
+    required this.updatedAtUtc,
+  });
+
+  /// Drawn hair, as the PC read it from the photo.
+  final String hair;
+
+  /// Drawn skin tone, as the PC read it from the photo.
+  final String skinTone;
+
+  /// Drawn eye colour, as the PC read it from the photo.
+  final String eyeColor;
+
+  /// What this hero always wears.
+  final String outfit;
+
+  /// What this hero always carries.
+  final String prop;
+
+  /// Fingerprint of the photo the three derived traits were read from.
+  final String photoHash;
+
+  /// When the PC last wrote this sheet.
+  final DateTime updatedAtUtc;
+
+  /// Whether the PC has actually read this child's photo yet.
+  bool get isDerived =>
+      hair.isNotEmpty &&
+      skinTone.isNotEmpty &&
+      eyeColor.isNotEmpty &&
+      photoHash.isNotEmpty;
+
+  /// Validates one sheet the PC sent, tolerating a half nobody filled in.
+  ///
+  /// Absent strings decode as empty rather than as a refusal, so a bridge that
+  /// answers a shorter sheet than this build expects is still readable.
+  factory BridgeHeroSheet.fromJson(Map<String, Object?> json) {
+    final updatedAtUtc = json['updatedAtUtc'];
+    if (updatedAtUtc is! String) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgeHeroSheet(
+      hair: _sheetText(json['hair']),
+      skinTone: _sheetText(json['skinTone']),
+      eyeColor: _sheetText(json['eyeColor']),
+      outfit: _sheetText(json['outfit']),
+      prop: _sheetText(json['prop']),
+      photoHash: _sheetText(json['photoHash']),
+      updatedAtUtc: parseBridgeTimestamp(updatedAtUtc),
+    );
+  }
+
+  /// Reads the sheet out of any of the three hero-sheet answers.
+  ///
+  /// All three carry `"sheet"`, and all three may carry `null` there: a child
+  /// whose photo the PC has never read simply has no sheet yet.
+  static BridgeHeroSheet? optionalFromEnvelope(Map<String, Object?> json) {
+    final sheet = json['sheet'];
+    if (sheet == null) return null;
+    if (sheet is! Map<String, Object?>) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgeHeroSheet.fromJson(sheet);
+  }
+}
+
+/// Reads one sheet field, treating absent and blank as the same nothing.
+String _sheetText(Object? value) {
+  if (value == null) return '';
+  if (value is! String) {
+    throw const BridgeException(BridgeFailure.invalidResponse);
+  }
+  return value.trim();
 }
 
 /// Lifecycle of one illustration job as the bridge reports it.
@@ -524,6 +724,7 @@ class BridgeStoryRequest {
     required this.moral,
     required this.pageCount,
     required this.illustrationStyle,
+    this.heroNameSpelling = '',
     this.favoriteTopics = '',
     this.recurringWorld = '',
   });
@@ -531,8 +732,16 @@ class BridgeStoryRequest {
   /// Stable local child identity, reused as the PC library profile key.
   final String profileId;
 
-  /// Child's name used as the story protagonist.
+  /// Child's name as the parent typed it, in whatever script that was.
   final String heroName;
+
+  /// How the family writes that name in [languageCode], when they confirmed it.
+  ///
+  /// Optional on the wire: an empty value is left out of the body entirely,
+  /// which is also what a bridge build from before this field existed sees, and
+  /// what a child with no saved spelling for this language sends. Given one,
+  /// the PC writes the whole story with it and refuses any other spelling.
+  final String heroNameSpelling;
 
   /// Child's age in whole years on the day the request is sent.
   final int ageYears;
@@ -571,6 +780,7 @@ class BridgeStoryRequest {
     return <String, Object>{
       'profileId': profileId,
       'heroName': heroName,
+      if (heroNameSpelling.isNotEmpty) 'heroNameSpelling': heroNameSpelling,
       'ageYears': ageYears,
       'genderContext': genderContext,
       'languageCode': languageCode,

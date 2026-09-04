@@ -12,6 +12,16 @@ String sha256Hex(String value) {
   return sha256.convert(utf8.encode(value)).toString();
 }
 
+/// Computes the lowercase hexadecimal SHA-256 digest of [bytes].
+///
+/// Used to fingerprint a child's reference photo. The digest is what the
+/// bridge stores and compares — never the bytes — so "is this still the same
+/// photo?" can be answered without keeping a second copy of the child's face
+/// anywhere, and the answer is safe to write into the database.
+String sha256HexOfBytes(List<int> bytes) {
+  return sha256.convert(bytes).toString();
+}
+
 /// Generates [count] cryptographically secure random bytes.
 ///
 /// The single source of randomness in the bridge: bearer tokens, backup salts

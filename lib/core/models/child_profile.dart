@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
@@ -27,6 +28,12 @@ const maximumChildAge = 17;
 
 /// Age used to position the birth-date picker for a brand new profile.
 const defaultChildProfileAgeYears = 6;
+
+/// Longest accepted spelling of a child's name in one language.
+///
+/// The same bound the bridge puts on a hero name, so a spelling the parent was
+/// allowed to type can always be sent with a story request.
+const maximumChildNameSpellingLength = 60;
 
 /// Drops the time component so birth dates compare as plain calendar days.
 DateTime childCalendarDay(DateTime moment) {
@@ -98,10 +105,17 @@ class ChildProfileDraft {
     required this.birthDate,
     required this.photoBase64,
     required this.gender,
+    this.nameSpellings = const <AppLanguage, String>{},
   });
 
   /// Child name inserted into stories.
   final String name;
+
+  /// How that name is written in each story language the parent confirmed.
+  ///
+  /// A language the parent left empty is simply absent, which means "use the
+  /// name as it was typed" everywhere that language is read or written.
+  final Map<AppLanguage, String> nameSpellings;
 
   /// Chosen calendar birth date, required for a new profile.
   ///
@@ -128,6 +142,7 @@ class ChildProfile {
     required this.themeColorValue,
     required this.hasCustomThemeColor,
     this.birthDate,
+    this.nameSpellings = const <AppLanguage, String>{},
     this.storyPreferences = const ChildStoryPreferences(),
     this.kingdomTheme = const KingdomTheme(),
     this.readingSettings = const ChildReadingSettings(),
@@ -137,8 +152,21 @@ class ChildProfile {
   /// Stable local identity used to associate stories with this child.
   final String id;
 
-  /// Name inserted into generated story text.
+  /// Name as the parent typed it, in whatever script that was.
+  ///
+  /// Never render this directly on a localized surface and never send it to
+  /// the PC on its own: use [nameIn] and [heroNameIn], which answer with the
+  /// spelling the language being read actually uses.
   final String name;
+
+  /// How [name] is written in each language the parent confirmed a spelling
+  /// for; a language that is absent uses [name] itself.
+  ///
+  /// This is what makes Malika appear as مليكة all through an Arabic story and
+  /// in the Arabic interface, and stay Malika in English, Swedish and Somali.
+  /// Empty on every profile saved before spellings existed, which reads exactly
+  /// as it always did.
+  final Map<AppLanguage, String> nameSpellings;
 
   /// Age snapshot kept only as a fallback for profiles saved without a date.
   ///
@@ -180,7 +208,16 @@ class ChildProfile {
   final List<String> finishedStoryIds;
 
   /// User-facing personalized label requested for profile selection and tabs.
+  ///
+  /// Written with the name as the parent typed it. Prefer [heroNameIn] on any
+  /// surface that knows which language it is being read in.
   String get heroName => '$name hero';
+
+  /// The child's name as [language] writes it, or [name] when none was saved.
+  String nameIn(AppLanguage language) => nameSpellings[language] ?? name;
+
+  /// The personalized hero label written in [language]'s own spelling.
+  String heroNameIn(AppLanguage language) => '${nameIn(language)} hero';
 
   /// Number of distinct finished stories used by the local reading badges.
   int get finishedStoryCount => finishedStoryIds.length;
@@ -204,6 +241,13 @@ class ChildProfile {
       'id': id,
       'name': name,
       'age': legacyAge,
+      // Written only when the family confirmed one, so a profile with no
+      // spellings encodes byte for byte the way it always has.
+      if (nameSpellings.isNotEmpty)
+        'nameSpellings': <String, Object>{
+          for (final entry in nameSpellings.entries)
+            entry.key.code: entry.value,
+        },
       if (birth != null) 'birthDate': formatChildBirthDate(birth),
       'photoBase64': photoBase64,
       'gender': gender.name,
@@ -255,6 +299,14 @@ class ChildProfile {
     );
   }
 
+  /// Returns the same identity with newly confirmed name spellings.
+  ///
+  /// A blank entry is dropped rather than stored: a language the parent
+  /// cleared is a language with no spelling, not one spelled with nothing.
+  ChildProfile withNameSpellings(Map<AppLanguage, String> spellings) {
+    return _copy(nameSpellings: validChildNameSpellings(spellings));
+  }
+
   /// Returns the same identity with newly confirmed story preferences.
   ChildProfile withStoryPreferences(ChildStoryPreferences preferences) {
     return _copy(storyPreferences: preferences);
@@ -302,6 +354,7 @@ class ChildProfile {
     ChildGender? gender,
     int? themeColorValue,
     bool? hasCustomThemeColor,
+    Map<AppLanguage, String>? nameSpellings,
     ChildStoryPreferences? storyPreferences,
     KingdomTheme? kingdomTheme,
     ChildReadingSettings? readingSettings,
@@ -312,6 +365,7 @@ class ChildProfile {
       name: name,
       legacyAge: legacyAge,
       birthDate: birthDate,
+      nameSpellings: nameSpellings ?? this.nameSpellings,
       photoBase64: photoBase64,
       gender: gender ?? this.gender,
       themeColorValue: themeColorValue ?? this.themeColorValue,
@@ -332,6 +386,7 @@ ChildProfile _validatedProfile({
 }) {
   final name = json['name'];
   final age = json['age'];
+  final nameSpellings = _decodedNameSpellings(json['nameSpellings']);
   final birthDate = _decodedBirthDate(json['birthDate']);
   final photoBase64 = json['photoBase64'];
   final gender = _decodedGender(json['gender'], missingGender: missingGender);
@@ -362,6 +417,7 @@ ChildProfile _validatedProfile({
     name: name.trim(),
     legacyAge: age,
     birthDate: birthDate,
+    nameSpellings: nameSpellings,
     photoBase64: photoBase64,
     gender: gender,
     themeColorValue: theme.colorValue,
@@ -371,6 +427,47 @@ ChildProfile _validatedProfile({
     readingSettings: readingSettings,
     finishedStoryIds: finishedStoryIds,
   );
+}
+
+/// Keeps only the spellings a parent actually filled in, trimmed and bounded.
+///
+/// Shared by the model's own transformation and by the profile editor, so the
+/// rule about what counts as "no spelling for this language" is written once:
+/// a blank box is an absent language, never a stored empty string.
+Map<AppLanguage, String> validChildNameSpellings(
+  Map<AppLanguage, String> spellings,
+) {
+  final kept = <AppLanguage, String>{};
+  for (final entry in spellings.entries) {
+    final spelling = entry.value.trim();
+    if (spelling.isEmpty) continue;
+    if (spelling.length > maximumChildNameSpellingLength) {
+      throw const FormatException('Malformed child name spelling.');
+    }
+    kept[entry.key] = spelling;
+  }
+  return Map<AppLanguage, String>.unmodifiable(kept);
+}
+
+/// Defaults profiles saved before spellings existed and validates the rest.
+///
+/// A stored key that is not a supported language, or a value that is not a
+/// usable name, is refused rather than dropped: a spelling nobody reads is a
+/// child's name the family believes is in effect.
+Map<AppLanguage, String> _decodedNameSpellings(Object? encodedSpellings) {
+  if (encodedSpellings == null) return const <AppLanguage, String>{};
+  if (encodedSpellings is! Map<String, Object?>) {
+    throw const FormatException('Malformed child name spellings.');
+  }
+  final spellings = <AppLanguage, String>{};
+  for (final entry in encodedSpellings.entries) {
+    final spelling = entry.value;
+    if (spelling is! String || spelling.trim().isEmpty) {
+      throw const FormatException('Malformed child name spelling.');
+    }
+    spellings[AppLanguage.requireCode(entry.key)] = spelling;
+  }
+  return validChildNameSpellings(spellings);
 }
 
 /// Defaults profiles saved before reading comfort existed and validates the rest.

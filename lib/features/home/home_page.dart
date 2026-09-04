@@ -4,14 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_state.dart';
-import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
-import 'package:miko_hero/features/home/home_greeting.dart';
 import 'package:miko_hero/features/home/home_hero_switcher.dart';
 import 'package:miko_hero/features/home/home_tiles.dart';
-import 'package:miko_hero/features/library/story_library_page.dart';
+import 'package:miko_hero/features/home/home_view.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
+import 'package:miko_hero/shared/empty_state.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
@@ -38,94 +38,63 @@ class _HomeContent extends StatelessWidget {
 
   final AppState state;
 
-  /// Covers the shelf strip shows before the library takes over.
-  static const _shelfStripLength = 6;
-
   @override
   /// Puts the profile prompt before everything else for a family with none.
+  ///
+  /// Everything below it is laid out from one [HomeView]: this widget decides
+  /// nothing about which book, which line, or which shelf is Home's.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
     if (state.profiles.isEmpty) {
       return ScreenLayout(child: _ProfileSetupPrompt(text: text));
     }
-    final activeProfile = state.activeProfile;
-    final keepReading = keepReadingStory(state, activeProfile);
-    final draftCount = state.draftStories.length;
+    final view = HomeView.of(state, now: DateTime.now());
     return ScreenLayout(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           HomeHeroHeader(
             profiles: state.profiles,
-            activeProfile: activeProfile,
+            activeProfile: view.activeProfile,
           ),
           const SizedBox(height: 20),
-          _Greeting(
-            greeting: homeGreeting(text, homeTimeOfDay(DateTime.now())),
-            line: homeGreetingLine(
-              text,
-              keepReading: keepReading,
-              hasDrafts: draftCount > 0,
-            ),
-          ),
+          _Greeting(view: view),
           const SizedBox(height: 18),
-          MosaicGrid(
-            tiles: _tiles(
-              activeProfile: activeProfile,
-              keepReading: keepReading,
-              draftCount: draftCount,
-            ),
-          ),
-          ..._shelf(context, text, activeProfile, keepReading),
+          MosaicGrid(tiles: _tiles(view)),
+          ..._shelf(text, view),
         ],
       ),
     );
   }
 
-  /// Builds only the tiles this family's real state has something to say with.
+  /// Lays out only the tiles this family's real state has something to say with.
   ///
   /// Home offers no secondary command on a book, so no tile here carries an
   /// overflow control: favourites, sharing, and deletion stay on the shelf and
   /// in the parent surfaces that own them.
-  List<MosaicTile> _tiles({
-    required ChildProfile? activeProfile,
-    required StoryBook? keepReading,
-    required int draftCount,
-  }) {
+  List<MosaicTile> _tiles(HomeView view) {
+    final keepReading = view.keepReading;
+    final activeProfile = view.activeProfile;
     return <MosaicTile>[
       if (keepReading != null)
         MosaicTile(span: 2, child: HomeKeepReadingTile(story: keepReading)),
       const MosaicTile(child: HomeNewStoryTile()),
       if (activeProfile != null)
         MosaicTile(child: HomeReadingBadgesTile(profile: activeProfile)),
-      if (draftCount > 0)
-        MosaicTile(span: 2, child: HomeDraftsRow(draftCount: draftCount)),
+      if (view.draftCount > 0)
+        MosaicTile(span: 2, child: HomeDraftsRow(draftCount: view.draftCount)),
     ];
   }
 
-  /// Adds the shelf strip only when the active child has covers left to show.
-  ///
-  /// The book already featured on the keep-reading tile is left out, so the
-  /// strip is the rest of the shelf rather than a second look at the same
-  /// cover.
-  List<Widget> _shelf(
-    BuildContext context,
-    AppLocalizations text,
-    ChildProfile? activeProfile,
-    StoryBook? keepReading,
-  ) {
-    if (activeProfile == null) return const <Widget>[];
-    final covers = state
-        .storiesForProfile(activeProfile.id)
-        .where((story) => story.id != keepReading?.id)
-        .take(_shelfStripLength)
-        .toList(growable: false);
-    if (covers.isEmpty) return const <Widget>[];
+  /// Adds the shelf strip only when there are covers left to show.
+  List<Widget> _shelf(AppLocalizations text, HomeView view) {
+    final route = view.shelfRoute;
+    if (route == null) return const <Widget>[];
     return <Widget>[
       const SizedBox(height: 24),
-      _ShelfHeading(text: text, profileId: activeProfile.id),
+      _ShelfHeading(text: text, route: route),
       const SizedBox(height: 12),
-      _ShelfStrip(covers: covers),
+      _ShelfStrip(covers: view.shelfStrip),
     ];
   }
 }
@@ -140,32 +109,14 @@ class _ProfileSetupPrompt extends StatelessWidget {
   @override
   /// Presents the single blocking requirement without adding onboarding steps.
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(
-              Icons.face_retouching_natural_rounded,
-              size: 38,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 14),
-            Text(
-              text.profileIncompleteTitle,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 6),
-            Text(text.profileIncompleteBody),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: () => context.go('/profiles/new'),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: Text(text.setUpProfile),
-            ),
-          ],
-        ),
+    return EmptyState(
+      icon: AppIcons.heroPortrait,
+      title: text.profileIncompleteTitle,
+      body: text.profileIncompleteBody,
+      action: FilledButton.icon(
+        onPressed: () => context.go('/profiles/new'),
+        icon: const Icon(AppIcons.addHero),
+        label: Text(text.setUpProfile),
       ),
     );
   }
@@ -173,22 +124,22 @@ class _ProfileSetupPrompt extends StatelessWidget {
 
 /// Greeting by time of day over one line about what is actually waiting.
 class _Greeting extends StatelessWidget {
-  /// Creates the two-line greeting from already-localized copy.
-  const _Greeting({required this.greeting, required this.line});
+  /// Creates the two-line greeting over the screen Home already resolved.
+  const _Greeting({required this.view});
 
-  final String greeting;
-  final String line;
+  final HomeView view;
 
   @override
   /// Keeps both lines in one paragraph so they wrap as a single sentence pair.
   Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
     final style = Theme.of(context).textTheme.headlineMedium;
     return Text.rich(
       TextSpan(
         children: <InlineSpan>[
-          TextSpan(text: '$greeting\n'),
+          TextSpan(text: '${_greeting(text)}\n'),
           TextSpan(
-            text: line,
+            text: _line(text),
             style: const TextStyle(color: AppTheme.mutedDeep),
           ),
         ],
@@ -196,17 +147,43 @@ class _Greeting extends StatelessWidget {
       style: style?.copyWith(height: 1.2),
     );
   }
+
+  /// Localized greeting for the part of the day Home was opened in.
+  String _greeting(AppLocalizations text) {
+    return switch (view.timeOfDay) {
+      HomeTimeOfDay.morning => text.greetingMorning,
+      HomeTimeOfDay.afternoon => text.greetingAfternoon,
+      HomeTimeOfDay.evening => text.greetingEvening,
+      HomeTimeOfDay.night => text.greetingNight,
+    };
+  }
+
+  /// Localized wording of the line [HomeView] already chose.
+  ///
+  /// Which of the three is true is not decided here. The last arm exists only
+  /// so the book naming its own line is read without a bang: a
+  /// [HomeGreetingLine.continueReading] with no book cannot be resolved.
+  String _line(AppLocalizations text) {
+    final keepReading = view.keepReading;
+    return switch (view.greetingLine) {
+      HomeGreetingLine.continueReading when keepReading != null =>
+        text.greetingContinueStory(keepReading.content.title),
+      HomeGreetingLine.draftsWaiting => text.greetingDraftsWaiting,
+      HomeGreetingLine.continueReading ||
+      HomeGreetingLine.invitation => text.greetingCreateStory,
+    };
+  }
 }
 
 /// "On the shelf" over the link that hands the rest to the library.
 class _ShelfHeading extends StatelessWidget {
   /// Creates the strip heading and its library link.
-  const _ShelfHeading({required this.text, required this.profileId});
+  const _ShelfHeading({required this.text, required this.route});
 
   final AppLocalizations text;
 
-  /// Child whose shelf the strip is showing, named in the library route.
-  final String profileId;
+  /// Library route naming the child whose shelf the strip is showing.
+  final String route;
 
   @override
   /// Sends the family to the shelf they were already looking at.
@@ -215,19 +192,11 @@ class _ShelfHeading extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(
-          child: Text(
-            text.onTheShelf.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 13,
-              letterSpacing: 1.3,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.mutedDeep,
-            ),
-          ),
+          child: Text(text.onTheShelf.toUpperCase(), style: AppTheme.overline),
         ),
         TextButton(
           key: const ValueKey<String>('home-see-all'),
-          onPressed: () => context.go(libraryRouteForChild(profileId)),
+          onPressed: () => context.go(route),
           child: Text(text.seeAll),
         ),
       ],

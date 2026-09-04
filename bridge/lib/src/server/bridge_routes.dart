@@ -1,0 +1,134 @@
+/// One HTTP route the bridge answers, exactly as the router registers it.
+class BridgeRoute {
+  /// Describes the route [method] [path], guarded by auth when [requiresAuth].
+  const BridgeRoute({
+    required this.method,
+    required this.path,
+    required this.requiresAuth,
+  });
+
+  /// Uppercase HTTP verb.
+  final String method;
+
+  /// `shelf_router` pattern; path parameters are written `<name>`.
+  final String path;
+
+  /// Whether the route sits behind the bearer-token middleware.
+  ///
+  /// Only `/health` and the two pairing endpoints answer without a token.
+  final bool requiresAuth;
+
+  /// `METHOD path` — the key a route's handler is looked up under.
+  String get key => '$method $path';
+}
+
+/// Every route the bridge serves, in registration order.
+///
+/// This list is the single description of the bridge's HTTP surface.
+/// `AppServer.buildHandler` builds both of its routers *from* it instead of
+/// repeating it, and `test/postman_collection_test.dart` checks the committed
+/// Postman collection against it — so a new endpoint that is not added here is
+/// not served at all, and one added here without a Postman request fails the
+/// suite. Neither the router nor the collection can quietly drift from the
+/// other.
+const List<BridgeRoute> bridgeRoutes = <BridgeRoute>[
+  BridgeRoute(method: 'GET', path: '/health', requiresAuth: false),
+  BridgeRoute(method: 'POST', path: '/pair/request', requiresAuth: false),
+  BridgeRoute(method: 'POST', path: '/pair/confirm', requiresAuth: false),
+  BridgeRoute(method: 'GET', path: '/devices', requiresAuth: true),
+  BridgeRoute(
+    method: 'DELETE',
+    path: '/devices/<deviceId>',
+    requiresAuth: true,
+  ),
+  // Management: what the owner reads and removes from Postman. Registered
+  // before the story routes below, which is safe because none of them can
+  // shadow another — `/stories/<storyId>` is two segments where
+  // `/stories/jobs/<jobId>` is three, and `/stories/generate` is a POST.
+  BridgeRoute(method: 'GET', path: '/profiles', requiresAuth: true),
+  BridgeRoute(
+    method: 'DELETE',
+    path: '/profiles/<profileId>',
+    requiresAuth: true,
+  ),
+  BridgeRoute(method: 'GET', path: '/stories', requiresAuth: true),
+  BridgeRoute(method: 'GET', path: '/stories/<storyId>', requiresAuth: true),
+  BridgeRoute(method: 'POST', path: '/stories/generate', requiresAuth: true),
+  BridgeRoute(method: 'GET', path: '/stories/jobs/<jobId>', requiresAuth: true),
+  BridgeRoute(
+    method: 'POST',
+    path: '/stories/jobs/<jobId>/cancel',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'POST',
+    path: '/stories/<storyId>/illustrate',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'GET',
+    path: '/illustrations/jobs/<jobId>',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'POST',
+    path: '/illustrations/jobs/<jobId>/cancel',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'PUT',
+    path: '/profiles/<profileId>/photo',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'DELETE',
+    path: '/profiles/<profileId>/photo',
+    requiresAuth: true,
+  ),
+  // How one child's hero is drawn. Three segments where the photo routes have
+  // three too, but the last one differs, so neither can shadow the other.
+  BridgeRoute(
+    method: 'GET',
+    path: '/profiles/<profileId>/hero-sheet',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'PUT',
+    path: '/profiles/<profileId>/hero-sheet',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'POST',
+    path: '/profiles/<profileId>/hero-sheet/rederive',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'POST',
+    path: '/stories/<storyId>/delete',
+    requiresAuth: true,
+  ),
+  BridgeRoute(method: 'GET', path: '/sync/manifest', requiresAuth: true),
+  BridgeRoute(
+    method: 'GET',
+    path: '/sync/stories/<storyId>',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'GET',
+    path: '/sync/illustrations/<illustrationId>',
+    requiresAuth: true,
+  ),
+  BridgeRoute(method: 'POST', path: '/sync/complete', requiresAuth: true),
+  BridgeRoute(method: 'POST', path: '/library/backup', requiresAuth: true),
+  BridgeRoute(method: 'POST', path: '/library/restore', requiresAuth: true),
+  // Spelling a child's name in the four story languages. Three segments and a
+  // POST, so it cannot be confused with `DELETE /profiles/<profileId>` or with
+  // either `/profiles/<profileId>/photo`, whichever order they are registered
+  // in. It names no profile on purpose: the answer is a suggestion about a
+  // string, and only the device decides whose profile it belongs to.
+  BridgeRoute(
+    method: 'POST',
+    path: '/profiles/spellings/suggest',
+    requiresAuth: true,
+  ),
+];

@@ -1,3 +1,4 @@
+import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/generation/generated_story.dart';
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
@@ -39,7 +40,7 @@ enum GenerationJobStatus {
 ///
 /// The queue replaces the whole snapshot on every transition, so a snapshot
 /// handed to a request handler can never change underneath it.
-class GenerationJob {
+class GenerationJob implements QueuedJob {
   /// Creates a job snapshot.
   const GenerationJob({
     required this.id,
@@ -54,9 +55,11 @@ class GenerationJob {
   });
 
   /// Stable job id (uuid v4).
+  @override
   final String id;
 
   /// Device that created the job; only that device may read or cancel it.
+  @override
   final String deviceId;
 
   /// Validated inputs. Private content — never serialized to a response.
@@ -81,6 +84,9 @@ class GenerationJob {
   /// The stored story, set exactly when [status] is
   /// [GenerationJobStatus.completed].
   final GeneratedStory? story;
+
+  @override
+  bool get isTerminal => status.isTerminal;
 
   /// Returns a copy with the given fields replaced.
   GenerationJob copyWith({

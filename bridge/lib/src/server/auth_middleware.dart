@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/common/secrets.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
@@ -16,6 +17,11 @@ const String authenticatedDeviceContextKey = 'iam_hero.authenticated_device';
 /// device token hash in constant time; revoked devices are rejected. On any
 /// failure a typed `401` error is returned without revealing why the token
 /// was rejected.
+///
+/// Every accepted call stamps the device's `last_seen_at_utc`, which is what
+/// lets the parent see in the app which paired devices still reach the PC.
+/// The stamp is one single-row `UPDATE` and records only the moment: never
+/// the endpoint, the address, or anything about the request itself.
 Middleware requireDeviceAuth({required DeviceStore deviceStore}) {
   return (Handler innerHandler) {
     return (Request request) async {
@@ -28,6 +34,7 @@ Middleware requireDeviceAuth({required DeviceStore deviceStore}) {
           'A valid device bearer token is required.',
         );
       }
+      deviceStore.markSeen(device.id);
       final Request authenticated = request.change(
         context: <String, Object?>{
           ...request.context,
@@ -81,6 +88,25 @@ PairedDevice requireAuthenticatedDevice(Request request) {
     );
   }
   return device;
+}
+
+/// Reads [jobId] out of [queue] as a job the calling device owns.
+///
+/// Jobs are owned by the device that created them. Another device's job and
+/// an id that never existed are reported identically — a `404` carrying
+/// [notFoundMessage] — so job ids cannot be probed.
+TJob requireOwnJob<TJob extends QueuedJob>(
+  Request request,
+  JobQueue<TJob, Object?> queue,
+  String jobId, {
+  required String notFoundMessage,
+}) {
+  final device = requireAuthenticatedDevice(request);
+  final job = queue.job(jobId);
+  if (job == null || job.deviceId != device.id) {
+    throw ApiError(404, ApiErrorCode.jobNotFound, notFoundMessage);
+  }
+  return job;
 }
 
 /// Parses one JSON object request body, raising typed errors otherwise.

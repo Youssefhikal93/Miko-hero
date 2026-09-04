@@ -174,6 +174,7 @@ origin. In `bridge_config.json`:
 | --- | --- | --- |
 | Pair button does nothing; nothing on the PC console | Origin missing from `allowedWebOrigins` or typo'd | Compare with the browser address bar character by character; restart bridge |
 | Browser console shows CORS errors | Same as above | Same |
+| "The PC did not answer" on the PC itself or on a device that runs Tailscale, while `curl <address>/health` works; DevTools shows `LocalNetworkAccessPermissionDenied` | Chrome's Local Network Access rule: a public https page may not call a loopback or private address (the Funnel name resolves to the Tailscale `100.x` address on tailnet devices) until the user allows it. Verified 2026-09-04. | In Chrome or Edge on that site: icon left of the address bar → Site settings → **Local network access** → Allow, then reload. Accept the "look for devices on your local network" prompt if it appears. Devices outside the tailnet resolve the Funnel name to a public IP and never see this. |
 | `funnel` command errors | HTTPS certs not enabled, or Funnel not approved for the tailnet | Part 1 step 2; approve the printed link |
 | First remote request very slow | Certificate being issued on first use | Wait ~10 s, retry |
 | "Too many pairing requests" | The global pairing rate limit (5/min) | Wait one minute; a future enhancement makes this per-peer |
@@ -186,9 +187,12 @@ origin. In `bridge_config.json`:
 - Stop public exposure: `tailscale funnel --bg off` (or `tailscale funnel
   reset`). The bridge instantly returns to localhost-only.
 - Remove the web origin from `allowedWebOrigins` and restart the bridge.
-- Remote devices can be unpaired from the bridge's device list; their cached
-  stories remain readable on their devices (remove offline copies from the
-  app if desired).
+- **Remove a family member's device**: on any other paired device, open AI
+  connection settings → *Devices paired with the PC*, find it by name (the
+  list shows when it was paired and when the PC last heard from it) and tap
+  remove — its very next call is refused and their app says to pair again.
+  Their cached stories stay readable on their device (remove offline copies
+  from the app if desired).
 
 ## Security notes and limits (owner is aware)
 

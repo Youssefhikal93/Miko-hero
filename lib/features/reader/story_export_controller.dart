@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/export/pdf_file_service.dart';
 import 'package:miko_hero/core/export/story_pdf_service.dart';
+import 'package:miko_hero/core/files/encrypted_file_picker.dart';
 import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
 import 'package:miko_hero/core/models/story_models.dart';
@@ -12,11 +12,6 @@ import 'package:miko_hero/core/models/story_models.dart';
 /// Supplies the offline multilingual PDF renderer.
 final storyPdfServiceProvider = Provider<StoryPdfService>((ref) {
   return StoryPdfService();
-});
-
-/// Supplies the platform PDF save boundary.
-final pdfFileServiceProvider = Provider<PdfFileService>((ref) {
-  return PdfFileService();
 });
 
 /// Supplies reader export commands without coupling widgets to file plugins.
@@ -56,7 +51,17 @@ class StoryExportController {
           illustrationBytesById: await _illustrations(story),
           kingdomSymbol: _kingdomSymbol(story),
         );
-    return _ref.read(pdfFileServiceProvider).save(bytes, story, dialogTitle);
+    // The only file this app offers that carries no codec: the PDF is the
+    // family's to read anywhere, so it travels in the clear and needs nothing
+    // from the encrypted-file flow but its naming rule and the save dialog.
+    return _ref
+        .read(encryptedFilePickerProvider)
+        .save(
+          fileName:
+              '${safeFileStem(story.content.title, fallback: story.id)}.pdf',
+          bytes: bytes,
+          dialogTitle: dialogTitle,
+        );
   }
 
   /// Reads the hero's favourite kingdom badge for the dedication page.

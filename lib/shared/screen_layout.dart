@@ -49,7 +49,7 @@ class ScreenLayout extends StatelessWidget {
   static const _ambientGradient = RadialGradient(
     center: Alignment(0.8, -0.9),
     radius: 1.2,
-    colors: <Color>[Color(0x222F2340), AppTheme.night],
+    colors: <Color>[AppTheme.ambientGlow, AppTheme.night],
   );
 }
 
@@ -59,6 +59,26 @@ class ScreenLayout extends StatelessWidget {
 /// the mosaic widens at exactly the same point and a screen never changes
 /// shape twice while a window is being resized.
 const double desktopBreakpoint = 900;
+
+/// Width from which a reading surface has room for two columns side by side.
+///
+/// The reader puts its picture beside its prose from here up, and the review
+/// queue puts two draft cards on a row. Deliberately below [desktopBreakpoint]:
+/// a landscape phone is already wide enough for a spread while its navigation
+/// still belongs at the bottom of the screen.
+const double wideReaderBreakpoint = 760;
+
+/// Whether [width] belongs to a desktop window rather than a phone-shaped one.
+bool isDesktopWidth(double width) => width >= desktopBreakpoint;
+
+/// Whether [width] has room for a picture beside its prose.
+bool isWideReaderWidth(double width) => width >= wideReaderBreakpoint;
+
+/// Columns a [MosaicGrid] resolves for the [width] it was handed.
+int mosaicColumnsFor(double width) => isDesktopWidth(width) ? 3 : 2;
+
+/// Builds the tiles of a mosaic that has already resolved [columns] columns.
+typedef MosaicTileBuilder = List<MosaicTile> Function(int columns);
 
 /// One tile inside a [MosaicGrid].
 class MosaicTile {
@@ -83,12 +103,29 @@ class MosaicTile {
 /// width, so nothing overflows horizontally. The grid scrolls nothing itself
 /// and stays as tall as its tiles, which is what lets it sit inside the page
 /// scroll view every feature already has.
+///
+/// A screen whose tile shapes depend on how wide the mosaic turned out uses
+/// [MosaicGrid.builder] and is handed the resolved column count, rather than
+/// measuring the width a second time and risking a different answer.
 class MosaicGrid extends StatelessWidget {
-  /// Creates a mosaic of tiles separated by one consistent [gap].
-  const MosaicGrid({required this.tiles, this.gap = 12, super.key});
+  /// Creates a mosaic of fixed tiles separated by one consistent [gap].
+  const MosaicGrid({required List<MosaicTile> tiles, this.gap = 12, super.key})
+    : _fixedTiles = tiles,
+      _tileBuilder = null;
 
-  /// Tiles in display order.
-  final List<MosaicTile> tiles;
+  /// Creates a mosaic whose [tiles] are chosen from the resolved column count.
+  const MosaicGrid.builder({
+    required MosaicTileBuilder tiles,
+    this.gap = 12,
+    super.key,
+  }) : _tileBuilder = tiles,
+       _fixedTiles = null;
+
+  /// Tiles in display order, for a mosaic whose shapes never change.
+  final List<MosaicTile>? _fixedTiles;
+
+  /// Source of the tiles, for a mosaic whose shapes follow the column count.
+  final MosaicTileBuilder? _tileBuilder;
 
   /// Space between two columns and between two rows.
   final double gap;
@@ -96,13 +133,14 @@ class MosaicGrid extends StatelessWidget {
   @override
   /// Resolves the column count for the real width the feature has to spend.
   Widget build(BuildContext context) {
-    if (tiles.isEmpty) return const SizedBox.shrink();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= desktopBreakpoint ? 3 : 2;
+        final columns = mosaicColumnsFor(constraints.maxWidth);
+        final tiles = _fixedTiles ?? _tileBuilder!(columns);
+        if (tiles.isEmpty) return const SizedBox.shrink();
         final columnWidth =
             (constraints.maxWidth - (columns - 1) * gap) / columns;
-        final rows = _rows(columns);
+        final rows = _rows(tiles, columns);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -116,8 +154,8 @@ class MosaicGrid extends StatelessWidget {
     );
   }
 
-  /// Groups tiles into rows that never ask for more than [columns] columns.
-  List<List<MosaicTile>> _rows(int columns) {
+  /// Groups [tiles] into rows that never ask for more than [columns] columns.
+  List<List<MosaicTile>> _rows(List<MosaicTile> tiles, int columns) {
     final rows = <List<MosaicTile>>[];
     var row = <MosaicTile>[];
     var used = 0;

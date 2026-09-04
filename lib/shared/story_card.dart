@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
+import 'package:miko_hero/shared/story_artwork.dart';
 
 /// Shape one story takes inside the shared mosaic.
 enum StoryCardVariant {
@@ -95,7 +96,7 @@ class StoryCard extends StatelessWidget {
                         _StoryOverflowMenu(
                           story: story,
                           actions: actions,
-                          color: Colors.white,
+                          color: AppTheme.onCover,
                         ),
                     ],
                   ),
@@ -111,7 +112,7 @@ class StoryCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
+                          color: AppTheme.onCover,
                           height: 1.15,
                         ),
                       ),
@@ -120,10 +121,7 @@ class StoryCard extends StatelessWidget {
                         _meta(context, text),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.frost,
-                        ),
+                        style: AppTheme.coverCaption,
                       ),
                     ],
                   ),
@@ -156,7 +154,7 @@ class StoryCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.white),
+                ).textTheme.titleMedium?.copyWith(color: AppTheme.onCover),
               ),
             ),
           ),
@@ -213,10 +211,7 @@ class StoryCard extends StatelessWidget {
                           _meta(context, text),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.mutedDeep,
-                          ),
+                          style: AppTheme.caption,
                         ),
                       ),
                     ],
@@ -362,7 +357,7 @@ class _StoryOverflowMenu extends StatelessWidget {
     final text = AppLocalizations.of(context);
     return PopupMenuButton<StoryCardCommand>(
       tooltip: text.moreStoryActions,
-      icon: Icon(Icons.more_horiz_rounded, color: color),
+      icon: Icon(AppIcons.moreActions, color: color),
       onSelected: (command) => command.run(),
       itemBuilder: (context) => <PopupMenuEntry<StoryCardCommand>>[
         for (final command in actions.secondaryCommands)
@@ -386,13 +381,11 @@ class _StoryOverflowMenu extends StatelessWidget {
   IconData _iconFor(StoryCardCommandKind kind) {
     return switch (kind) {
       StoryCardCommandKind.favorite =>
-        story.isFavorite
-            ? Icons.favorite_rounded
-            : Icons.favorite_border_rounded,
-      StoryCardCommandKind.collections => Icons.folder_copy_outlined,
-      StoryCardCommandKind.illustrate => Icons.palette_outlined,
-      StoryCardCommandKind.share => Icons.ios_share_rounded,
-      StoryCardCommandKind.delete => Icons.delete_outline_rounded,
+        story.isFavorite ? AppIcons.favourite : AppIcons.notFavourite,
+      StoryCardCommandKind.collections => AppIcons.collection,
+      StoryCardCommandKind.illustrate => AppIcons.illustrate,
+      StoryCardCommandKind.share => AppIcons.storyFile,
+      StoryCardCommandKind.delete => AppIcons.delete,
     };
   }
 
@@ -464,7 +457,7 @@ class _FavoriteHeart extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsetsDirectional.only(start: 4),
-      child: Icon(Icons.favorite_rounded, size: size, color: AppTheme.candle),
+      child: Icon(AppIcons.favourite, size: size, color: AppTheme.candle),
     );
   }
 }
@@ -478,14 +471,7 @@ class _CoverScrim extends StatelessWidget {
   /// Keeps a title readable over whatever the PC happened to draw.
   Widget build(BuildContext context) {
     return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          stops: <double>[0, 0.65],
-          colors: <Color>[Color(0xD106080F), Color(0x1406080F)],
-        ),
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.coverScrim),
     );
   }
 }
@@ -504,12 +490,12 @@ class StoryDemoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
+        color: AppTheme.coverPill,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         AppLocalizations.of(context).demoBadge,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+        style: AppTheme.badgeLabel,
       ),
     );
   }
@@ -546,8 +532,8 @@ class StoryCover extends StatelessWidget {
                 const Align(
                   alignment: Alignment.topRight,
                   child: Icon(
-                    Icons.auto_awesome,
-                    color: Color(0xCCFFFFFF),
+                    AppIcons.sparkle,
+                    color: AppTheme.onCoverMuted,
                     size: 28,
                   ),
                 ),
@@ -566,7 +552,7 @@ class StoryCover extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.onCover,
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           height: 1.1,
@@ -599,28 +585,16 @@ class _StoryCoverArt extends ConsumerWidget {
   @override
   /// Paints the cached page image over its stable fallback gradient.
   Widget build(BuildContext context, WidgetRef ref) {
-    final cover = _coverBytes(ref);
+    final cover = StoryArtwork.coverOf(ref, story);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        DecoratedBox(decoration: BoxDecoration(gradient: _gradient())),
+        DecoratedBox(
+          decoration: BoxDecoration(gradient: StoryArtwork.gradientOf(story)),
+        ),
         if (cover != null) _coverImage(cover),
       ],
     );
-  }
-
-  /// Reads the cached first-page image of a PC story, or null for anything else.
-  Uint8List? _coverBytes(WidgetRef ref) {
-    if (!BridgeStoryProvenance.marksStory(story)) return null;
-    final pages = story.content.pages;
-    if (pages.isEmpty) return null;
-    final provenance = BridgeStoryProvenance.fromSceneDescription(
-      pages.first.sceneDescription,
-    );
-    if (provenance == null) return null;
-    return ref
-        .watch(illustrationBytesProvider(provenance.illustrationId))
-        .value;
   }
 
   /// Paints the drawn cover behind the tile content, dimmed for readability.
@@ -629,26 +603,9 @@ class _StoryCoverArt extends ConsumerWidget {
       bytes,
       key: const ValueKey<String>('story-cover-image'),
       fit: BoxFit.cover,
-      color: Colors.black45,
+      color: AppTheme.coverShade,
       colorBlendMode: BlendMode.darken,
       gaplessPlayback: true,
     );
-  }
-
-  /// Selects a stable palette corresponding to the requested visual style.
-  LinearGradient _gradient() {
-    final primary = AppTheme.primaryFor(story.content.request.gender);
-    final secondary = AppTheme.secondaryFor(story.content.request.gender);
-    return switch (story.content.request.presentation.style) {
-      IllustrationStyle.pictureBook => LinearGradient(
-        colors: <Color>[primary, secondary],
-      ),
-      IllustrationStyle.watercolor => LinearGradient(
-        colors: <Color>[secondary, primary.withValues(alpha: 0.78)],
-      ),
-      IllustrationStyle.colorful3d => LinearGradient(
-        colors: <Color>[primary, secondary, const Color(0xFF5545D9)],
-      ),
-    };
   }
 }

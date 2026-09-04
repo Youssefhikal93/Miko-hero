@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
+import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generated_story.dart';
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
 import 'package:iam_hero_bridge/src/generation/generation_job.dart';
+import 'package:iam_hero_bridge/src/generation/hero_sheet_service.dart';
 import 'package:iam_hero_bridge/src/generation/language_purity.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_draft.dart';
@@ -15,24 +17,14 @@ import 'package:iam_hero_bridge/src/generation/story_outline.dart';
 import 'package:iam_hero_bridge/src/generation/story_prompt.dart';
 import 'package:uuid/uuid.dart';
 
-/// Sink for privacy-safe generation log lines.
-///
-/// Only job ids, statuses, timings and typed error codes are ever passed to
-/// it — never prompts, story text, child names or model output.
-typedef GenerationLogSink = void Function(String message);
-
-/// How many finished jobs stay readable before the oldest are dropped.
-const int maxRetainedFinishedJobs = 100;
-
-const Duration _ollamaUnloadTimeout = Duration(seconds: 5);
-
 /// Runs story generation jobs strictly one at a time.
 ///
-/// The machine has one small GPU, so concurrency is not a tuning knob: a
-/// single worker drains a FIFO queue and every other job waits with a
-/// reported queue position. Jobs live in memory only — the durable queue is
-/// the app's, and a bridge restart is meant to clear in-flight work.
-class StoryGenerationQueue {
+/// The line itself — admission, positions, cancellation, retention, the
+/// single worker — is [JobQueue]. What is particular to writing a story
+/// lives here: the whole-job GPU turn, the shared attempt budget across both
+/// model passes, and the Ollama tenant the gate evicts once the turn is over.
+class StoryGenerationQueue
+    extends JobQueue<GenerationJob, StoryGenerationRequest> {
   /// Creates a queue.
   ///
   /// [client] is the Ollama seam replaced by tests, [writer] performs the
@@ -44,12 +36,12 @@ class StoryGenerationQueue {
     required this._writer,
     this._client = const IoOllamaStoryClient(),
     this._uuid = const Uuid(),
+    this._heroSheets,
     GpuGate? gate,
-    DateTime Function()? clock,
-    GenerationLogSink? log,
+    super.clock,
+    super.log,
   }) : _gate = gate ?? GpuGate(),
-       _clock = clock ?? DateTime.now,
-       _log = log ?? _ignoreLog;
+       super(jobLabel: 'job', unknownJobMessage: 'Unknown generation job.');
 
   /// Runtime configuration: Ollama URL, model, timeout and attempt budget.
   final BridgeConfig _config;
@@ -60,6 +52,13 @@ class StoryGenerationQueue {
   /// The mocked-in-tests Ollama boundary.
   final OllamaStoryClient _client;
 
+  /// Where the child's stored character sheet comes from, when there is one.
+  ///
+  /// Absent means "behave exactly as this queue did before character sheets
+  /// existed": the planner invents a fresh appearance line per story, and the
+  /// same child comes out looking different in every book.
+  final HeroSheetService? _heroSheets;
+
   /// Shared lock over the machine's single GPU.
   ///
   /// Held for the whole run of a job, so an illustration job queued while a
@@ -67,19 +66,14 @@ class StoryGenerationQueue {
   /// the same 4 GB of VRAM.
   final GpuGate _gate;
 
+  /// This queue's identity at the gate, and the thing the gate evicts.
+  late final _OllamaTenant _tenant = _OllamaTenant(
+    config: _config,
+    client: _client,
+    log: logLine,
+  );
+
   final Uuid _uuid;
-  final DateTime Function() _clock;
-  final GenerationLogSink _log;
-
-  final Map<String, GenerationJob> _jobs = <String, GenerationJob>{};
-  final List<String> _pending = <String>[];
-  final Map<String, CancellationToken> _tokens = <String, CancellationToken>{};
-  final Map<String, Completer<GenerationJob>> _settled =
-      <String, Completer<GenerationJob>>{};
-  final List<String> _finishedOrder = <String>[];
-
-  String? _activeJobId;
-  bool _pumping = false;
 
   /// Accepts [request] on behalf of [deviceId] and returns the queued job.
   ///
@@ -89,153 +83,80 @@ class StoryGenerationQueue {
     required String deviceId,
     required StoryGenerationRequest request,
   }) {
-    final now = _clock().toUtc();
-    final job = GenerationJob(
-      id: _uuid.v4(),
-      deviceId: deviceId,
-      request: request,
-      status: GenerationJobStatus.queued,
-      createdAtUtc: now,
-      updatedAtUtc: now,
-      progress: 'Waiting for the local model.',
+    final now = nowUtc();
+    return admit(
+      GenerationJob(
+        id: _uuid.v4(),
+        deviceId: deviceId,
+        request: request,
+        status: GenerationJobStatus.queued,
+        createdAtUtc: now,
+        updatedAtUtc: now,
+        progress: 'Waiting for the local model.',
+      ),
+      request,
     );
-    _jobs[job.id] = job;
-    _pending.add(job.id);
-    _tokens[job.id] = CancellationToken();
-    _settled[job.id] = Completer<GenerationJob>();
-    _log('job ${job.id} queued position=${queuePosition(job.id)}');
-    scheduleMicrotask(() => unawaited(_pump()));
-    return job;
   }
 
-  /// Returns the current snapshot of [jobId], or `null` when unknown.
-  GenerationJob? job(String jobId) => _jobs[jobId];
-
-  /// Position of [jobId] in line, counting the running job as position 1.
-  ///
-  /// Returns `null` for jobs that are not waiting any more.
-  int? queuePosition(String jobId) {
-    final index = _pending.indexOf(jobId);
-    if (index < 0) {
-      return null;
-    }
-    return index + 1 + (_activeJobId == null ? 0 : 1);
-  }
-
-  /// Cancels [jobId] and returns its final snapshot. Idempotent.
-  ///
-  /// A queued job is removed from the line; the running job has its Ollama
-  /// call aborted and never reaches persistence. Terminal jobs are returned
-  /// unchanged.
-  GenerationJob cancel(String jobId) {
-    final current = _jobs[jobId];
-    if (current == null) {
-      throw StateError('Unknown generation job.');
-    }
-    if (current.status.isTerminal) {
-      return current;
-    }
-    _pending.remove(jobId);
-    final cancelled = current.copyWith(
+  @override
+  GenerationJob markCancelled(GenerationJob current) {
+    return current.copyWith(
       status: GenerationJobStatus.cancelled,
-      updatedAtUtc: _clock().toUtc(),
+      updatedAtUtc: nowUtc(),
       progress: 'Cancelled.',
     );
-    _jobs[jobId] = cancelled;
-    _tokens[jobId]?.cancel();
-    _log('job $jobId cancelled');
-    if (_activeJobId != jobId) {
-      // Nothing is running it, so no worker will ever settle it.
-      _settle(cancelled);
-    }
-    return cancelled;
   }
 
-  /// Completes once [jobId] has reached a terminal state and its worker has
-  /// stopped touching the library.
-  Future<GenerationJob> whenSettled(String jobId) {
-    final completer = _settled[jobId];
-    if (completer != null) {
-      return completer.future;
-    }
-    final finished = _jobs[jobId];
-    if (finished != null && finished.status.isTerminal) {
-      return Future<GenerationJob>.value(finished);
-    }
-    return Future<GenerationJob>.error(
-      StateError('Unknown generation job.'),
-      StackTrace.current,
-    );
-  }
-
-  /// Cancels every unfinished job; used when the bridge shuts down.
-  void shutdown() {
-    for (final id in <String>[..._pending, ...?_activeIds()]) {
-      final current = _jobs[id];
-      if (current != null && !current.status.isTerminal) {
-        cancel(id);
-      }
-    }
-  }
-
-  Iterable<String>? _activeIds() {
-    final active = _activeJobId;
-    return active == null ? null : <String>[active];
-  }
-
-  Future<void> _pump() async {
-    if (_pumping) {
-      return;
-    }
-    _pumping = true;
-    try {
-      while (_pending.isNotEmpty) {
-        final id = _pending.removeAt(0);
-        final job = _jobs[id];
-        if (job == null || job.status.isTerminal) {
-          continue;
-        }
-        _activeJobId = id;
-        try {
-          await _runJob(id);
-        } finally {
-          _activeJobId = null;
-        }
-      }
-    } finally {
-      _pumping = false;
-    }
-  }
-
-  Future<void> _runJob(String jobId) async {
-    final GpuLease lease = await _gate.acquire();
-    try {
-      await _runJobOnGpu(jobId);
-    } finally {
+  /// Takes one whole turn on the GPU for the job, then reports it settled.
+  ///
+  /// A story is one indivisible turn on the card: splitting the two passes
+  /// would let a ten-page render slip between the plan and the pages and
+  /// leave the model half-loaded across it. Unloading the model is not this
+  /// queue's business: the gate evicts [_tenant] on the way out, so the card
+  /// is clear before anything else is allowed to start. The job is reported
+  /// settled as soon as the worker has stopped touching the library, which is
+  /// what [whenSettled] promises — the unload happens behind it, still inside
+  /// the turn.
+  ///
+  /// The character sheet is fetched *before* the turn starts, not inside it.
+  /// Deriving it is itself a turn on the card by another tenant, and the gate
+  /// serializes turns: asking for one while holding one would be this job
+  /// waiting for itself. Taking it first is also the honest order — the vision
+  /// model is loaded, used and evicted before the writer is ever loaded.
+  @override
+  Future<void> runJob(
+    GenerationJob job,
+    StoryGenerationRequest plan,
+    CancellationToken token,
+  ) async {
+    final String? heroSheet = await _heroSheetLine(plan);
+    await _gate.run(_tenant, () async {
       try {
-        await _unloadOllama(jobId);
-        final finished = _jobs[jobId];
-        if (finished != null && finished.status.isTerminal) {
-          _settle(finished);
-        }
+        await _runJobOnGpu(job.id, plan, token, heroSheet);
       } finally {
-        lease.release();
+        settleIfTerminal(job.id);
       }
-    }
+    });
   }
 
-  Future<void> _unloadOllama(String jobId) async {
+  /// The stored appearance line of this job's child, or `null`.
+  ///
+  /// Derives it from the reference photo when it is missing or the photo has
+  /// changed — the lazy half of the promise that every story of one child draws
+  /// the same hero. Never throws: a child with no photo, an Ollama that cannot
+  /// see, a model that answered badly all land on `null`, and `null` means the
+  /// planner invents an appearance line exactly as it always did.
+  Future<String?> _heroSheetLine(StoryGenerationRequest request) async {
+    final HeroSheetService? sheets = _heroSheets;
+    if (sheets == null) {
+      return null;
+    }
     try {
-      await _client.unload(
-        OllamaUnloadRequest(
-          baseUrl: _config.ollamaBaseUrl,
-          model: _config.ollamaModel,
-          timeout: _ollamaUnloadTimeout,
-        ),
-      );
-      _log('job $jobId Ollama model unloaded');
+      final sheet = await sheets.ensureSheet(request.profileId);
+      return sheet?.toPromptLine();
     } catch (_) {
-      _log('job $jobId Ollama unload failed');
+      // Never let a nicety take a story down with it.
+      return null;
     }
   }
 
@@ -247,17 +168,20 @@ class StoryGenerationQueue {
   /// with the default `maxGenerationAttempts` of 3 makes at most four model
   /// calls (one outline plus three page passes), and an outline the model keeps
   /// getting wrong costs the same three attempts and never reaches pass two.
-  Future<void> _runJobOnGpu(String jobId) async {
-    final start = _clock().toUtc();
-    final token = _tokens[jobId] ?? CancellationToken();
-    final request = _jobs[jobId]!.request;
+  Future<void> _runJobOnGpu(
+    String jobId,
+    StoryGenerationRequest request,
+    CancellationToken token,
+    String? heroSheet,
+  ) async {
+    final start = nowUtc();
     final attempts = _config.maxGenerationAttempts;
     GenerationFailure? failure;
     StoryOutline? outline;
 
     for (var attempt = 1; attempt <= attempts; attempt++) {
       if (token.isCancelled) {
-        _settleCancelled(jobId, start);
+        _logCancelled(jobId, start);
         return;
       }
       try {
@@ -267,22 +191,26 @@ class StoryGenerationQueue {
             status: GenerationJobStatus.generating,
             progress: 'Planning the story (attempt $attempt of $attempts).',
           );
-          _log('job $jobId outlining attempt=$attempt/$attempts');
+          logJob(jobId, 'outlining attempt=$attempt/$attempts');
           final planned = await _callOllama(
             token,
-            prompt: buildStoryOutlinePrompt(request),
+            prompt: buildStoryOutlinePrompt(request, heroSheet: heroSheet),
             format: storyOutlineResponseSchema(request.pageCount),
           );
           if (token.isCancelled) {
-            _settleCancelled(jobId, start);
+            _logCancelled(jobId, start);
             return;
           }
           final parsed = parseStoryOutline(
             readOllamaResponseText(planned.bodyText),
             expectedPageCount: request.pageCount,
+            fixedHeroAppearance: heroSheet,
           );
+          // The lesson moment is read by the page pass as story material, so
+          // it has to be in the story's language exactly like the beats are.
           _requirePureLanguage(request, <String>[
             parsed.title,
+            parsed.lessonMoment,
             for (final beat in parsed.beats) beat.summary,
           ]);
           outline = parsed;
@@ -292,14 +220,14 @@ class StoryGenerationQueue {
           status: GenerationJobStatus.generating,
           progress: 'Writing the story (attempt $attempt of $attempts).',
         );
-        _log('job $jobId generating attempt=$attempt/$attempts');
+        logJob(jobId, 'generating attempt=$attempt/$attempts');
         final response = await _callOllama(
           token,
           prompt: buildStoryPagesPrompt(request, outline),
           format: storyResponseSchema(request.pageCount),
         );
         if (token.isCancelled) {
-          _settleCancelled(jobId, start);
+          _logCancelled(jobId, start);
           return;
         }
         _transition(
@@ -317,23 +245,23 @@ class StoryGenerationQueue {
         ]);
         final draft = withHeroAppearance(parsedDraft, outline.heroAppearance);
         if (token.isCancelled) {
-          _settleCancelled(jobId, start);
+          _logCancelled(jobId, start);
           return;
         }
         final GeneratedStory story = _writer.writeStory(
           request: request,
           draft: draft,
-          nowUtc: _clock().toUtc(),
+          nowUtc: nowUtc(),
         );
         _complete(jobId, story, start);
         return;
       } on GenerationException catch (error) {
         if (token.isCancelled) {
-          _settleCancelled(jobId, start);
+          _logCancelled(jobId, start);
           return;
         }
         failure = error.toFailure();
-        _log('job $jobId attempt=$attempt error=${error.code.wireCode}');
+        logJob(jobId, 'attempt=$attempt error=${error.code.wireCode}');
         if (error.code == GenerationFailureCode.invalidModelOutput &&
             attempt < attempts) {
           continue;
@@ -341,7 +269,7 @@ class StoryGenerationQueue {
         break;
       } catch (_) {
         if (token.isCancelled) {
-          _settleCancelled(jobId, start);
+          _logCancelled(jobId, start);
           return;
         }
         // Details are dropped on purpose: they can quote model output.
@@ -369,6 +297,9 @@ class StoryGenerationQueue {
   /// Defense in depth behind the prompt, and deliberately reported as invalid
   /// model output so it consumes a retry exactly like a wrong page count. The
   /// message carries counts only, never a word of the story.
+  ///
+  /// A request that carries a confirmed spelling of the hero's name is checked
+  /// strictly: the one thing the tolerance was ever for is now in the prompt.
   void _requirePureLanguage(
     StoryGenerationRequest request,
     Iterable<String> texts,
@@ -376,6 +307,7 @@ class StoryGenerationQueue {
     final verdict = checkLanguagePurity(
       language: request.language,
       texts: texts,
+      heroNameIsSpelled: request.hasHeroNameSpelling,
     );
     final String? failure = verdict.failure;
     if (failure != null) {
@@ -391,13 +323,7 @@ class StoryGenerationQueue {
     required String prompt,
     required Map<String, Object?> format,
   }) async {
-    final call = OllamaGenerateRequest(
-      baseUrl: _config.ollamaBaseUrl,
-      model: _config.ollamaModel,
-      prompt: prompt,
-      format: format,
-      timeout: _config.generationTimeout,
-    );
+    final call = _config.ollama.generateRequest(prompt: prompt, format: format);
     final OllamaGenerateResponse response;
     try {
       response = await _client.generate(call, cancellation: token);
@@ -429,64 +355,87 @@ class StoryGenerationQueue {
     required GenerationJobStatus status,
     required String progress,
   }) {
-    final current = _jobs[jobId];
-    if (current == null || current.status.isTerminal) {
-      return;
-    }
-    _jobs[jobId] = current.copyWith(
-      status: status,
-      progress: progress,
-      updatedAtUtc: _clock().toUtc(),
+    updateJob(
+      jobId,
+      (current) => current.copyWith(
+        status: status,
+        progress: progress,
+        updatedAtUtc: nowUtc(),
+      ),
     );
   }
 
   void _complete(String jobId, GeneratedStory story, DateTime start) {
-    final current = _jobs[jobId]!;
-    final finished = current.copyWith(
-      status: GenerationJobStatus.completed,
-      progress: 'Story ready.',
-      updatedAtUtc: _clock().toUtc(),
-      story: story,
+    storeJob(
+      requireJob(jobId).copyWith(
+        status: GenerationJobStatus.completed,
+        progress: 'Story ready.',
+        updatedAtUtc: nowUtc(),
+        story: story,
+      ),
     );
-    _jobs[jobId] = finished;
-    _log('job $jobId completed in ${_elapsedMs(start)} ms');
+    logJob(jobId, 'completed in ${elapsedMs(start)} ms');
   }
 
   void _fail(String jobId, GenerationFailure failure, DateTime start) {
-    final current = _jobs[jobId]!;
-    final finished = current.copyWith(
-      status: GenerationJobStatus.failed,
-      progress: 'Generation failed.',
-      updatedAtUtc: _clock().toUtc(),
-      failure: failure,
+    storeJob(
+      requireJob(jobId).copyWith(
+        status: GenerationJobStatus.failed,
+        progress: 'Generation failed.',
+        updatedAtUtc: nowUtc(),
+        failure: failure,
+      ),
     );
-    _jobs[jobId] = finished;
-    _log(
-      'job $jobId failed code=${failure.code.wireCode} '
-      'after ${_elapsedMs(start)} ms',
+    logJob(
+      jobId,
+      'failed code=${failure.code.wireCode} after ${elapsedMs(start)} ms',
     );
   }
 
-  void _settleCancelled(String jobId, DateTime start) {
-    _log('job $jobId stopped after ${_elapsedMs(start)} ms');
+  /// Logs a job that stopped on the parent's request.
+  ///
+  /// The snapshot is already `cancelled` — [JobQueue.cancel] wrote it — so
+  /// there is nothing left to record but how long the worker ran.
+  void _logCancelled(String jobId, DateTime start) {
+    logJob(jobId, 'stopped after ${elapsedMs(start)} ms');
   }
+}
 
-  void _settle(GenerationJob job) {
-    _tokens.remove(job.id);
-    final completer = _settled.remove(job.id);
-    if (completer != null && !completer.isCompleted) {
-      completer.complete(job);
+/// The language model's claim on the GPU, as the gate sees it.
+///
+/// Ollama keeps a model resident for its keep-alive window after the last
+/// token, so "the story is written" and "the card is free" are not the same
+/// moment. Eviction is the explicit unload that closes that gap; without it
+/// the renderer would find a card that is nominally idle and actually full.
+///
+/// The job id is deliberately absent from these lines: by the time the gate
+/// evicts, the turn is over and the unload belongs to the queue, not to any
+/// one story. The request itself comes ready-made from the configuration; the
+/// gate's eviction budget bounds the whole call on top of the request's own
+/// timeout.
+class _OllamaTenant implements GpuTenant {
+  const _OllamaTenant({
+    required this._config,
+    required this._client,
+    required this._log,
+  });
+
+  final BridgeConfig _config;
+  final OllamaStoryClient _client;
+  final JobLogSink _log;
+
+  @override
+  String get name => 'ollama';
+
+  @override
+  Future<void> evict() async {
+    try {
+      await _client.unload(_config.ollama.unloadRequest());
+      _log('Ollama model unloaded');
+    } catch (_) {
+      // Swallowed rather than rethrown so the log says which local service
+      // failed; the gate's own net would only be able to say "ollama".
+      _log('Ollama unload failed');
     }
-    _finishedOrder.add(job.id);
-    while (_finishedOrder.length > maxRetainedFinishedJobs) {
-      _jobs.remove(_finishedOrder.removeAt(0));
-    }
-  }
-
-  int _elapsedMs(DateTime start) =>
-      _clock().toUtc().difference(start).inMilliseconds;
-
-  static void _ignoreLog(String message) {
-    // Logging is opt-in; the bridge stays silent unless a sink is wired.
   }
 }

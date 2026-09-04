@@ -1,37 +1,33 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
 import 'package:miko_hero/core/models/app_language.dart';
-import 'package:miko_hero/core/models/child_story_preferences.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/narration_options.dart';
 import 'package:miko_hero/core/narration/narration_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../support/seeded_device.dart';
 
 /// Verifies what a reader sees while a story is being narrated to them.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[_profile()]),
-      'story_library': jsonEncode(<Map<String, Object>>[_story()]),
-    });
-    appRouter.go('/story/story-1');
+  setUp(() async {
+    await seedDevice(
+      profiles: <ChildProfile>[child()],
+      stories: <StoryBook>[_story()],
+      activeProfileId: 'miko',
+    );
   });
 
   testWidgets('starting narration highlights the first spoken sentence', (
     tester,
   ) async {
     final voice = _FakeVoice();
-    await tester.pumpWidget(_app(voice));
-    await tester.pumpAndSettle();
+    await _pumpReader(tester, voice);
 
     expect(_highlighted(tester), isNull);
 
@@ -52,8 +48,7 @@ void main() {
     tester,
   ) async {
     final voice = _FakeVoice();
-    await tester.pumpWidget(_app(voice));
-    await tester.pumpAndSettle();
+    await _pumpReader(tester, voice);
     await tester.tap(find.byTooltip('Play narration'));
     await tester.pumpAndSettle();
 
@@ -75,8 +70,7 @@ void main() {
     tester,
   ) async {
     final voice = _FakeVoice();
-    await tester.pumpWidget(_app(voice));
-    await tester.pumpAndSettle();
+    await _pumpReader(tester, voice);
     await tester.tap(find.byTooltip('Play narration'));
     await tester.pumpAndSettle();
 
@@ -90,8 +84,7 @@ void main() {
 
   testWidgets('the narration dialog offers a sleep timer', (tester) async {
     final voice = _FakeVoice();
-    await tester.pumpWidget(_app(voice));
-    await tester.pumpAndSettle();
+    await _pumpReader(tester, voice);
 
     await tester.tap(find.byTooltip('Sleep timer'));
     await tester.pumpAndSettle();
@@ -102,11 +95,12 @@ void main() {
   });
 }
 
-/// Builds the real application with a controllable device voice.
-Widget _app(_FakeVoice voice) {
-  return ProviderScope(
+/// Opens the reader on the seeded story with a controllable device voice.
+Future<void> _pumpReader(WidgetTester tester, _FakeVoice voice) {
+  return pumpApp(
+    tester,
+    route: '/story/story-1',
     overrides: [narrationServiceProvider.overrideWithValue(voice)],
-    child: const IamHeroApp(),
   );
 }
 
@@ -127,53 +121,14 @@ String? _highlighted(WidgetTester tester) {
 }
 
 /// One approved two-page book whose sentences are easy to assert on.
-Map<String, Object> _story() {
-  return <String, Object>{
-    'id': 'story-1',
-    'createdAt': DateTime.utc(2026, 8, 17, 12).toIso8601String(),
-    'reviewStatus': 'approved',
-    'content': <String, Object>{
-      'title': 'The moon garden',
-      'request': <String, Object>{
-        'profileId': 'miko',
-        'heroName': 'Miko',
-        'gender': 'girl',
-        'prompt': <String, Object>{
-          'theme': 'a moon garden',
-          'moral': 'kindness',
-          'preferences': const ChildStoryPreferences().toJson(),
-        },
-        'presentation': <String, Object>{
-          'language': 'en',
-          'length': 'short',
-          'style': 'pictureBook',
-        },
-      },
-      'pages': <Map<String, Object>>[
-        <String, Object>{
-          'number': 1,
-          'text': 'Miko woke up. The garden glowed.',
-          'sceneDescription': 'a glowing garden',
-        },
-        <String, Object>{
-          'number': 2,
-          'text': 'She ran outside. The stars sang.',
-          'sceneDescription': 'singing stars',
-        },
-      ],
-    },
-  };
-}
-
-/// One private child profile owning the story under test.
-Map<String, Object> _profile() {
-  return <String, Object>{
-    'id': 'miko',
-    'name': 'Miko',
-    'age': 7,
-    'photoBase64': _transparentPixel,
-    'gender': 'girl',
-  };
+StoryBook _story() {
+  return book(
+    profileId: 'miko',
+    pages: <StoryPage>[
+      storyPage(1, 'Miko woke up. The garden glowed.'),
+      storyPage(2, 'She ran outside. The stars sang.', scene: 'singing stars'),
+    ],
+  );
 }
 
 /// Device voice whose utterances complete only when the test says so.
@@ -212,6 +167,3 @@ class _FakeVoice implements NarrationService {
     utterance?.complete();
   }
 }
-
-const _transparentPixel =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';

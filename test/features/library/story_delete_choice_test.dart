@@ -1,22 +1,15 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
-import 'package:miko_hero/core/ai_connection/bridge_client.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/illustrations/illustration_providers.dart';
-import 'package:miko_hero/core/models/child_story_preferences.dart';
-import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 import '../../support/fake_bridge_http_client.dart';
-import '../../support/in_memory_illustration_store.dart';
+import '../../support/seeded_device.dart';
 
 /// Verifies the two very different things "delete" can mean for one story.
 ///
@@ -26,9 +19,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('a demo story keeps one plain local deletion', (tester) async {
-    _storeFamily(hasBridgeProvenance: false);
-    await tester.pumpWidget(_app(_unreachableBridge()));
-    await tester.pumpAndSettle();
+    await _storeFamily(hasBridgeProvenance: false);
+    await _pumpLibrary(tester, _unreachableBridge());
 
     await _tapDelete(tester);
 
@@ -43,10 +35,9 @@ void main() {
   testWidgets('removing the offline copy keeps the story on the PC', (
     tester,
   ) async {
-    _storeFamily();
+    await _storeFamily();
     final bridge = _unreachableBridge();
-    await tester.pumpWidget(_app(bridge));
-    await tester.pumpAndSettle();
+    await _pumpLibrary(tester, bridge);
 
     await _tapDelete(tester);
     expect(find.text('Where should this story be deleted?'), findsOneWidget);
@@ -59,8 +50,8 @@ void main() {
     expect(find.text('The moon garden'), findsNothing);
     expect(bridge.callsTo('/stories/story-1/delete'), 0);
 
-    // The parent-gated settings card now offers those stories back.
-    appRouter.go('/settings');
+    // The parent-gated The PC page now offers those stories back.
+    appRouter.go('/settings/pc');
     await tester.pumpAndSettle();
     expect(find.text('Stories removed from this device'), findsOneWidget);
     final redownload = find.byKey(
@@ -79,9 +70,8 @@ void main() {
   testWidgets('deleting everywhere without the PC keeps the story', (
     tester,
   ) async {
-    _storeFamily();
-    await tester.pumpWidget(_app(_unreachableBridge()));
-    await tester.pumpAndSettle();
+    await _storeFamily();
+    await _pumpLibrary(tester, _unreachableBridge());
 
     await _tapDelete(tester);
     await tester.tap(
@@ -102,7 +92,7 @@ void main() {
   testWidgets('deleting everywhere asks the PC and drops the copy', (
     tester,
   ) async {
-    _storeFamily();
+    await _storeFamily();
     final bridge = FakeBridgeHttpClient((request) async {
       if (request.url.path == '/stories/story-1/delete') {
         return bridgeJsonResponse(<String, Object>{
@@ -114,8 +104,7 @@ void main() {
       }
       throw http.ClientException('Connection refused.', request.url);
     });
-    await tester.pumpWidget(_app(bridge));
-    await tester.pumpAndSettle();
+    await _pumpLibrary(tester, bridge);
 
     await _tapDelete(tester);
     await tester.tap(
@@ -132,20 +121,15 @@ void main() {
   });
 }
 
-/// Builds the real application over one scripted PC boundary.
-///
-/// The page-image cache is replaced too: the real store reaches for this
-/// machine's application folder, which a widget test must never touch.
-Widget _app(FakeBridgeHttpClient httpClient) {
-  return ProviderScope(
-    overrides: [
-      bridgeHttpClientProvider.overrideWithValue(httpClient),
-      bridgeCredentialStorageProvider.overrideWithValue(
-        InMemoryBridgeCredentialStorage(),
-      ),
-      illustrationStoreProvider.overrideWithValue(InMemoryIllustrationStore()),
-    ],
-    child: const IamHeroApp(),
+/// Opens the child's shelf with the real app over one scripted PC boundary.
+Future<void> _pumpLibrary(
+  WidgetTester tester,
+  FakeBridgeHttpClient httpClient,
+) {
+  return pumpApp(
+    tester,
+    route: '/library',
+    overrides: [bridgeHttpClientProvider.overrideWithValue(httpClient)],
   );
 }
 
@@ -158,7 +142,7 @@ FakeBridgeHttpClient _unreachableBridge() {
 
 /// Opens the story's delete action from the child's shelf.
 Future<void> _tapDelete(WidgetTester tester) async {
-  final overflow = find.byIcon(Icons.more_horiz_rounded).first;
+  final overflow = find.byIcon(AppIcons.moreActions).first;
   await tester.ensureVisible(overflow);
   await tester.pumpAndSettle();
   await tester.tap(overflow);
@@ -168,36 +152,21 @@ Future<void> _tapDelete(WidgetTester tester) async {
 }
 
 /// Stores one paired Local AI family holding one approved story.
-void _storeFamily({bool hasBridgeProvenance = true}) {
-  SharedPreferences.setMockInitialValues(<String, Object>{
-    'active_profile_id': 'miko',
-    'child_profiles': jsonEncode(<Map<String, Object>>[
-      <String, Object>{
-        'id': 'miko',
-        'name': 'Miko',
-        'age': 7,
-        'photoBase64': 'cGhvdG8=',
-        'gender': 'girl',
-      },
-    ]),
-    'story_library': jsonEncode(<Map<String, Object>>[
-      _story(hasBridgeProvenance: hasBridgeProvenance),
-    ]),
-    'ai_connection': jsonEncode(<String, Object>{
-      'mode': 'localAi',
-      'baseUrl': defaultBridgeBaseUrl,
-    }),
-    'bridge_device': jsonEncode(<String, Object>{
-      'deviceToken': 'device-token',
-      'deviceName': 'Family tablet',
-      'pairedAtUtc': '2026-08-22T09:00:00.000Z',
-    }),
-  });
-  appRouter.go('/library');
+Future<void> _storeFamily({bool hasBridgeProvenance = true}) {
+  return seedDevice(
+    profiles: <ChildProfile>[child()],
+    stories: <StoryBook>[_story(hasBridgeProvenance: hasBridgeProvenance)],
+    activeProfileId: 'miko',
+    aiConnection: localAiConnection(),
+    bridgeCredential: pairedDevice(),
+  );
 }
 
 /// Builds one stored approved story, from the PC library or from the demo.
-Map<String, Object> _story({required bool hasBridgeProvenance}) {
+///
+/// Only the PC's own story carries the identities that let the app ask the
+/// bridge to delete it there too; a demo story keeps one plain local deletion.
+StoryBook _story({required bool hasBridgeProvenance}) {
   final scene = hasBridgeProvenance
       ? const BridgeStoryProvenance(
           scene: 'a glowing garden',
@@ -205,34 +174,10 @@ Map<String, Object> _story({required bool hasBridgeProvenance}) {
           illustrationId: 'illustration-1',
         ).toSceneDescription()
       : 'a glowing garden';
-  return <String, Object>{
-    'id': 'story-1',
-    'createdAt': DateTime.utc(2026, 8, 17, 12).toIso8601String(),
-    'reviewStatus': 'approved',
-    'content': <String, Object>{
-      'title': 'The moon garden',
-      'request': <String, Object>{
-        'profileId': 'miko',
-        'heroName': 'Miko',
-        'gender': 'girl',
-        'prompt': <String, Object>{
-          'theme': 'a moon garden',
-          'moral': 'kindness',
-          'preferences': const ChildStoryPreferences().toJson(),
-        },
-        'presentation': <String, Object>{
-          'language': 'en',
-          'length': 'short',
-          'style': 'pictureBook',
-        },
-      },
-      'pages': <Map<String, Object>>[
-        <String, Object>{
-          'number': 1,
-          'text': 'Miko woke up. The garden glowed.',
-          'sceneDescription': scene,
-        },
-      ],
-    },
-  };
+  return book(
+    profileId: 'miko',
+    pages: <StoryPage>[
+      storyPage(1, 'Miko woke up. The garden glowed.', scene: scene),
+    ],
+  );
 }

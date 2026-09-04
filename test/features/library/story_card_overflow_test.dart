@@ -2,21 +2,16 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
-import 'package:miko_hero/core/illustrations/illustration_providers.dart';
-import 'package:miko_hero/core/models/child_story_preferences.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/security/parent_security_service.dart';
-import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
-import '../../support/in_memory_illustration_store.dart';
+import '../../support/seeded_device.dart';
 
 /// Verifies that moving the card icons into one overflow menu lost nothing.
 ///
@@ -32,10 +27,9 @@ void main() {
   testWidgets('the overflow delete asks for the parent PIN first', (
     tester,
   ) async {
-    _storeFamily();
+    await _storeFamily();
     await _configurePin(service, parentPin);
-    await tester.pumpWidget(_app(service));
-    await tester.pumpAndSettle();
+    await _pumpLibrary(tester, service);
 
     await _openOverflow(tester);
     await tester.tap(find.text('Delete').last);
@@ -61,16 +55,15 @@ void main() {
   testWidgets('the overflow favourite runs the same story command', (
     tester,
   ) async {
-    _storeFamily();
-    await tester.pumpWidget(_app(service));
-    await tester.pumpAndSettle();
+    await _storeFamily();
+    await _pumpLibrary(tester, service);
 
-    expect(find.byIcon(Icons.favorite_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.favourite), findsNothing);
     await _openOverflow(tester);
     await tester.tap(find.text('Add to favorites'));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.favourite), findsOneWidget);
     final reopened = await (await LocalRepository.open()).readState();
     expect(reopened.stories.single.isFavorite, isTrue);
   });
@@ -78,36 +71,27 @@ void main() {
   testWidgets('the large tile carries the badge, the heart and the meta', (
     tester,
   ) async {
-    _storeFamily(isFavorite: true);
-    await tester.pumpWidget(_app(service));
-    await tester.pumpAndSettle();
+    await _storeFamily(isFavorite: true);
+    await _pumpLibrary(tester, service);
 
     expect(find.text('DEMO'), findsOneWidget);
-    expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.favourite), findsOneWidget);
     expect(find.textContaining('2 pages · '), findsOneWidget);
   });
 }
 
-/// Builds the real application over in-memory device storage.
-///
-/// The page-image cache is replaced because the real store reaches for this
-/// machine's application folder, which a widget test must never touch.
-Widget _app(ParentSecurityService service) {
-  return ProviderScope(
-    overrides: [
-      parentSecurityServiceProvider.overrideWithValue(service),
-      bridgeCredentialStorageProvider.overrideWithValue(
-        InMemoryBridgeCredentialStorage(),
-      ),
-      illustrationStoreProvider.overrideWithValue(InMemoryIllustrationStore()),
-    ],
-    child: const IamHeroApp(),
+/// Opens the child's shelf behind the real parent gate.
+Future<void> _pumpLibrary(WidgetTester tester, ParentSecurityService service) {
+  return pumpApp(
+    tester,
+    route: '/library',
+    overrides: [parentSecurityServiceProvider.overrideWithValue(service)],
   );
 }
 
 /// Opens the one overflow control the story tile offers.
 Future<void> _openOverflow(WidgetTester tester) async {
-  final overflow = find.byIcon(Icons.more_horiz_rounded).first;
+  final overflow = find.byIcon(AppIcons.moreActions).first;
   await tester.ensureVisible(overflow);
   await tester.pumpAndSettle();
   await tester.tap(overflow);
@@ -120,64 +104,13 @@ Future<void> _configurePin(ParentSecurityService service, String pin) async {
   await repository.saveParentSecurity(await service.createRecord(pin));
 }
 
-/// Stores one family holding a single approved demo story.
-void _storeFamily({bool isFavorite = false}) {
-  SharedPreferences.setMockInitialValues(<String, Object>{
-    'active_profile_id': 'miko',
-    'child_profiles': jsonEncode(<Map<String, Object>>[
-      <String, Object>{
-        'id': 'miko',
-        'name': 'Miko',
-        'age': 7,
-        'photoBase64': 'cGhvdG8=',
-        'gender': 'girl',
-      },
-    ]),
-    'story_library': jsonEncode(<Map<String, Object>>[
-      _story(isFavorite: isFavorite),
-    ]),
-  });
-  appRouter.go('/library');
-}
-
-/// Builds one stored approved story written by the offline demo generator.
-Map<String, Object> _story({required bool isFavorite}) {
-  return <String, Object>{
-    'id': 'story-1',
-    'createdAt': DateTime.utc(2026, 8, 17, 12).toIso8601String(),
-    'reviewStatus': 'approved',
-    'isFavorite': isFavorite,
-    'content': <String, Object>{
-      'title': 'The moon garden',
-      'request': <String, Object>{
-        'profileId': 'miko',
-        'heroName': 'Miko',
-        'gender': 'girl',
-        'prompt': <String, Object>{
-          'theme': 'a moon garden',
-          'moral': 'kindness',
-          'preferences': const ChildStoryPreferences().toJson(),
-        },
-        'presentation': <String, Object>{
-          'language': 'en',
-          'length': 'short',
-          'style': 'pictureBook',
-        },
-      },
-      'pages': <Map<String, Object>>[
-        <String, Object>{
-          'number': 1,
-          'text': 'Miko woke up. The garden glowed.',
-          'sceneDescription': 'a glowing garden',
-        },
-        <String, Object>{
-          'number': 2,
-          'text': 'The moon said goodnight.',
-          'sceneDescription': 'a sleeping garden',
-        },
-      ],
-    },
-  };
+/// Stores one family holding a single approved two-page demo story.
+Future<void> _storeFamily({bool isFavorite = false}) {
+  return seedDevice(
+    profiles: <ChildProfile>[child()],
+    stories: <StoryBook>[book(profileId: 'miko', isFavorite: isFavorite)],
+    activeProfileId: 'miko',
+  );
 }
 
 /// Stands in for Argon2id so the gate stays fast in a widget test.

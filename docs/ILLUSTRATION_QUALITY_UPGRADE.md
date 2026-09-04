@@ -33,6 +33,51 @@ An unchanged `bridge_config.json` behaves exactly as before this change. The
 guard rails (child-safety negative prompt, size caps, localhost/LAN only) are
 not configurable and must stay that way.
 
+## The hero looks the same in every story (issue #62)
+
+Landed after the setup above, and it needs **no new model file and no config
+change** — but it is worth knowing about before comparing books.
+
+The child's drawn face used to be reinvented per book. The portrait seed came
+from the story id, so each story produced a different cartoon of the same
+child, and the story planner invented a fresh appearance line every time. Two
+things now come from the child instead:
+
+- **The portrait seed** is `reference:<profileId>:<sha256 of the photo>`. One
+  photo, one drawn face, in every book. Replacing the photo is the one thing
+  that deliberately redraws it.
+- **A per-child character sheet** in the master library (schema v4, table
+  `hero_character_sheets`): `hair`, `skinTone` and `eyeColor` read from the
+  photo once, plus one recurring `outfit` and `prop` that survive a new photo.
+  Its one English line is what the story planner is told to copy verbatim, and
+  it lands in every page's scene description as before.
+
+The three colours come from one Ollama call with the photo attached, on the new
+optional `visionModel` key (default `gemma3:4b`, documented in
+`bridge/README.md`). The prompt describes a **drawn cartoon character** and is
+forbidden to mention a photo or a real person, or any identifying detail. The
+outfit and prop are **not** asked of the model — a vision model asked about
+clothes describes the jumper in the photograph — but picked from two small
+curated wardrobes, hashed per profile.
+
+It runs when the photo is uploaded (behind the response, skipped if the GPU is
+busy) and again, lazily, before a story if it is missing or the photo changed.
+The pass is an Ollama tenant at the one-GPU gate, so its model is unloaded
+before ComfyUI renders.
+
+**If `visionModel` cannot see** — a text-only tag, or Ollama down — nothing
+breaks: no sheet is stored and the planner invents an appearance line exactly
+as it did before. If the PC's `ollamaModel` has been upgraded to a text-only
+writer, leave `visionModel` at `gemma3:4b` (or point it at another vision tag
+that is already pulled).
+
+**Still to do with the owner, by eye:** render two books for one test profile
+and confirm the hero is recognizably the same child in both; then decide
+whether the derived colours and the chosen outfit look right, and whether
+`referenceDenoise` needs re-tuning now that the face no longer changes between
+books. That comparison is Step 5 territory and is not something a test can
+answer.
+
 ## Non-negotiables
 
 - Everything stays free and local. Downloading open model files from
@@ -97,6 +142,9 @@ refused at startup with a clear message — fix and restart.
    cartoon face image) first.
 3. Confirm: pages come out in the chosen style, files are ~1024×1024, the
    hero looks consistent across pages, nothing frightening or deformed.
+3a. Generate a **second** story for the same test profile and confirm the hero
+   is the same drawn child in both books — same face, same coat, same prop.
+   That is what issue #62 added; see the section above.
 4. Optional side-by-side: temporarily set `checkpoint` back to
    `v1-5-pruned-emaonly-fp16.safetensors`, render the same story again
    (seeds are deterministic), and compare with the owner.

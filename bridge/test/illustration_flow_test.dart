@@ -122,9 +122,7 @@ void main() {
     expect(queued['queuePosition'], 1);
     final jobId = queued['jobId']! as String;
 
-    final settled = await testServer.server.illustrationQueue.whenSettled(
-      jobId,
-    );
+    final settled = await testServer.server.awaitIllustrationJob(jobId);
     expect(settled.status, IllustrationJobStatus.completed);
     expect(settled.completedPageCount, 3);
     expect(settled.failedPageCount, 0);
@@ -201,7 +199,7 @@ void main() {
     final story = seedStory(testServer.library, pageCount: 2);
 
     final queued = await startIllustrationJob(testServer, token, story.id);
-    final settled = await testServer.server.illustrationQueue.whenSettled(
+    final settled = await testServer.server.awaitIllustrationJob(
       queued['jobId']! as String,
     );
 
@@ -252,9 +250,7 @@ void main() {
 
       final queued = await startIllustrationJob(testServer, token, story.id);
       final jobId = queued['jobId']! as String;
-      final settled = await testServer.server.illustrationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitIllustrationJob(jobId);
 
       expect(settled.status, IllustrationJobStatus.failed);
       expect(settled.failure?.code.wireCode, 'missing_custom_node');
@@ -321,7 +317,7 @@ void main() {
         'genderContext': 'boy',
       },
     );
-    final settled = await testServer.server.illustrationQueue.whenSettled(
+    final settled = await testServer.server.awaitIllustrationJob(
       queued['jobId']! as String,
     );
     expect(settled.status, IllustrationJobStatus.completed);
@@ -392,7 +388,7 @@ void main() {
       );
 
       final queued = await startIllustrationJob(testServer, token, story.id);
-      final settled = await testServer.server.illustrationQueue.whenSettled(
+      final settled = await testServer.server.awaitIllustrationJob(
         queued['jobId']! as String,
       );
 
@@ -442,7 +438,7 @@ void main() {
     final story = seedStory(testServer.library, pageCount: 3);
 
     final queued = await startIllustrationJob(testServer, token, story.id);
-    final settled = await testServer.server.illustrationQueue.whenSettled(
+    final settled = await testServer.server.awaitIllustrationJob(
       queued['jobId']! as String,
     );
 
@@ -482,9 +478,7 @@ void main() {
     final story = seedStory(testServer.library, pageCount: 3);
 
     final first = await startIllustrationJob(testServer, token, story.id);
-    await testServer.server.illustrationQueue.whenSettled(
-      first['jobId']! as String,
-    );
+    await testServer.server.awaitIllustrationJob(first['jobId']! as String);
     expect(illustrationStatuses(testServer.library, story.id), <String>[
       'failed',
       'completed',
@@ -498,7 +492,7 @@ void main() {
       1,
       reason: 'only the failed page is still outstanding',
     );
-    final settled = await testServer.server.illustrationQueue.whenSettled(
+    final settled = await testServer.server.awaitIllustrationJob(
       second['jobId']! as String,
     );
 
@@ -517,7 +511,7 @@ void main() {
     // A third run has nothing left to do and finishes without a render.
     final third = await startIllustrationJob(testServer, token, story.id);
     expect(third['pageCount'], 0);
-    final done = await testServer.server.illustrationQueue.whenSettled(
+    final done = await testServer.server.awaitIllustrationJob(
       third['jobId']! as String,
     );
     expect(done.status, IllustrationJobStatus.completed);
@@ -602,15 +596,14 @@ void main() {
       reason: 'the renderer must wait until the Ollama unload finishes',
     );
     releaseUnload.complete();
-    final storyJob = await testServer.server.generationQueue.whenSettled(
-      storyJobId,
-    );
+    final storyJob = await testServer.server.awaitStoryJob(storyJobId);
     expect(storyJob.status, GenerationJobStatus.completed);
     expect(ollama.unloadRequests, hasLength(1));
     renderOrder.add('story-done');
 
-    final illustrationJob = await testServer.server.illustrationQueue
-        .whenSettled(illustrationJobId);
+    final illustrationJob = await testServer.server.awaitIllustrationJob(
+      illustrationJobId,
+    );
     expect(illustrationJob.status, IllustrationJobStatus.completed);
     expect(
       renderOrder.first,
@@ -656,9 +649,7 @@ void main() {
     expect(cancelBody['status'], 'cancelled');
 
     release.complete();
-    final settled = await testServer.server.illustrationQueue.whenSettled(
-      jobId,
-    );
+    final settled = await testServer.server.awaitIllustrationJob(jobId);
 
     expect(settled.status, IllustrationJobStatus.cancelled);
     expect(
@@ -700,7 +691,7 @@ void main() {
     final story = seedStory(testServer.library, pageCount: 2);
 
     final queued = await startIllustrationJob(testServer, token, story.id);
-    final settled = await testServer.server.illustrationQueue.whenSettled(
+    final settled = await testServer.server.awaitIllustrationJob(
       queued['jobId']! as String,
     );
 
@@ -754,7 +745,7 @@ void main() {
 
     final queued = await startIllustrationJob(testServer, ownerToken, story.id);
     final jobId = queued['jobId']! as String;
-    await testServer.server.illustrationQueue.whenSettled(jobId);
+    await testServer.server.awaitIllustrationJob(jobId);
 
     final (readStatus, readBody) = await callJson(
       testServer.handler,
@@ -821,9 +812,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
       final story = seedStory(testServer.library, pageCount: 1);
       final queued = await startIllustrationJob(testServer, token, story.id);
-      await testServer.server.illustrationQueue.whenSettled(
-        queued['jobId']! as String,
-      );
+      await testServer.server.awaitIllustrationJob(queued['jobId']! as String);
 
       expect(
         IllustrationRepository(
@@ -913,9 +902,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
       final story = seedStory(testServer.library, pageCount: 1);
       final queued = await startIllustrationJob(testServer, token, story.id);
-      await testServer.server.illustrationQueue.whenSettled(
-        queued['jobId']! as String,
-      );
+      await testServer.server.awaitIllustrationJob(queued['jobId']! as String);
       final illustrationId =
           testServer.library.database
                   .select('SELECT id FROM illustrations')

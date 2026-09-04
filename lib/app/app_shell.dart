@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:miko_hero/app/app_routes.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Responsive navigation frame retained around every application route.
@@ -23,7 +25,7 @@ class AppShell extends StatelessWidget {
     final selectedIndex = _selectedIndex(location);
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= desktopBreakpoint) {
+        if (isDesktopWidth(constraints.maxWidth)) {
           return _DesktopShell(
             destinations: destinations,
             selectedIndex: selectedIndex,
@@ -43,28 +45,24 @@ class AppShell extends StatelessWidget {
   /// Builds the five localized destinations in their stable route order.
   List<_NavigationDestination> _destinations(AppLocalizations text) {
     return <_NavigationDestination>[
+      _NavigationDestination(icon: AppIcons.home, label: text.home, route: '/'),
       _NavigationDestination(
-        icon: Icons.home_rounded,
-        label: text.home,
-        route: '/',
-      ),
-      _NavigationDestination(
-        icon: Icons.auto_awesome_rounded,
+        icon: AppIcons.sparkle,
         label: text.create,
         route: '/create',
       ),
       _NavigationDestination(
-        icon: Icons.menu_book_rounded,
+        icon: AppIcons.shelf,
         label: text.library,
         route: '/library',
       ),
       _NavigationDestination(
-        icon: Icons.castle_rounded,
+        icon: AppIcons.kingdom,
         label: text.myKingdom,
         route: '/kingdom',
       ),
       _NavigationDestination(
-        icon: Icons.settings_rounded,
+        icon: AppIcons.settings,
         label: text.settings,
         route: '/settings',
       ),
@@ -114,20 +112,17 @@ class _MobileShell extends StatelessWidget {
   final int selectedIndex;
   final Widget child;
 
-  /// Routes whose page paints its own header, so the shell adds none.
+  /// Whether the page below paints its own header, so the shell adds none.
   ///
-  /// Home, the shelf, the creation form and the reader each open with their
-  /// own title row in the redesign; a shell bar above it would be a second
-  /// header on a phone. Every other route keeps the bar and its menu button.
-  static const _selfHeadedRoutes = <String>['/create', '/library', '/story/'];
-
-  bool get _paintsOwnHeader {
-    if (location == '/') return true;
-    return _selfHeadedRoutes.any(location.startsWith);
-  }
+  /// The answer is the route's own declaration, read back from [appRoutes];
+  /// the shell keeps no list of paths of its own. Home, the shelf, the creation
+  /// form, the reader and every Settings page each open with their own title
+  /// row in the redesign, and a shell bar above one of those would be a second
+  /// header on a phone.
+  bool get _paintsOwnHeader => appRouteFor(location)?.paintsOwnHeader ?? false;
 
   @override
-  /// Keeps the menu button visible inside profile editors and settings.
+  /// Keeps the menu button visible inside profile editors and the review queue.
   ///
   /// The app bar carries no exit of its own: the reader prints its own close
   /// beside the hero, so a second one here would be the same command twice.
@@ -354,7 +349,7 @@ class _Brand extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.auto_stories_rounded, color: Colors.black),
+            child: const Icon(AppIcons.stories, color: Colors.black),
           ),
           const SizedBox(width: 12),
           const Expanded(

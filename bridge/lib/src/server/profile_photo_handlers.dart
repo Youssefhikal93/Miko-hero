@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:iam_hero_bridge/src/common/image_bytes.dart';
+import 'package:iam_hero_bridge/src/generation/hero_sheet_service.dart';
 import 'package:iam_hero_bridge/src/library/profile_photo_store.dart';
 import 'package:iam_hero_bridge/src/server/api_errors.dart';
 import 'package:iam_hero_bridge/src/server/auth_middleware.dart';
@@ -16,9 +17,14 @@ import 'package:shelf/shelf.dart';
 /// error message.
 class ProfilePhotoHandlers {
   /// Creates handlers over [store].
-  const ProfilePhotoHandlers({required this._store});
+  ///
+  /// [heroSheets], when wired, is nudged after a successful upload so the
+  /// child's drawn character sheet is derived from the new photo while nobody
+  /// is waiting for a story.
+  const ProfilePhotoHandlers({required this._store, this._heroSheets});
 
   final ProfilePhotoStore _store;
+  final HeroSheetService? _heroSheets;
 
   /// Handles `PUT /profiles/<profileId>/photo`.
   ///
@@ -49,6 +55,11 @@ class ProfilePhotoHandlers {
     } on UnknownProfileException {
       throw _unknownProfile();
     }
+    // A new photo means a new drawn face, so the character sheet has to be
+    // read again. Started rather than awaited: describing a photo takes longer
+    // than a request is allowed to, and nothing here depends on the answer —
+    // if it does not finish, the next story derives it instead.
+    _heroSheets?.refreshInBackground(profileId, photoBytes: bytes);
     return jsonResponse(200, stored.toJson());
   }
 

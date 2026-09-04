@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
+import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
-import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
 import 'package:iam_hero_bridge/src/illustration/illustration_errors.dart';
@@ -14,25 +14,24 @@ import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/library/profile_photo_store.dart';
 import 'package:uuid/uuid.dart';
 
-/// How many finished illustration jobs stay readable before the oldest go.
-const int maxRetainedFinishedIllustrationJobs = 100;
-
 /// Runs illustration jobs strictly one at a time, and never while a story is
 /// being written.
 ///
-/// The queue is the story queue's twin — FIFO, one worker, in-memory jobs,
-/// content-free logs, a retained-job cap — with two differences that come
-/// from what it renders. It holds a [GpuGate] lease for each individual
-/// page rather than for a whole job, so a story that was queued behind a
-/// ten-page book waits for one page instead of ten; and a page that fails
-/// does not fail the book, it just marks its own row `failed` and lets the
-/// remaining pages carry on.
+/// It stands in the same line as the story queue — [JobQueue] gives both of
+/// them FIFO admission, positions, cancellation and a single worker — and
+/// differs in the two ways that come from what it renders. It takes a turn at
+/// the [GpuGate] for each individual page rather than for a whole job, so a
+/// story that was queued behind a ten-page book waits for one page instead of
+/// ten; and a page that fails does not fail the book, it just marks its own
+/// row `failed` and lets the remaining pages carry on. What has to be freed
+/// between turns is the gate's decision, not this queue's.
 ///
 /// A job with a reference photo runs one extra render before its first page:
 /// the photo is redrawn as a storybook portrait, and that portrait — never the
-/// photo — is what the pages use as their face reference. It takes a lease of
+/// photo — is what the pages use as their face reference. It takes a turn of
 /// its own, on the same terms as a page.
-class IllustrationQueue {
+class IllustrationQueue
+    extends JobQueue<IllustrationJob, IllustrationRenderPlan> {
   /// Creates a queue.
   ///
   /// [client] is the ComfyUI seam replaced by tests, [gate] is the shared
@@ -45,7 +44,7 @@ class IllustrationQueue {
     GpuGate? gate,
     Uuid uuid = const Uuid(),
     DateTime Function()? clock,
-    GenerationLogSink? log,
+    JobLogSink? log,
     Duration? pollInterval,
   }) {
     // The queue and its renderer read and write the same rows, so they share
@@ -64,8 +63,8 @@ class IllustrationQueue {
       ),
       gate: gate ?? GpuGate(),
       uuid: uuid,
-      clock: clock ?? DateTime.now,
-      log: log ?? _ignoreLog,
+      clock: clock,
+      log: log,
     );
   }
 
@@ -74,27 +73,24 @@ class IllustrationQueue {
     required this._renderer,
     required this._gate,
     required this._uuid,
-    required this._clock,
-    required this._log,
-  });
+    super.clock,
+    super.log,
+  }) : super(
+         jobLabel: 'illustration job',
+         unknownJobMessage: 'Unknown illustration job.',
+       );
 
   final IllustrationRepository _repository;
   final IllustrationRenderer _renderer;
   final GpuGate _gate;
   final Uuid _uuid;
-  final DateTime Function() _clock;
-  final GenerationLogSink _log;
 
-  final Map<String, IllustrationJob> _jobs = <String, IllustrationJob>{};
-  final Map<String, _RenderPlan> _plans = <String, _RenderPlan>{};
-  final List<String> _pending = <String>[];
-  final Map<String, CancellationToken> _tokens = <String, CancellationToken>{};
-  final Map<String, Completer<IllustrationJob>> _settled =
-      <String, Completer<IllustrationJob>>{};
-  final List<String> _finishedOrder = <String>[];
-
-  String? _activeJobId;
-  bool _pumping = false;
+  /// This queue's identity at the gate.
+  ///
+  /// One constant for every instance: there is one ComfyUI process, and the
+  /// gate compares tenants by identity to tell a handover from another turn
+  /// of the same tenant.
+  static const GpuTenant _tenant = _ComfyUiTenant();
 
   /// Queues every page of [storyId] that still needs an image.
   ///
@@ -113,7 +109,7 @@ class IllustrationQueue {
     if (targets == null) {
       return null;
     }
-    final now = _clock().toUtc();
+    final now = nowUtc();
     final job = IllustrationJob(
       id: _uuid.v4(),
       deviceId: deviceId,
@@ -126,121 +122,38 @@ class IllustrationQueue {
           ? 'Every page already has a picture.'
           : 'Waiting for the local renderer.',
     );
-    _jobs[job.id] = job;
-    _plans[job.id] = _RenderPlan(
-      targets: targets,
-      style: style,
-      gender: gender,
+    return admit(
+      job,
+      IllustrationRenderPlan(targets: targets, style: style, gender: gender),
+      logFields: <String>['pages=${job.pageCount}'],
     );
-    _pending.add(job.id);
-    _tokens[job.id] = CancellationToken();
-    _settled[job.id] = Completer<IllustrationJob>();
-    _log(
-      'illustration job ${job.id} queued pages=${job.pageCount} '
-      'position=${queuePosition(job.id)}',
-    );
-    scheduleMicrotask(() => unawaited(_pump()));
-    return job;
   }
 
-  /// Returns the current snapshot of [jobId], or `null` when unknown.
-  IllustrationJob? job(String jobId) => _jobs[jobId];
-
-  /// Position of [jobId] in line, counting the running job as position 1.
-  ///
-  /// Returns `null` for jobs that are not waiting any more.
-  int? queuePosition(String jobId) {
-    final index = _pending.indexOf(jobId);
-    if (index < 0) {
-      return null;
-    }
-    return index + 1 + (_activeJobId == null ? 0 : 1);
-  }
-
-  /// Cancels [jobId] and returns its final snapshot. Idempotent.
-  ///
-  /// A queued job leaves the line at once. The running job stops after the
-  /// page it is currently rendering: interrupting mid-image would waste the
-  /// minute already spent on it and leave ComfyUI holding the card.
-  IllustrationJob cancel(String jobId) {
-    final current = _jobs[jobId];
-    if (current == null) {
-      throw StateError('Unknown illustration job.');
-    }
-    if (current.status.isTerminal) {
-      return current;
-    }
-    _pending.remove(jobId);
-    final cancelled = current.copyWith(
+  @override
+  IllustrationJob markCancelled(IllustrationJob current) {
+    // The running job stops after the page it is currently rendering:
+    // interrupting mid-image would waste the minute already spent on it and
+    // leave ComfyUI holding the card.
+    return current.copyWith(
       status: IllustrationJobStatus.cancelled,
-      updatedAtUtc: _clock().toUtc(),
+      updatedAtUtc: nowUtc(),
       progress: 'Cancelled.',
     );
-    _jobs[jobId] = cancelled;
-    _tokens[jobId]?.cancel();
-    _log('illustration job $jobId cancelled');
-    if (_activeJobId != jobId) {
-      // Nothing is running it, so no worker will ever settle it.
-      _settle(cancelled);
-    }
-    return cancelled;
   }
 
-  /// Completes once [jobId] has reached a terminal state and its worker has
-  /// stopped touching the library.
-  Future<IllustrationJob> whenSettled(String jobId) {
-    final completer = _settled[jobId];
-    if (completer != null) {
-      return completer.future;
-    }
-    final finished = _jobs[jobId];
-    if (finished != null && finished.status.isTerminal) {
-      return Future<IllustrationJob>.value(finished);
-    }
-    return Future<IllustrationJob>.error(
-      StateError('Unknown illustration job.'),
-      StackTrace.current,
-    );
-  }
-
-  /// Cancels every unfinished job; used when the bridge shuts down.
-  void shutdown() {
-    for (final id in <String>[..._pending, ?_activeJobId]) {
-      final current = _jobs[id];
-      if (current != null && !current.status.isTerminal) {
-        cancel(id);
-      }
-    }
-  }
-
-  Future<void> _pump() async {
-    if (_pumping) {
-      return;
-    }
-    _pumping = true;
-    try {
-      while (_pending.isNotEmpty) {
-        final id = _pending.removeAt(0);
-        final job = _jobs[id];
-        if (job == null || job.status.isTerminal) {
-          continue;
-        }
-        _activeJobId = id;
-        try {
-          await _runJob(id);
-        } finally {
-          _activeJobId = null;
-        }
-      }
-    } finally {
-      _pumping = false;
-    }
-  }
-
-  Future<void> _runJob(String jobId) async {
-    final start = _clock().toUtc();
-    final token = _tokens[jobId] ?? CancellationToken();
-    final plan = _plans.remove(jobId)!;
+  /// Renders the book one page at a time, one GPU lease per page.
+  ///
+  /// Nothing here fails the whole job except a renderer that is unusable
+  /// before any page was attempted, or a book where every single page failed:
+  /// a page that fails marks its own row and the rest carry on.
+  @override
+  Future<void> runJob(
+    IllustrationJob job,
+    IllustrationRenderPlan plan,
+    CancellationToken token,
+  ) async {
+    final jobId = job.id;
+    final start = nowUtc();
     final pages = plan.targets.pending;
 
     if (token.isCancelled) {
@@ -283,18 +196,18 @@ class IllustrationQueue {
       return;
     }
 
-    final String? photoImageName = await _renderer.uploadReferencePhoto(
+    final ReferencePhotoUpload? photo = await _renderer.uploadReferencePhoto(
       plan.targets.profileId,
     );
     String? referenceImageName;
-    if (photoImageName != null) {
+    if (photo != null) {
       if (token.isCancelled) {
         _settleCancelled(jobId, start);
         return;
       }
       // Stage one, once per job: redraw the photo as a storybook portrait so
       // the face adapter reads a drawing rather than a photograph. It is a
-      // full render on the same card, so it takes the same one-GPU lease a
+      // full render on the same card, so it takes the same turn at the gate a
       // page takes — a story must never be generated alongside it.
       _transition(
         jobId,
@@ -303,21 +216,20 @@ class IllustrationQueue {
         // and reporting "waiting for the renderer" through it would be a lie.
         progress: 'Drawing the hero.',
       );
-      final GpuLease lease = await _gate.acquire();
-      try {
-        referenceImageName = await _renderer.renderStylizedReference(
+      referenceImageName = await _gate.run(_tenant, () {
+        return _renderer.renderStylizedReference(
           storyId: plan.targets.storyId,
-          photoImageName: photoImageName,
+          profileId: plan.targets.profileId,
+          photo: photo,
           style: plan.style,
           gender: plan.gender,
         );
-      } finally {
-        lease.release();
-      }
+      });
     }
-    _log(
-      'illustration job $jobId rendering pages=${pages.length} '
-      'photo=${photoImageName == null ? 'no' : 'yes'} '
+    logJob(
+      jobId,
+      'rendering pages=${pages.length} '
+      'photo=${photo == null ? 'no' : 'yes'} '
       'reference=${referenceImageName == null ? 'no' : 'stylized'}',
     );
 
@@ -336,37 +248,37 @@ class IllustrationQueue {
         completedPageCount: completed,
         failedPageCount: failed,
       );
-      // One lease per page: the story queue may slip in between pages, but
+      // One turn per page: the story queue may slip in between pages, but
       // never alongside one.
-      final GpuLease lease = await _gate.acquire();
-      try {
-        await _renderer.renderPage(
-          target: target,
-          storyId: plan.targets.storyId,
-          style: plan.style,
-          gender: plan.gender,
-          referenceImageName: referenceImageName,
-        );
-        completed++;
-        _log('illustration job $jobId page=${target.pageIndex} rendered');
-      } on IllustrationException catch (error) {
-        failed++;
-        _markFailed(jobId, plan.targets.storyId, target.illustrationId);
-        _log(
-          'illustration job $jobId page=${target.pageIndex} '
-          'error=${error.code.wireCode}',
-        );
-      } catch (_) {
-        failed++;
-        _markFailed(jobId, plan.targets.storyId, target.illustrationId);
-        // Details are dropped on purpose: they can quote scene text.
-        _log(
-          'illustration job $jobId page=${target.pageIndex} '
-          'error=${IllustrationFailureCode.internalError.wireCode}',
-        );
-      } finally {
-        lease.release();
-      }
+      await _gate.run(_tenant, () async {
+        try {
+          await _renderer.renderPage(
+            target: target,
+            storyId: plan.targets.storyId,
+            style: plan.style,
+            gender: plan.gender,
+            referenceImageName: referenceImageName,
+          );
+          completed++;
+          logJob(jobId, 'page=${target.pageIndex} rendered');
+        } on IllustrationException catch (error) {
+          failed++;
+          _markFailed(jobId, plan.targets.storyId, target.illustrationId);
+          logJob(
+            jobId,
+            'page=${target.pageIndex} error=${error.code.wireCode}',
+          );
+        } catch (_) {
+          failed++;
+          _markFailed(jobId, plan.targets.storyId, target.illustrationId);
+          // Details are dropped on purpose: they can quote scene text.
+          logJob(
+            jobId,
+            'page=${target.pageIndex} '
+            'error=${IllustrationFailureCode.internalError.wireCode}',
+          );
+        }
+      });
     }
 
     if (token.isCancelled) {
@@ -403,12 +315,12 @@ class IllustrationQueue {
         illustrationId: illustrationId,
         storyId: storyId,
         status: failedIllustrationStatus,
-        nowUtc: _clock().toUtc(),
+        nowUtc: nowUtc(),
       );
     } on Exception catch (_) {
       // The page already failed; a bookkeeping failure on top of it must not
       // take the remaining pages down with it.
-      _log('illustration job $jobId status write failed');
+      logJob(jobId, 'status write failed');
     }
   }
 
@@ -419,16 +331,15 @@ class IllustrationQueue {
     int? completedPageCount,
     int? failedPageCount,
   }) {
-    final current = _jobs[jobId];
-    if (current == null || current.status.isTerminal) {
-      return;
-    }
-    _jobs[jobId] = current.copyWith(
-      status: status,
-      progress: progress,
-      updatedAtUtc: _clock().toUtc(),
-      completedPageCount: completedPageCount,
-      failedPageCount: failedPageCount,
+    updateJob(
+      jobId,
+      (current) => current.copyWith(
+        status: status,
+        progress: progress,
+        updatedAtUtc: nowUtc(),
+        completedPageCount: completedPageCount,
+        failedPageCount: failedPageCount,
+      ),
     );
   }
 
@@ -439,26 +350,27 @@ class IllustrationQueue {
     int completed = 0,
     int failed = 0,
   }) {
-    final current = _jobs[jobId]!;
-    if (current.status.isTerminal) {
+    final current = requireJob(jobId);
+    if (current.isTerminal) {
       // Cancelled while this worker was between awaits. Cancellation is the
       // decision the parent made; it must not be overwritten by an outcome.
       _settleCancelled(jobId, start, completed: completed, failed: failed);
       return;
     }
-    final finished = current.copyWith(
-      status: IllustrationJobStatus.completed,
-      progress: progress,
-      updatedAtUtc: _clock().toUtc(),
-      completedPageCount: completed,
-      failedPageCount: failed,
+    storeJob(
+      current.copyWith(
+        status: IllustrationJobStatus.completed,
+        progress: progress,
+        updatedAtUtc: nowUtc(),
+        completedPageCount: completed,
+        failedPageCount: failed,
+      ),
     );
-    _jobs[jobId] = finished;
-    _log(
-      'illustration job $jobId completed pages=$completed failed=$failed '
-      'in ${_elapsedMs(start)} ms',
+    logJob(
+      jobId,
+      'completed pages=$completed failed=$failed in ${elapsedMs(start)} ms',
     );
-    _settle(finished);
+    settleIfTerminal(jobId);
   }
 
   void _fail(
@@ -468,78 +380,91 @@ class IllustrationQueue {
     int completed = 0,
     int failed = 0,
   }) {
-    final current = _jobs[jobId]!;
-    if (current.status.isTerminal) {
+    final current = requireJob(jobId);
+    if (current.isTerminal) {
       _settleCancelled(jobId, start, completed: completed, failed: failed);
       return;
     }
-    final finished = current.copyWith(
-      status: IllustrationJobStatus.failed,
-      progress: 'Illustration failed.',
-      updatedAtUtc: _clock().toUtc(),
-      completedPageCount: completed,
-      failedPageCount: failed,
-      failure: failure,
+    storeJob(
+      current.copyWith(
+        status: IllustrationJobStatus.failed,
+        progress: 'Illustration failed.',
+        updatedAtUtc: nowUtc(),
+        completedPageCount: completed,
+        failedPageCount: failed,
+        failure: failure,
+      ),
     );
-    _jobs[jobId] = finished;
-    _log(
-      'illustration job $jobId failed code=${failure.code.wireCode} '
-      'after ${_elapsedMs(start)} ms',
+    logJob(
+      jobId,
+      'failed code=${failure.code.wireCode} after ${elapsedMs(start)} ms',
     );
-    _settle(finished);
+    settleIfTerminal(jobId);
   }
 
+  /// Records how far a cancelled job got and settles it.
+  ///
+  /// The snapshot is already `cancelled` — [JobQueue.cancel] wrote it — but
+  /// the counts are the worker's, and they are what tell the parent how many
+  /// pages of the book were drawn before it stopped.
   void _settleCancelled(
     String jobId,
     DateTime start, {
     int completed = 0,
     int failed = 0,
   }) {
-    final current = _jobs[jobId]!.copyWith(
-      completedPageCount: completed,
-      failedPageCount: failed,
+    storeJob(
+      requireJob(
+        jobId,
+      ).copyWith(completedPageCount: completed, failedPageCount: failed),
     );
-    _jobs[jobId] = current;
-    _log(
-      'illustration job $jobId stopped pages=$completed '
-      'after ${_elapsedMs(start)} ms',
-    );
-    _settle(current);
-  }
-
-  void _settle(IllustrationJob job) {
-    _tokens.remove(job.id);
-    _plans.remove(job.id);
-    final completer = _settled.remove(job.id);
-    if (completer != null && !completer.isCompleted) {
-      completer.complete(job);
-    }
-    _finishedOrder.add(job.id);
-    while (_finishedOrder.length > maxRetainedFinishedIllustrationJobs) {
-      _jobs.remove(_finishedOrder.removeAt(0));
-    }
-  }
-
-  int _elapsedMs(DateTime start) =>
-      _clock().toUtc().difference(start).inMilliseconds;
-
-  static void _ignoreLog(String message) {
-    // Logging is opt-in; the bridge stays silent unless a sink is wired.
+    logJob(jobId, 'stopped pages=$completed after ${elapsedMs(start)} ms');
+    settleIfTerminal(jobId);
   }
 }
 
-/// Everything one queued job needs, kept out of the public snapshot.
+/// The renderer's claim on the GPU, as the gate sees it.
 ///
-/// The scene descriptions in here are story content and must never be
-/// serialized into a job status response.
-class _RenderPlan {
-  const _RenderPlan({
+/// Eviction does nothing, deliberately. ComfyUI keeps its checkpoint resident
+/// between renders, and the bridge has no way to ask it to let go that can be
+/// verified on this machine — so the card behaves exactly as it did before the
+/// gate learned to evict, and nothing has been quietly changed on a guess.
+///
+/// This is the one place that changes when the bridge does learn to free it:
+/// a free call belongs in [evict], not in the queue's page loop, so that the
+/// gate keeps deciding *when* — after the last page, never between two of
+/// them.
+class _ComfyUiTenant implements GpuTenant {
+  const _ComfyUiTenant();
+
+  @override
+  String get name => 'comfyui';
+
+  @override
+  Future<void> evict() async {
+    // Nothing to free yet; see the class doc for why that is on purpose.
+  }
+}
+
+/// Everything one queued illustration job needs, kept out of its snapshot.
+///
+/// The queue holds this beside the job and hands it to the worker; the scene
+/// descriptions in here are story content and must never be serialized into
+/// a job status response.
+class IllustrationRenderPlan {
+  /// Creates a plan for one job.
+  const IllustrationRenderPlan({
     required this.targets,
     required this.style,
     required this.gender,
   });
 
+  /// The story and the pages of it that still need an image.
   final StoryIllustrationTargets targets;
+
+  /// Look the whole book is drawn in.
   final StoryIllustrationStyle style;
+
+  /// How the hero is described, when the parent said.
   final StoryGenderContext? gender;
 }

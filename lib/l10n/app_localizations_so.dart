@@ -1420,6 +1420,51 @@ class AppLocalizationsSo extends AppLocalizations {
   String get pairedDeviceForgotten => 'Xiriirinta waa laga saaray qalabkan';
 
   @override
+  String get pairedDevicesTitle => 'Qalabka lagu xiray PC-ga';
+
+  @override
+  String get pairedDevicesBody =>
+      'Wax kasta oo halkan ku qoran wuu gaari karaa PC-ga. Haddii aad mid ka saarto waa inuu mar kale xirmo.';
+
+  @override
+  String get pairedDevicesEmpty => 'PC-gu ma liisgareeyo qalab xiran.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · qalabkan';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'Waa la xiray $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'Markii ugu dambeysay $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'Lama isticmaalin tan iyo xiriirintii';
+
+  @override
+  String get removePairedDevice => 'Ka saar';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'Ma ka saaraysaa $name?';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'Qalabkaasi isla markiiba wuu waayayaa gelitaanka PC-ga. Wuxuu mar kale ku xiran karaa lambar cusub.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return '$name mar dambe ma gaari karo PC-ga';
+  }
+
+  @override
   String get openAiConnectionSettings => 'Fur goobaha xiriirka AI-ga';
 
   @override
@@ -1446,6 +1491,10 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get bridgeUnreachable =>
       'PC-gu ma jawaabin. Hubi in buundadu shaqaynayso iyo in cinwaanku sax yahay.';
+
+  @override
+  String get bridgeBlockedByBrowser =>
+      'Browser-ku uma oggolaan boggan inuu la xiriiro PC-ga. PC-ga laftiisa, ama qalab Tailscale ku shaqeeyo, fur dejinta bogga ee browser-ka, u deji \"Local network access\" Oggolow, kadibna dib u kici bogga. Haddii ay weli fashilanto, hubi in buundadu shaqaynayso iyo in cinwaanku sax yahay.';
 
   @override
   String get bridgeTimedOut =>
@@ -1477,6 +1526,13 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get bridgeInvalidRequest => 'PC-gu wuu diiday codsigan sheeko.';
+
+  @override
+  String get bridgeDeviceNotFound => 'PC-gu mar dambe ma yaqaano qalabkaas.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'Isticmaal “Iloow qalabkan” si aad xiriirinta uga jarto qalabkan.';
 
   @override
   String get bridgeJobNotFound => 'PC-gu hadda ma garanayo codsigan sheeko.';
@@ -1676,4 +1732,199 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get bridgeIllustrationNotReady => 'Sawirkaas weli lama samayn.';
+
+  @override
+  String get heroSheetTitle => 'Sida geesiga loo sawiro';
+
+  @override
+  String get heroSheetIntro =>
+      'PC-gu hal mar buu akhriyaa sawirka ilmahan, sheeko kastana wuxuu ku sawiraa geesi isku mid ah. Adigaa go\'aaminaya waxa uu geesigu had iyo jeer xidho iyo waxa uu wato.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'Sawirka laga akhriyay';
+
+  @override
+  String get heroSheetHair => 'Timaha';
+
+  @override
+  String get heroSheetSkinTone => 'Midabka maqaarka';
+
+  @override
+  String get heroSheetEyeColor => 'Indhaha';
+
+  @override
+  String get heroSheetNotReadYet => 'PC-gu weli ma akhrin sawirkan.';
+
+  @override
+  String get heroSheetOutfit => 'Had iyo jeer wuxuu xidhaa';
+
+  @override
+  String get heroSheetProp => 'Had iyo jeer wuxuu wataa';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'Weedh gaaban oo Ingiriisi ah, maxaa yeelay moodalka sawiridda wuxuu akhriyaa Ingiriisi.';
+
+  @override
+  String get heroSheetReadAgain => 'Mar kale ka akhri sawirka';
+
+  @override
+  String get heroSheetRereadDone => 'PC-gu mar kale ayuu akhriyay sawirka.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'PC-gu waa mashquul. Wuxuu dhawaan mar kale akhrinayaa sawirka.';
+
+  @override
+  String get heroSheetRereadFailed => 'PC-gu ma akhrin karin sawirka mar kale.';
+
+  @override
+  String get heroSheetSaveFailed =>
+      'Waxa geesigu xidho lagu kaydin waayay PC-ga.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'PC-gu ma jawaabin, sidaas darteed muuqaalka geesiga lama tusayo.';
+
+  @override
+  String get settingsSubtitle =>
+      'Wax kasta oo waalidku uu ka go\'aamiyo qalabkan.';
+
+  @override
+  String get settingsFamilyTitle => 'Qoyska';
+
+  @override
+  String get settingsFamilyBody =>
+      'Halyeeyada qalabkan iyo luqadda uu appku ku hadlo.';
+
+  @override
+  String get settingsReadingTitle => 'Akhriska';
+
+  @override
+  String get settingsReadingBody =>
+      'Sida boggagga sheekada u muuqdaan iyo sida kor loogu akhriyo.';
+
+  @override
+  String get settingsPcTitle => 'PC-ga';
+
+  @override
+  String get settingsPcBody =>
+      'Meesha sheekooyinka lagu qoro, qalabka PC-gu aamino, iyo maktabadda offline-ka.';
+
+  @override
+  String get settingsSafetyTitle => 'Badbaadada';
+
+  @override
+  String get settingsSafetyBody =>
+      'PIN-ka waalidka iyo mawduucyada sheekooyinku ka fogaadaan.';
+
+  @override
+  String get settingsSafetyTopicsBody =>
+      'Ilmo kasta waxaa loogu doortaa Boqortooyadayda.';
+
+  @override
+  String get settingsDataTitle => 'Xogtaada';
+
+  @override
+  String get settingsDataBody =>
+      'Kaydka, waxa qalabkan ku haray, iyo tirtiridda dhammaan.';
+
+  @override
+  String get settingsAboutSummary =>
+      'Waxa uu appkani yahay iyo waxa sheekooyinka qora';
+
+  @override
+  String get settingsNoHeroes =>
+      'Weli ma jiraan bogag halyeey oo qalabkan ku jira';
+
+  @override
+  String settingsReadingTextSizeValue(String size) {
+    return 'Cabbirka qoraalka: $size';
+  }
+
+  @override
+  String get settingsReadingMixed => 'Isku dhafan';
+
+  @override
+  String get settingsReadingEasyOn => 'farta akhriska fudud waa shidan';
+
+  @override
+  String get settingsReadingEasyOff => 'farta akhriska fudud waa damisan';
+
+  @override
+  String get settingsReadingEasySome =>
+      'farta akhriska fudud oo qaar halyeey ah';
+
+  @override
+  String get settingsPcDemo => 'Sheekooyin tijaabo ah';
+
+  @override
+  String get settingsPcNotPaired => 'PC-ga · weli lama xidhin';
+
+  @override
+  String get settingsPcPaired => 'Lagu xiray PC-ga';
+
+  @override
+  String get settingsPcNeverSynced => 'weli lama isku habayn';
+
+  @override
+  String settingsPcSyncedAt(String moment) {
+    return 'la isku habeeyay $moment';
+  }
+
+  @override
+  String get settingsSafetyPinOn => 'PIN-ka waalidka waa shidan';
+
+  @override
+  String get settingsSafetyPinOff => 'PIN waalid ma jiro';
+
+  @override
+  String settingsDataSummary(int count) {
+    return 'Sheekooyinka qalabkan ku jira: $count';
+  }
+
+  @override
+  String get settingsNarrationTitle => 'Kor u akhrinta';
+
+  @override
+  String get settingsNarrationBody =>
+      'Xawaaraha akhriska, inta la akhriyo, iyo saacadda hurdada waxaa lagu doortaa akhristaha mar kasta oo sheeko kor loo akhriyo. Midna qalabkan lagama kaydiyo.';
+
+  @override
+  String get settingsDangerZone => 'Lama celin karo';
+
+  @override
+  String get nameSpellingsTitle => 'Magaca luqad kasta';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'Sida magaca $name loo qoro luqad kasta oo sheeko. Mid ka tag madhan si loo isticmaalo magaca sidii aad u qortay.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'Isla magaca, xarfaha luqaddaas';
+
+  @override
+  String get suggestNameSpellings => 'Weydii PC-ga';
+
+  @override
+  String get nameSpellingsSuggesting =>
+      'Waxaa la weydiinayaa PC-ga sida magaca loo qoro…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'PC-gu wuu buuxiyay. Hubi ka hor inta aanad kaydin.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'PC-gu ma soo jeedin karin qorista. Adigu waad qori kartaa.';
+
+  @override
+  String get nameSpellingsNeedName => 'Marka hore qor magaca.';
+
+  @override
+  String get nameSpellingsNeedPc => 'Ku xir PC-ga qoyska si laguu buuxiyo.';
+
+  @override
+  String get nameSpellingTooLong => 'Taasi waa u dheer tahay magac.';
 }

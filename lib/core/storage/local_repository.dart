@@ -11,6 +11,7 @@ import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/storage/bridge_credential_storage.dart';
+import 'package:miko_hero/core/storage/library_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Reports corrupt device state without silently overwriting family content.
@@ -27,7 +28,7 @@ class LocalDataFormatException implements Exception {
 }
 
 /// Persists private profiles, the interface locale, and story libraries locally.
-class LocalRepository {
+class LocalRepository implements LibraryStore {
   /// Wraps one opened preferences instance for atomic repository operations.
   LocalRepository._(this._preferences, this._bridgeCredentialStorage);
 
@@ -100,6 +101,7 @@ class LocalRepository {
   }
 
   /// Saves the selected interface locale before the UI commits the change.
+  @override
   Future<void> saveLocale(Locale locale) async {
     await _preferences.setString(_localeKey, locale.languageCode);
   }
@@ -114,6 +116,7 @@ class LocalRepository {
   }
 
   /// Persists the complete ordered profile list as one preference value.
+  @override
   Future<void> saveProfiles(List<ChildProfile> profiles) async {
     final encodedProfiles = profiles
         .map((profile) => profile.toJson())
@@ -123,6 +126,7 @@ class LocalRepository {
   }
 
   /// Persists the complete ordered library as one atomic preference value.
+  @override
   Future<void> saveStories(List<StoryBook> stories) async {
     final encodedStories = stories.map((story) => story.toJson()).toList();
     await _preferences.setString(_storiesKey, jsonEncode(encodedStories));
@@ -130,6 +134,7 @@ class LocalRepository {
   }
 
   /// Persists the profile currently controlling the application color palette.
+  @override
   Future<void> saveActiveProfileId(String profileId) async {
     await _preferences.setString(_activeProfileKey, profileId);
   }
@@ -168,6 +173,7 @@ class LocalRepository {
   /// All-or-nothing: a write that fails part way through is rolled back to the
   /// values captured before the restore started and then rethrown, so a
   /// half-restored device never fails startup validation.
+  @override
   Future<void> replaceState(AppState restoredState) async {
     final previousValues = _snapshotRestoredKeys();
     try {
@@ -326,6 +332,7 @@ class LocalRepository {
   /// The synchronization record goes with the stories it describes: a device
   /// whose library was deleted must be able to sync it back, which a stale
   /// not-wanted-offline list would silently prevent.
+  @override
   Future<void> clearAll() async {
     await Future.wait(<Future<bool>>[
       _preferences.remove(_legacyProfileKey),

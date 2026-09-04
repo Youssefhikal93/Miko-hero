@@ -27,6 +27,7 @@ class LocalAiStoryGenerator implements CancellableStoryGenerator {
   LocalAiStoryGenerator({
     required this.client,
     required this.resolveAgeYears,
+    required this.resolveNameSpelling,
     required this.currentTime,
     this.onProgress,
     this.pollInterval = defaultLocalAiPollInterval,
@@ -38,6 +39,15 @@ class LocalAiStoryGenerator implements CancellableStoryGenerator {
 
   /// Supplies the hero's age today, which the bridge requires per request.
   final int Function(StoryRequest request) resolveAgeYears;
+
+  /// Supplies how the family writes the hero's name in the story's language.
+  ///
+  /// Answers an empty string when this child has no confirmed spelling for it,
+  /// which is exactly what the bridge treats as "write the name as it came".
+  /// Resolved at send time rather than carried in the request, for the same
+  /// reason the age is: the profile is the family's current answer, and a
+  /// request queued yesterday should be written with today's spelling.
+  final String Function(StoryRequest request) resolveNameSpelling;
 
   /// Clock used for the local book's creation time.
   final DateTime Function() currentTime;
@@ -125,6 +135,7 @@ class LocalAiStoryGenerator implements CancellableStoryGenerator {
     return BridgeStoryRequest(
       profileId: request.profileId,
       heroName: request.heroName,
+      heroNameSpelling: resolveNameSpelling(request),
       ageYears: age.clamp(minimumChildAge, maximumChildAge),
       genderContext: request.gender.name,
       languageCode: request.presentation.language.code,

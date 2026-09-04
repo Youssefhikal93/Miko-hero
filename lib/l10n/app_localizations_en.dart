@@ -1407,6 +1407,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairedDeviceForgotten => 'Pairing removed from this device';
 
   @override
+  String get pairedDevicesTitle => 'Devices paired with the PC';
+
+  @override
+  String get pairedDevicesBody =>
+      'Everything listed here can reach the PC. Remove one and it has to pair again.';
+
+  @override
+  String get pairedDevicesEmpty => 'The PC lists no paired devices.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · this device';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'Paired $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'Last seen $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'Not used since pairing';
+
+  @override
+  String get removePairedDevice => 'Remove';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'That device loses access to the PC at once. It can pair again with a new code.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return '$name can no longer reach the PC';
+  }
+
+  @override
   String get openAiConnectionSettings => 'Open AI connection settings';
 
   @override
@@ -1433,6 +1478,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bridgeUnreachable =>
       'The PC did not answer. Check that the bridge is running and that the address is correct.';
+
+  @override
+  String get bridgeBlockedByBrowser =>
+      'The browser did not let this page contact the PC. On the PC itself, or on a device that runs Tailscale, open the browser\'s site settings for this page, set \"Local network access\" to Allow, and reload. If it still fails, check that the bridge is running and that the address is correct.';
 
   @override
   String get bridgeTimedOut => 'The PC took too long to answer.';
@@ -1462,6 +1511,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bridgeInvalidRequest => 'The PC refused this story request.';
+
+  @override
+  String get bridgeDeviceNotFound => 'The PC no longer lists that device.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'Use “Forget this device” to unpair this device.';
 
   @override
   String get bridgeJobNotFound => 'The PC no longer knows this story request.';
@@ -1659,4 +1715,195 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bridgeIllustrationNotReady =>
       'That picture has not been made yet.';
+
+  @override
+  String get heroSheetTitle => 'How the hero is drawn';
+
+  @override
+  String get heroSheetIntro =>
+      'The PC reads this child\'s photo once and draws the same hero in every story. You decide what that hero always wears and carries.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'Read from the photo';
+
+  @override
+  String get heroSheetHair => 'Hair';
+
+  @override
+  String get heroSheetSkinTone => 'Skin';
+
+  @override
+  String get heroSheetEyeColor => 'Eyes';
+
+  @override
+  String get heroSheetNotReadYet => 'The PC has not read this photo yet.';
+
+  @override
+  String get heroSheetOutfit => 'Always wears';
+
+  @override
+  String get heroSheetProp => 'Always carries';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'A short phrase in English, because the drawing model reads English.';
+
+  @override
+  String get heroSheetReadAgain => 'Read again from the photo';
+
+  @override
+  String get heroSheetRereadDone => 'The PC read the photo again.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'The PC is busy. It will read the photo again shortly.';
+
+  @override
+  String get heroSheetRereadFailed => 'The PC could not read the photo again.';
+
+  @override
+  String get heroSheetSaveFailed =>
+      'What the hero wears could not be saved on the PC.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'The PC did not answer, so the hero\'s look is not shown.';
+
+  @override
+  String get settingsSubtitle => 'Everything a parent decides for this device.';
+
+  @override
+  String get settingsFamilyTitle => 'Family';
+
+  @override
+  String get settingsFamilyBody =>
+      'The heroes on this device, and the language the app speaks.';
+
+  @override
+  String get settingsReadingTitle => 'Reading';
+
+  @override
+  String get settingsReadingBody =>
+      'How story pages look, and how they are read aloud.';
+
+  @override
+  String get settingsPcTitle => 'The PC';
+
+  @override
+  String get settingsPcBody =>
+      'Where stories are written, which devices the PC trusts, and the offline library.';
+
+  @override
+  String get settingsSafetyTitle => 'Safety';
+
+  @override
+  String get settingsSafetyBody =>
+      'The parent PIN and the topics stories stay away from.';
+
+  @override
+  String get settingsSafetyTopicsBody => 'Chosen for each child in My Kingdom.';
+
+  @override
+  String get settingsDataTitle => 'Your data';
+
+  @override
+  String get settingsDataBody =>
+      'Backups, what stays on this device, and deleting all of it.';
+
+  @override
+  String get settingsAboutSummary =>
+      'What this app is and what writes its stories';
+
+  @override
+  String get settingsNoHeroes => 'No hero profiles on this device yet';
+
+  @override
+  String settingsReadingTextSizeValue(String size) {
+    return 'Text size: $size';
+  }
+
+  @override
+  String get settingsReadingMixed => 'Mixed';
+
+  @override
+  String get settingsReadingEasyOn => 'easy-reading font on';
+
+  @override
+  String get settingsReadingEasyOff => 'easy-reading font off';
+
+  @override
+  String get settingsReadingEasySome => 'easy-reading font for some heroes';
+
+  @override
+  String get settingsPcDemo => 'Demo stories';
+
+  @override
+  String get settingsPcNotPaired => 'The PC · not paired yet';
+
+  @override
+  String get settingsPcPaired => 'Paired with the PC';
+
+  @override
+  String get settingsPcNeverSynced => 'not synced yet';
+
+  @override
+  String settingsPcSyncedAt(String moment) {
+    return 'synced $moment';
+  }
+
+  @override
+  String get settingsSafetyPinOn => 'Parent PIN on';
+
+  @override
+  String get settingsSafetyPinOff => 'No parent PIN';
+
+  @override
+  String settingsDataSummary(int count) {
+    return 'Stories on this device: $count';
+  }
+
+  @override
+  String get settingsNarrationTitle => 'Reading aloud';
+
+  @override
+  String get settingsNarrationBody =>
+      'Reading speed, how much is read, and the sleep timer are chosen in the reader each time a story is read aloud. None of it is stored on this device.';
+
+  @override
+  String get settingsDangerZone => 'Cannot be undone';
+
+  @override
+  String get nameSpellingsTitle => 'Name in each language';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'How $name\'s name is written in each story language. Leave one empty to use the name exactly as you typed it.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'Same name, that language\'s letters';
+
+  @override
+  String get suggestNameSpellings => 'Ask the PC';
+
+  @override
+  String get nameSpellingsSuggesting => 'Asking the PC how to write the name…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'The PC filled these in. Check them before you save.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'The PC could not suggest spellings. You can type them yourself.';
+
+  @override
+  String get nameSpellingsNeedName => 'Type the name first.';
+
+  @override
+  String get nameSpellingsNeedPc =>
+      'Connect the family PC to have these filled in for you.';
+
+  @override
+  String get nameSpellingTooLong => 'That is too long for a name.';
 }

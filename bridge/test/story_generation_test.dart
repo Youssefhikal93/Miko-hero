@@ -161,9 +161,7 @@ void main() {
           token,
           body: generateRequestBody(pageCount: pageCount),
         );
-        final settled = await testServer.server.generationQueue.whenSettled(
-          jobId,
-        );
+        final settled = await testServer.server.awaitStoryJob(jobId);
         expect(settled.status, GenerationJobStatus.completed);
         expect(client.unloadRequests, hasLength(1));
         expect(client.allRequests.last, isA<OllamaUnloadRequest>());
@@ -230,6 +228,8 @@ void main() {
         outline: outlinePayload(
           pageCount: 8,
           title: arabicTitle,
+          lessonMoment:
+              'يطلب والد يوسف أن يبقى قريبًا، لكن الفانوس البعيد يناديه.',
           summary: (pageNumber) => 'مشى يوسف خطوة أخرى ($pageNumber).',
         ),
         story: storyPayload(
@@ -257,9 +257,7 @@ void main() {
           illustrationStyle: 'watercolor',
         ),
       );
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
       expect(settled.status, GenerationJobStatus.completed);
 
       expect(client.outlineRequests, hasLength(1));
@@ -349,9 +347,7 @@ void main() {
         final token = await pairDevice(testServer, printedCodes);
 
         final jobId = await startJob(testServer, token);
-        final settled = await testServer.server.generationQueue.whenSettled(
-          jobId,
-        );
+        final settled = await testServer.server.awaitStoryJob(jobId);
 
         expect(settled.status, GenerationJobStatus.failed);
         expect(
@@ -380,6 +376,22 @@ void main() {
       pageCount: 6,
       includeHeroAppearance: false,
     ),
+    'an outline without a lesson moment': outlinePayload(
+      pageCount: 6,
+      includeLessonMoment: false,
+    ),
+    'an outline with a blank lesson moment': outlinePayload(
+      pageCount: 6,
+      lessonMoment: '   ',
+    ),
+    'an outline whose lesson moment is in the wrong language': outlinePayload(
+      pageCount: 6,
+      lessonMoment: 'يطلب والد نور أن تبقى قريبة، لكن الفانوس البعيد يناديها.',
+    ),
+    'an outline that turns on the last page': outlinePayload(
+      pageCount: 6,
+      turnPage: 6,
+    ),
     'an outline that is not JSON': 'Sure! Here is a plan for Nour.',
     'an outline in the wrong language': outlinePayload(
       pageCount: 6,
@@ -402,9 +414,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
 
       final jobId = await startJob(testServer, token);
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
 
       expect(settled.status, GenerationJobStatus.failed);
       expect(
@@ -446,9 +456,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
 
       final jobId = await startJob(testServer, token);
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
 
       expect(settled.status, GenerationJobStatus.completed);
       expect(client.outlineRequests, hasLength(1));
@@ -475,7 +483,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
     expect(settled.status, GenerationJobStatus.completed);
 
     final scenes = testServer.library.database
@@ -516,7 +524,7 @@ void main() {
         ..['favoriteTopics'] = 'sea turtles and paper boats'
         ..['recurringWorld'] = 'the Lantern Harbour',
     );
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
     expect(settled.status, GenerationJobStatus.completed);
 
     for (final call in client.requests) {
@@ -524,6 +532,99 @@ void main() {
       expect(call.prompt, contains('the Lantern Harbour'));
     }
   });
+
+  test('a confirmed name spelling is the only name both passes see', () async {
+    final printedCodes = <String>[];
+    final client = FakeOllamaStoryClient.writing(
+      story: storyPayload(
+        title: 'مليكة وفوانيس البحر',
+        pageCount: 6,
+        text: (pageNumber) =>
+            'أشعلت مليكة فانوسًا صغيرًا على الشاطئ، وابتسمت للبحر، '
+            'ثم جلست تنتظر أن يضيء الليل كله.',
+      ),
+      outline: outlinePayload(
+        pageCount: 6,
+        title: 'مليكة وفوانيس البحر',
+        lessonMoment: 'تُطلب من مليكة أن تشارك فانوسها الوحيد مع طفل أصغر.',
+        summary: (pageNumber) =>
+            'تقترب مليكة خطوة أخرى من الفوانيس على الشاطئ.',
+      ),
+    );
+    final testServer = await createTestServer(
+      ollamaClient: client,
+      notifyCode: printedCodes.add,
+    );
+    addTearDown(testServer.close);
+    final token = await pairDevice(testServer, printedCodes);
+
+    final jobId = await startJob(
+      testServer,
+      token,
+      body: generateRequestBody(heroName: 'Malika', languageCode: 'ar')
+        ..['heroNameSpelling'] = 'مليكة',
+    );
+    final settled = await testServer.server.awaitStoryJob(jobId);
+
+    expect(settled.status, GenerationJobStatus.completed);
+    expect(client.outlineRequests, hasLength(1));
+    expect(client.pageRequests, hasLength(1));
+    for (final call in <OllamaGenerateRequest>[
+      ...client.outlineRequests,
+      ...client.pageRequests,
+    ]) {
+      expect(call.prompt, contains('- Name: مليكة'));
+      expect(call.prompt, contains('letter for letter, every single'));
+      expect(
+        call.prompt,
+        isNot(contains('Malika')),
+        reason: 'the Latin spelling never reaches an Arabic book',
+      );
+    }
+  });
+
+  test(
+    'a spelled Arabic story refuses a Latin word it used to allow',
+    () async {
+      final printedCodes = <String>[];
+      final client = FakeOllamaStoryClient.writing(
+        story: storyPayload(
+          title: 'مليكة وفوانيس البحر',
+          pageCount: 6,
+          // One Latin word in six pages: under the 5% tolerance, and refused
+          // anyway now that the family confirmed how the name is written.
+          text: (pageNumber) =>
+              'أشعلت Malika فانوسًا صغيرًا على الشاطئ، وابتسمت للبحر، '
+              'ثم جلست تنتظر أن يضيء الليل كله.',
+        ),
+        outline: outlinePayload(
+          pageCount: 6,
+          title: 'مليكة وفوانيس البحر',
+          lessonMoment: 'تُطلب من مليكة أن تشارك فانوسها الوحيد مع طفل أصغر.',
+          summary: (pageNumber) =>
+              'تقترب مليكة خطوة أخرى من الفوانيس على الشاطئ.',
+        ),
+      );
+      final testServer = await createTestServer(
+        ollamaClient: client,
+        notifyCode: printedCodes.add,
+      );
+      addTearDown(testServer.close);
+      final token = await pairDevice(testServer, printedCodes);
+
+      final jobId = await startJob(
+        testServer,
+        token,
+        body: generateRequestBody(heroName: 'Malika', languageCode: 'ar')
+          ..['heroNameSpelling'] = 'مليكة',
+      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
+
+      expect(settled.status, GenerationJobStatus.failed);
+      expect(settled.failure?.code, GenerationFailureCode.invalidModelOutput);
+      testServer.expectEmptyLibrary();
+    },
+  );
 
   test('a request without preferences says nothing about them', () async {
     final printedCodes = <String>[];
@@ -538,7 +639,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    await testServer.server.generationQueue.whenSettled(jobId);
+    await testServer.server.awaitStoryJob(jobId);
 
     for (final call in client.requests) {
       expect(call.prompt, isNot(contains('recurring story world')));
@@ -561,9 +662,7 @@ void main() {
       final token = await pairDevice(testServer, printedCodes);
 
       final jobId = await startJob(testServer, token);
-      final settled = await testServer.server.generationQueue.whenSettled(
-        jobId,
-      );
+      final settled = await testServer.server.awaitStoryJob(jobId);
 
       expect(settled.status, GenerationJobStatus.failed);
       final jobBody = await readJob(testServer, token, jobId);
@@ -596,7 +695,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
 
     expect(settled.status, GenerationJobStatus.completed);
     expect(client.unloadRequests, hasLength(1));
@@ -616,7 +715,7 @@ void main() {
     final token = await pairDevice(testServer, printedCodes);
 
     final jobId = await startJob(testServer, token);
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
 
     expect(settled.status, GenerationJobStatus.failed);
     final jobBody = await readJob(testServer, token, jobId);
@@ -654,10 +753,8 @@ void main() {
     expect(cancelBody['status'], 'cancelled');
 
     gate.release.complete();
-    await testServer.server.generationQueue.whenSettled(runningJobId);
-    final cancelled = await testServer.server.generationQueue.whenSettled(
-      queuedJobId,
-    );
+    await testServer.server.awaitStoryJob(runningJobId);
+    final cancelled = await testServer.server.awaitStoryJob(queuedJobId);
 
     expect(cancelled.status, GenerationJobStatus.cancelled);
     expect(
@@ -694,7 +791,7 @@ void main() {
     expect(cancelStatus, 200, reason: 'body was $cancelBody');
     expect(cancelBody['status'], 'cancelled');
 
-    final settled = await testServer.server.generationQueue.whenSettled(jobId);
+    final settled = await testServer.server.awaitStoryJob(jobId);
     expect(settled.status, GenerationJobStatus.cancelled);
     expect(client.unloadRequests, hasLength(1));
     expect(client.allRequests.last, isA<OllamaUnloadRequest>());
@@ -746,12 +843,8 @@ void main() {
     );
 
     gate.release.complete();
-    final first = await testServer.server.generationQueue.whenSettled(
-      firstJobId,
-    );
-    final second = await testServer.server.generationQueue.whenSettled(
-      secondJobId,
-    );
+    final first = await testServer.server.awaitStoryJob(firstJobId);
+    final second = await testServer.server.awaitStoryJob(secondJobId);
 
     expect(first.status, GenerationJobStatus.completed);
     expect(second.status, GenerationJobStatus.completed);
@@ -788,7 +881,7 @@ void main() {
     );
 
     final jobId = await startJob(testServer, ownerToken);
-    await testServer.server.generationQueue.whenSettled(jobId);
+    await testServer.server.awaitStoryJob(jobId);
 
     final (readStatus, readBody) = await callJson(
       testServer.handler,

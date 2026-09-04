@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:iam_hero_bridge/src/common/base_url.dart';
 import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
@@ -75,7 +76,7 @@ OllamaGenerateRequest _request(
   Duration timeout = const Duration(seconds: 10),
 }) {
   return OllamaGenerateRequest(
-    baseUrl: baseUrl,
+    baseUrl: BaseUrl.parse(baseUrl),
     model: 'gemma3:4b',
     prompt: prompt,
     format: <String, Object?>{'type': 'object'},
@@ -122,7 +123,7 @@ void main() {
 
     await const IoOllamaStoryClient().unload(
       OllamaUnloadRequest(
-        baseUrl: stub.baseUrl,
+        baseUrl: BaseUrl.parse(stub.baseUrl),
         model: 'qwen3.5:9b',
         timeout: const Duration(seconds: 10),
       ),
