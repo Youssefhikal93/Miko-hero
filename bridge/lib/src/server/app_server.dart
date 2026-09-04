@@ -5,12 +5,14 @@ import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
 import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/generation_job.dart';
+import 'package:iam_hero_bridge/src/generation/hero_sheet_service.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
 import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
 import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
 import 'package:iam_hero_bridge/src/illustration/illustration_job.dart';
 import 'package:iam_hero_bridge/src/illustration/illustration_queue.dart';
+import 'package:iam_hero_bridge/src/library/character_sheet_store.dart';
 import 'package:iam_hero_bridge/src/library/device_store.dart';
 import 'package:iam_hero_bridge/src/library/library_catalog.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
@@ -85,11 +87,25 @@ class AppServer {
     // same content-free sink: an eviction that failed is a fact about the
     // machine that only this line will ever report.
     final gpuGate = GpuGate(log: logEvent);
+    // One service, shared by the photo endpoint and the story queue: the first
+    // derives a child's drawn character sheet as soon as a photo lands, the
+    // second falls back to deriving it before a story if that never happened.
+    // Both go through the same gate as the queues, as a third Ollama tenant.
+    _heroSheets = HeroSheetService(
+      config: config,
+      store: CharacterSheetStore(library: library),
+      photos: ProfilePhotoStore(library: library),
+      client: ollamaClient,
+      gate: gpuGate,
+      clock: clock,
+      log: logEvent,
+    );
     _generationQueue = StoryGenerationQueue(
       config: config,
       writer: StoryLibraryWriter(library: library, uuid: uuid),
       client: ollamaClient,
       uuid: uuid,
+      heroSheets: _heroSheets,
       gate: gpuGate,
       clock: clock,
       log: logEvent,
@@ -121,7 +137,10 @@ class AppServer {
     _illustrationHandlers = IllustrationHandlers(queue: _illustrationQueue);
     final photoStore = ProfilePhotoStore(library: library);
     final syncReader = SyncReader(library: library);
-    _profilePhotoHandlers = ProfilePhotoHandlers(store: photoStore);
+    _profilePhotoHandlers = ProfilePhotoHandlers(
+      store: photoStore,
+      heroSheets: _heroSheets,
+    );
     _syncHandlers = SyncHandlers(
       reader: syncReader,
       stateStore: SyncStateStore(library: library),
@@ -161,6 +180,13 @@ class AppServer {
   /// Shares its [GpuGate] with [_generationQueue], so the two never render at
   /// the same time.
   late final IllustrationQueue _illustrationQueue;
+
+  /// Derives and caches each child's drawn character sheet.
+  ///
+  /// Shares the [GpuGate] with both queues: describing a photo loads a model
+  /// onto the same 4 GB card, and the gate unloads it again before anything
+  /// else takes a turn.
+  late final HeroSheetService _heroSheets;
 
   /// The bound socket once [start] has returned; null before that and after
   /// [close].
@@ -298,6 +324,20 @@ class AppServer {
   Future<IllustrationJob> awaitIllustrationJob(String jobId) {
     return _illustrationQueue.whenSettled(jobId);
   }
+
+  /// Completes when every background character-sheet refresh has finished.
+  ///
+  /// The one door tests need into the sheet service, which a photo upload
+  /// deliberately leaves running behind the response; nothing in production
+  /// waits on it.
+  Future<void> awaitHeroSheetWork() => _heroSheets.backgroundWork;
+
+  /// The stored character sheet of [profileId], or `null`.
+  ///
+  /// Read-only, and for tests: no endpoint returns a sheet. It describes one
+  /// particular child's hero and stays on the PC.
+  HeroCharacterSheet? heroSheet(String profileId) =>
+      _heroSheets.storedSheet(profileId);
 
   Response _typedNotFound(Request request) {
     return jsonError(404, ApiErrorCode.notFound, 'Unknown endpoint.');

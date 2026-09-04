@@ -68,6 +68,7 @@ start after an upgrade, the message names the key to fix or delete.
 | `ollamaBaseUrl` | `http://127.0.0.1:11434`| Base URL of the local Ollama API. Must be an absolute `http(s)` URL; trailing slashes are ignored |
 | `comfyUiBaseUrl`| `http://127.0.0.1:8188` | Base URL of the local ComfyUI API. Same rule as `ollamaBaseUrl`   |
 | `ollamaModel`   | `gemma3:4b`             | Ollama model tag used for stories. `gemma3:4b` is the floor, not a recommendation — see [`docs/STORY_QUALITY_UPGRADE.md`](../docs/STORY_QUALITY_UPGRADE.md) |
+| `visionModel`   | `gemma3:4b`             | Ollama model tag used to read a child's reference photo **once**, to derive their [character sheet](#one-child-one-drawn-hero). Separate from `ollamaModel` because the writers worth upgrading to (`qwen3.5:*` and friends) cannot see an image at all. A tag without vision just means no sheet, and the story planner invents the appearance line as it always did |
 | `generationTimeoutSeconds` | `900`        | Budget for **one** generation call (30–3600); a job makes two |
 | `maxGenerationAttempts`    | `3`          | Attempts per job, first try included (1–5)|
 | `illustrationTimeoutSeconds` | `300`      | Budget for rendering one page (60–1800). ComfyUI's short metadata calls — submit, poll, node check, interrupt — are separately capped at 30 s, or at this value when it is smaller |
@@ -84,6 +85,7 @@ Example `bridge_config.json`:
   "ollamaBaseUrl": "http://127.0.0.1:11434",
   "comfyUiBaseUrl": "http://127.0.0.1:8188",
   "ollamaModel": "qwen3:8b",
+  "visionModel": "gemma3:4b",
   "generationTimeoutSeconds": 900,
   "maxGenerationAttempts": 3,
   "illustrationTimeoutSeconds": 300,
@@ -541,6 +543,12 @@ previous photo (including one stored in the other format — a profile never
 has two), and the profile row's `updated_at_utc` moves inside a transaction
 so the next sync manifest shows the change.
 
+The response does not wait for the child's
+[character sheet](#one-child-one-drawn-hero) to be re-derived from the new
+photo. That runs behind the answer as a best-effort task, and is skipped when
+the GPU is busy; a story that needs a sheet and does not find one derives it
+itself.
+
 Typed failures: `400 unsupported_image_type` (wrong or missing
 `Content-Type`), `400 invalid_image` (bytes that are not that format, or an
 empty body), `413 photo_too_large` (over 2 MB), `404 profile_not_found`.
@@ -943,8 +951,18 @@ moral announced on the last page.
 The appearance sheet is appended to every page's `illustrationScene` (em-dash
 separated, inside the existing 2000-character cap), which is what makes the
 hero wear the same clothes on page one and page ten when ComfyUI draws them.
-It is invented by the model and the prompt forbids describing a photograph or
-a real person.
+Either way it describes a drawn character, and the prompt forbids describing a
+photograph or a real person.
+
+Where the line comes from depends on whether the child has a **character
+sheet** (see [One child, one drawn hero](#one-child-one-drawn-hero)):
+
+- **With a sheet** — the stored line is put in the prompt and the planner is
+  told to copy it verbatim. Whatever it actually answers is ignored; the stored
+  line is the one that reaches the pages. A wrong copy therefore costs nothing,
+  not even a retry.
+- **Without one** — no photo, or the vision pass never managed to run — the
+  planner invents the line per story, exactly as it did before sheets existed.
 
 The prompt also carries the reader's age into a concrete reading level
 (sentence length and vocabulary bands for ≤4, ≤7, ≤10 and older), asks for the
@@ -1070,6 +1088,10 @@ Job ids, statuses, attempt counters, timings and typed error codes — and
 nothing else. Prompts, story text, titles, child names and model output are
 never written to the console or to any log.
 
+The character-sheet pass logs one verdict — `hero sheet derived`, `refreshed`,
+`unchanged`, `deferred` or `unavailable` — with no profile id, no photo hash,
+and not one word of the sheet itself.
+
 ## Illustrations
 
 ### One GPU, one job — story or picture, never both
@@ -1147,9 +1169,11 @@ first stage runs once per job — one extra render on top of the pages:
    512x512 and redrawn as a cheerful storybook portrait: an img2img pass at
    denoise 0.62, in the book's own style prefix, with a negative prompt that
    adds `photo, photorealistic, dslr, skin pores` and friends in front of the
-   usual guards. Its seed is derived from `reference:<storyId>`, so a re-run
-   reproduces the same portrait and a re-rendered page still matches the pages
-   that already landed. The denoise is the whole tradeoff in one number: lower
+   usual guards. Its seed is derived from
+   `reference:<profileId>:<sha256 of the photo>` — **the child and the photo,
+   never the story** — so every book of one child redraws the same face, a
+   re-run reproduces it, and a re-rendered page still matches the pages that
+   already landed. The denoise is the whole tradeoff in one number: lower
    keeps more of the real child and more of the photograph, higher cartoonifies
    harder and starts inventing a different child.
 2. **Render the pages.** Exactly as above, except the checkpoint's model output
@@ -1168,6 +1192,77 @@ the photo already does, and is never written into the library or logged.
 
 Without a photo the graph is plain text-to-image, there is no stage one, and
 the hero simply will not resemble anyone in particular.
+
+The portrait file inside ComfyUI's input folder is still named per story
+(`iam-hero-ref-<storyId>.png`). It is scratch — one job writes it and that same
+job's pages read it — and two books of one child in different styles must not
+overwrite each other mid-render. What has to be stable across books is the
+face, and that is the seed's job.
+
+### One child, one drawn hero
+
+A child's hero used to be reinvented twice per book: the portrait was seeded
+from the story id, so every book drew a different cartoon of the same face, and
+the story planner invented a fresh appearance line every time. A family reading
+three books saw three different children.
+
+Two things now come from the **child**, not the book:
+
+1. **The face.** The portrait seed is `reference:<profileId>:<photo hash>`, as
+   above. Same photo, same face, in every book. A new photo is the one thing
+   that deliberately draws a new one.
+2. **The character sheet.** One row per profile in `hero_character_sheets`
+   (schema v4), holding `hair`, `skinTone` and `eyeColor` — read from the photo
+   — plus one `outfit` and one `prop`, and the `photo_hash` the first three came
+   from. Its one English line is what the story planner is told to copy, and it
+   ends up appended to every page's scene description exactly as an invented
+   line used to be.
+
+**How the sheet is derived.** One Ollama `/api/generate` call with an `images`
+array and a three-string schema, on `visionModel`. The prompt asks for a
+**drawn cartoon character** and nothing else: it forbids mentioning a photo, a
+picture, a camera or a real person, and forbids every identifying detail — no
+name, age, expression, background, glasses, jewellery, scars or birthmarks. It
+asks for three colours, and that is all it can answer.
+
+**Clothing deliberately does not come from the model.** Asked what the
+character wears, a vision model describes the jumper in the picture — which is
+both an identifying detail and a costume that would change with every new
+photo. So the `outfit` and the `prop` are picked from two small curated
+wardrobes, hashed per profile: one child keeps one coat for as long as the
+profile exists, a new photo repaints the hair and colouring and leaves the hero
+dressed as the last book left them, and every entry was written once to be
+English, drawn and appropriate for a picture book.
+
+**When it runs.** Twice over, so that neither path is load-bearing on its own:
+
+- **On `PUT /profiles/<id>/photo`**, as a detached best-effort task using the
+  bytes that were just uploaded. Detached because a request has 20 seconds and
+  a vision call does not fit in them; **skipped outright when the GPU is busy**,
+  because a book being rendered must not queue behind a nicety.
+- **Lazily, before a story**, from the story queue, if the sheet is missing or
+  its `photo_hash` no longer matches. This is the guarantee — a restart, a busy
+  card, an Ollama that was down, a restored backup all end here — and the story
+  that triggers it already has its sheet.
+
+The same photo never costs a second model call, however many books the child
+gets.
+
+**On the card.** The pass is a third Ollama tenant at the one-GPU gate. It takes
+a turn like either queue, and the gate unloads its model before the card changes
+hands, so ComfyUI never starts a render with a vision model still resident.
+
+**Not backed up, not synced.** The sheet is derived data: a
+[master-library backup](#master-library-backups) carries the photos, and the
+sheet is read again from those. A **restore empties the table** rather than
+leaving it — the restored profiles are a different set, and a sheet describing a
+child the library no longer has would be both wrong and, since it references
+`profiles(id)`, a foreign-key failure on the restore itself. It is also PC-only
+for now — no endpoint returns it and it is not in the sync manifest.
+
+**Never logged.** The log lines are `hero sheet derived`, `refreshed`,
+`unchanged`, `deferred` or `unavailable` — verdicts with no profile id and not
+one word of the sheet or the photo.
 
 ### What face likeness actually means here
 

@@ -67,11 +67,14 @@ class StoryOutline {
   /// choice afterwards.
   final int turnPage;
 
-  /// One-line description of how the hero looks, invented by the model.
+  /// One-line description of how the hero looks.
   ///
   /// Appended to every page's scene description so the illustrator draws the
-  /// same child in the same clothes on every page. Never derived from a real
-  /// photo: the model is told to invent it.
+  /// same child in the same clothes on every page. It comes from the child's
+  /// stored character sheet when there is one — which is what keeps the hero
+  /// identical across *books*, not merely across pages — and is invented by the
+  /// model when there is not. Either way it describes a drawn character and
+  /// never a photograph or a real person.
   final String heroAppearance;
 
   /// Ordered beats, exactly as many as there are pages.
@@ -142,9 +145,17 @@ Map<String, Object?> storyOutlineResponseSchema(int pageCount) {
 /// The lesson moment's *language* is not checked here: it belongs to the story
 /// language, which this function is deliberately not told about, so the queue
 /// runs it through the same purity check as the title and the beats.
+///
+/// [fixedHeroAppearance] is the child's stored character sheet. When it is
+/// given it **replaces** whatever the model answered, and the model's own line
+/// is not even validated: the prompt asked for a verbatim copy, and the point
+/// of the sheet is that the hero looks the same in every book whether or not a
+/// small model copied a line correctly. A near-miss copy must not cost a retry
+/// either — it changes nothing that is used.
 StoryOutline parseStoryOutline(
   String responseText, {
   required int expectedPageCount,
+  String? fixedHeroAppearance,
 }) {
   final Object? decoded;
   try {
@@ -166,24 +177,30 @@ StoryOutline parseStoryOutline(
     field: 'the outline title',
     maxLength: maximumOutlineTitleLength,
   );
-  final heroAppearance = _requireOutlineText(
-    decoded['heroAppearance'],
-    field: 'the hero appearance line',
-    maxLength: maximumHeroAppearanceLength,
-  );
-  // The appearance line is consumed only by the image model, which reads
-  // Latin letters. Written in the story's own script — which happens for
-  // Arabic books — it becomes noise in every page's scene and the pictures
-  // lose the mood the text describes. Refusing it here costs one retry.
-  final appearanceScript = checkLanguagePurity(
-    language: StoryLanguage.english,
-    texts: <String>[heroAppearance],
-  );
-  if (!appearanceScript.isPure) {
-    throw const GenerationException(
-      GenerationFailureCode.invalidModelOutput,
-      'The hero appearance line must be written in English.',
+  final fixed = fixedHeroAppearance?.trim() ?? '';
+  final String heroAppearance;
+  if (fixed.isNotEmpty) {
+    heroAppearance = fixed;
+  } else {
+    heroAppearance = _requireOutlineText(
+      decoded['heroAppearance'],
+      field: 'the hero appearance line',
+      maxLength: maximumHeroAppearanceLength,
     );
+    // The appearance line is consumed only by the image model, which reads
+    // Latin letters. Written in the story's own script — which happens for
+    // Arabic books — it becomes noise in every page's scene and the pictures
+    // lose the mood the text describes. Refusing it here costs one retry.
+    final appearanceScript = checkLanguagePurity(
+      language: StoryLanguage.english,
+      texts: <String>[heroAppearance],
+    );
+    if (!appearanceScript.isPure) {
+      throw const GenerationException(
+        GenerationFailureCode.invalidModelOutput,
+        'The hero appearance line must be written in English.',
+      );
+    }
   }
   final lessonMoment = _requireOutlineText(
     decoded['lessonMoment'],

@@ -41,9 +41,19 @@ Map<String, Object?> storyResponseSchema(int pageCount) {
 
 /// Builds the outline prompt for [request] — the first of the two passes.
 ///
+/// [heroSheet] is the child's stored character sheet, when there is one: the
+/// bridge derived it once from the reference photo and keeps it, so every book
+/// draws the same hero. Given one, the planner is told to copy it verbatim
+/// instead of inventing an appearance line — which is what it used to do, and
+/// why the same child came out as a different cartoon in every story. Without
+/// one the prompt is exactly what it always was.
+///
 /// The result contains the child's name and the parent's idea, so it is
 /// private content: it is sent to the local model and never logged.
-String buildStoryOutlinePrompt(StoryGenerationRequest request) {
+String buildStoryOutlinePrompt(
+  StoryGenerationRequest request, {
+  String? heroSheet,
+}) {
   final language = request.language.englishName;
   final pageCount = request.pageCount;
   final name = request.heroName;
@@ -80,15 +90,7 @@ Hard requirements:
 3. Each "summary" is one or two short sentences: what happens on that page,
    and what $name feels or decides because of it. A beat that only lists an
    event is not enough; the reader has to be able to feel the page turn.
-4. "heroAppearance" is ONE short English line describing how $name looks in
-   the pictures: hair, clothing colours, and one small prop that recurs — for
-   example "short curly black hair, mustard-yellow raincoat, red boots,
-   carries a small brass lantern". It is read only by the picture model, so
-   it must be in English with Latin letters only,
-   even when the story itself is not in English; any other script is rejected.
-   Invent it freely; it must be a drawn character description and
-   must never describe or refer to a photograph, a real person, or any real
-   identifying feature.
+${_heroAppearanceRule(request, heroSheet)}
 5. "lessonMoment" is ONE sentence in $language naming the concrete situation
    where $name faces the lesson: what happens, who is there, and what $name
    has to decide. Name the situation, do not restate the lesson, and do not
@@ -185,6 +187,41 @@ ${_preferenceRules(request)}
 
 Answer with one JSON object matching the requested schema and nothing else.
 ''';
+}
+
+/// Requirement 4 of the outline prompt: where the appearance line comes from.
+///
+/// Two versions of one rule. Without a stored sheet the planner invents the
+/// line, as it always has, under the constraints that keep it usable by the
+/// picture model and free of anything real. With a sheet the line is already
+/// decided — the bridge derived it once from the child's photo and every book
+/// of this child has used it — so the planner's only job is to copy it back
+/// unchanged. Copying is asked for rather than the field being dropped because
+/// the schema still carries it, and a planner that has read the hero's coat
+/// writes beats that agree with it.
+String _heroAppearanceRule(StoryGenerationRequest request, String? heroSheet) {
+  final sheet = heroSheet?.trim() ?? '';
+  if (sheet.isEmpty) {
+    final name = request.heroName;
+    return '''
+4. "heroAppearance" is ONE short English line describing how $name looks in
+   the pictures: hair, clothing colours, and one small prop that recurs — for
+   example "short curly black hair, mustard-yellow raincoat, red boots,
+   carries a small brass lantern". It is read only by the picture model, so
+   it must be in English with Latin letters only,
+   even when the story itself is not in English; any other script is rejected.
+   Invent it freely; it must be a drawn character description and
+   must never describe or refer to a photograph, a real person, or any real
+   identifying feature.''';
+  }
+  return '''
+4. "heroAppearance" is already decided. Copy this line EXACTLY, word for word,
+   and change nothing about it — do not invent a new one, do not translate it,
+   do not shorten, reorder or add to it:
+   $sheet
+   This is the drawn character this family's books always show, so the hero
+   looks the same in this book as in every other one. Let the beats agree with
+   it where clothing or the prop comes up.''';
 }
 
 /// The hero description shared by both passes.

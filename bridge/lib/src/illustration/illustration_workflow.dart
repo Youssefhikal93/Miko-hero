@@ -193,15 +193,23 @@ int illustrationSeed(String illustrationId) {
   return int.parse(digest.substring(0, 12), radix: 16);
 }
 
-/// Deterministic seed of the reference portrait of one story.
+/// Deterministic seed of the reference portrait of one child.
 ///
-/// Namespaced with a `reference:` prefix rather than hashing the bare id, so
-/// the portrait can never accidentally draw the same noise as a page of the
-/// same story: the two are different pictures and must stay different rolls.
-/// Re-running a job reproduces the portrait, which is what makes a re-render
-/// of one failed page match the pages that already landed.
-int illustrationReferenceSeed(String storyId) {
-  final digest = sha256Hex('reference:$storyId');
+/// Derived from the profile and the **photo's** SHA-256, never from the story.
+/// That is the whole point: one photo yields one drawn face, so the hero of a
+/// child's tenth book is the same cartoon as the hero of their first, and a
+/// parent who uploads a better photo gets a new face on purpose rather than a
+/// new one per book by accident. Seeding this per story is exactly the bug —
+/// it re-rolled the child's appearance every time a book was made.
+///
+/// Namespaced with a `reference:` prefix rather than hashing the bare ids, so
+/// the portrait can never accidentally draw the same noise as a page: the two
+/// are different pictures and must stay different rolls.
+int illustrationReferenceSeed({
+  required String profileId,
+  required String photoHash,
+}) {
+  final digest = sha256Hex('reference:$profileId:$photoHash');
   return int.parse(digest.substring(0, 12), radix: 16);
 }
 
@@ -468,6 +476,13 @@ String _appendLoraChain(
 /// the previous portrait instead of littering ComfyUI's input folder with a
 /// copy of the child's face for every attempt. It carries no name, only the
 /// story's uuid.
+///
+/// Still per **story** even though the portrait is now per child: the portrait
+/// also depends on the book's style, and this is a scratch file inside
+/// ComfyUI's input folder that one job writes and the same job's pages read.
+/// Two jobs for one child in different styles must not overwrite each other
+/// mid-render; what has to be stable across books is the face, and the seed is
+/// what makes that so.
 String referencePortraitFileName(String storyId) => 'iam-hero-ref-$storyId.png';
 
 /// Builds the ComfyUI node graph of the reference stylization pass.
@@ -494,8 +509,13 @@ String referencePortraitFileName(String storyId) => 'iam-hero-ref-$storyId.png';
 /// upscale nor the face-detail pass: this image is never read by anyone, only
 /// by the face adapter, and both passes would spend GPU minutes and VRAM on
 /// pixels that are downsampled again the moment they are used.
+///
+/// [profileId] and [photoHash] fix the seed (see [illustrationReferenceSeed]),
+/// so the portrait is a function of the child and their photo rather than of
+/// the book being made: every story of one child redraws the same face.
 Map<String, Object?> buildReferenceStylizeWorkflow({
-  required String storyId,
+  required String profileId,
+  required String photoHash,
   required String photoImageName,
   required StoryIllustrationStyle style,
   required StoryGenderContext? gender,
@@ -539,7 +559,10 @@ Map<String, Object?> buildReferenceStylizeWorkflow({
       'clip': <Object?>[source, 1],
     }),
     referenceSamplerNodeId: _node('KSampler', <String, Object?>{
-      'seed': illustrationReferenceSeed(storyId),
+      'seed': illustrationReferenceSeed(
+        profileId: profileId,
+        photoHash: photoHash,
+      ),
       'steps': settings.samplerSteps,
       'cfg': settings.cfgScale,
       'sampler_name': illustrationSamplerName,

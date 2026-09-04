@@ -198,5 +198,53 @@ void main() {
       );
       expect(unload.toJson()['keep_alive'], 0);
     });
+
+    test('the vision target is its own model and its own budget', () {
+      final config = BridgeConfig.fromJson(<String, Object?>{
+        'ollamaModel': 'qwen3.5:9b',
+        'visionModel': 'llava:7b',
+        'generationTimeoutSeconds': 900,
+      });
+      expect(
+        config.vision.model,
+        'llava:7b',
+        reason: 'the best writer on this PC may not be able to see at all',
+      );
+      expect(config.vision.baseUrl, config.ollama.baseUrl);
+      expect(
+        config.vision.callTimeout,
+        ollamaVisionCallTimeout,
+        reason: 'a photo upload must not sit on the card for a story budget',
+      );
+      expect(config.vision.unloadRequest().model, 'llava:7b');
+    });
+
+    test('an untouched configuration can already describe a photo', () {
+      final config = BridgeConfig.fromJson(<String, Object?>{});
+      expect(config.visionModel, BridgeConfig.defaultVisionModel);
+      expect(
+        config.visionModel,
+        BridgeConfig.defaultOllamaModel,
+        reason: 'the story floor has vision, so nothing extra is downloaded',
+      );
+
+      final call = config.vision.generateRequest(
+        prompt: 'Describe the drawn character.',
+        format: <String, Object?>{'type': 'object'},
+        images: <String>['aGVsbG8='],
+      );
+      expect(call.toJson()['images'], <String>['aGVsbG8=']);
+      expect(
+        config.ollama
+            .generateRequest(
+              prompt: 'Write a story.',
+              format: <String, Object?>{'type': 'object'},
+            )
+            .toJson()
+            .containsKey('images'),
+        isFalse,
+        reason: 'a text model handed an empty images array can refuse the call',
+      );
+    });
   });
 }

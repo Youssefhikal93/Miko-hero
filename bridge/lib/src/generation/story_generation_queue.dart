@@ -7,6 +7,7 @@ import 'package:iam_hero_bridge/src/generation/cancellation.dart';
 import 'package:iam_hero_bridge/src/generation/generated_story.dart';
 import 'package:iam_hero_bridge/src/generation/generation_errors.dart';
 import 'package:iam_hero_bridge/src/generation/generation_job.dart';
+import 'package:iam_hero_bridge/src/generation/hero_sheet_service.dart';
 import 'package:iam_hero_bridge/src/generation/language_purity.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_draft.dart';
@@ -35,6 +36,7 @@ class StoryGenerationQueue
     required this._writer,
     this._client = const IoOllamaStoryClient(),
     this._uuid = const Uuid(),
+    this._heroSheets,
     GpuGate? gate,
     super.clock,
     super.log,
@@ -49,6 +51,13 @@ class StoryGenerationQueue
 
   /// The mocked-in-tests Ollama boundary.
   final OllamaStoryClient _client;
+
+  /// Where the child's stored character sheet comes from, when there is one.
+  ///
+  /// Absent means "behave exactly as this queue did before character sheets
+  /// existed": the planner invents a fresh appearance line per story, and the
+  /// same child comes out looking different in every book.
+  final HeroSheetService? _heroSheets;
 
   /// Shared lock over the machine's single GPU.
   ///
@@ -108,19 +117,47 @@ class StoryGenerationQueue
   /// settled as soon as the worker has stopped touching the library, which is
   /// what [whenSettled] promises — the unload happens behind it, still inside
   /// the turn.
+  ///
+  /// The character sheet is fetched *before* the turn starts, not inside it.
+  /// Deriving it is itself a turn on the card by another tenant, and the gate
+  /// serializes turns: asking for one while holding one would be this job
+  /// waiting for itself. Taking it first is also the honest order — the vision
+  /// model is loaded, used and evicted before the writer is ever loaded.
   @override
   Future<void> runJob(
     GenerationJob job,
     StoryGenerationRequest plan,
     CancellationToken token,
   ) async {
+    final String? heroSheet = await _heroSheetLine(plan);
     await _gate.run(_tenant, () async {
       try {
-        await _runJobOnGpu(job.id, plan, token);
+        await _runJobOnGpu(job.id, plan, token, heroSheet);
       } finally {
         settleIfTerminal(job.id);
       }
     });
+  }
+
+  /// The stored appearance line of this job's child, or `null`.
+  ///
+  /// Derives it from the reference photo when it is missing or the photo has
+  /// changed — the lazy half of the promise that every story of one child draws
+  /// the same hero. Never throws: a child with no photo, an Ollama that cannot
+  /// see, a model that answered badly all land on `null`, and `null` means the
+  /// planner invents an appearance line exactly as it always did.
+  Future<String?> _heroSheetLine(StoryGenerationRequest request) async {
+    final HeroSheetService? sheets = _heroSheets;
+    if (sheets == null) {
+      return null;
+    }
+    try {
+      final sheet = await sheets.ensureSheet(request.profileId);
+      return sheet?.toPromptLine();
+    } catch (_) {
+      // Never let a nicety take a story down with it.
+      return null;
+    }
   }
 
   /// Runs one job's attempts, both passes, inside the held GPU lease.
@@ -135,6 +172,7 @@ class StoryGenerationQueue
     String jobId,
     StoryGenerationRequest request,
     CancellationToken token,
+    String? heroSheet,
   ) async {
     final start = nowUtc();
     final attempts = _config.maxGenerationAttempts;
@@ -156,7 +194,7 @@ class StoryGenerationQueue
           logJob(jobId, 'outlining attempt=$attempt/$attempts');
           final planned = await _callOllama(
             token,
-            prompt: buildStoryOutlinePrompt(request),
+            prompt: buildStoryOutlinePrompt(request, heroSheet: heroSheet),
             format: storyOutlineResponseSchema(request.pageCount),
           );
           if (token.isCancelled) {
@@ -166,6 +204,7 @@ class StoryGenerationQueue
           final parsed = parseStoryOutline(
             readOllamaResponseText(planned.bodyText),
             expectedPageCount: request.pageCount,
+            fixedHeroAppearance: heroSheet,
           );
           // The lesson moment is read by the page pass as story material, so
           // it has to be in the story's language exactly like the beats are.

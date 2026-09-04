@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:iam_hero_bridge/src/common/atomic_files.dart';
 import 'package:iam_hero_bridge/src/common/image_bytes.dart';
 import 'package:iam_hero_bridge/src/common/paths.dart';
+import 'package:iam_hero_bridge/src/common/secrets.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
@@ -19,6 +20,25 @@ import 'package:iam_hero_bridge/src/library/story_deleter.dart';
 /// One second is far below the time a 512x512 render takes and far above
 /// anything that would busy-poll the local server.
 const Duration illustrationPollInterval = Duration(seconds: 1);
+
+/// A reference photo that is now sitting inside ComfyUI's input folder.
+///
+/// Carries the name to reference it by and the fingerprint of its bytes. The
+/// fingerprint never leaves the PC: it seeds the portrait, and it is how the
+/// bridge tells one photo from another without keeping a copy of either.
+class ReferencePhotoUpload {
+  /// Creates an upload descriptor.
+  const ReferencePhotoUpload({
+    required this.imageName,
+    required this.photoHash,
+  });
+
+  /// Name ComfyUI stored the photo under.
+  final String imageName;
+
+  /// Lowercase hexadecimal SHA-256 of the photo's bytes.
+  final String photoHash;
+}
 
 /// Renders one page image end to end: workflow in, stored PNG out.
 ///
@@ -83,23 +103,31 @@ class IllustrationRenderer {
 
   /// Uploads the reference photo of [profileId], if there is one.
   ///
-  /// Returns the name ComfyUI stored it under, or `null` when the child has
-  /// no photo — in which case every page renders as plain text-to-image and
-  /// the hero simply will not resemble anyone in particular. A failed upload
-  /// is also reported as `null` rather than failing the job: a book without
-  /// face likeness beats no book at all.
-  Future<String?> uploadReferencePhoto(String profileId) async {
+  /// Returns the name ComfyUI stored it under plus the photo's fingerprint, or
+  /// `null` when the child has no photo — in which case every page renders as
+  /// plain text-to-image and the hero simply will not resemble anyone in
+  /// particular. A failed upload is also reported as `null` rather than failing
+  /// the job: a book without face likeness beats no book at all.
+  ///
+  /// The fingerprint is taken here because this is the one place the bytes are
+  /// already in hand, and stage one needs it to seed the portrait per photo
+  /// instead of per story.
+  Future<ReferencePhotoUpload?> uploadReferencePhoto(String profileId) async {
     final ProfileReferencePhoto? photo = _photoStore.findPhoto(profileId);
     if (photo == null) {
       return null;
     }
     try {
       final Uint8List bytes = await _photoStore.readPhotoBytes(photo);
-      return await _client.uploadReferenceImage(
+      final String imageName = await _client.uploadReferenceImage(
         _transfer,
         fileName: photo.fileName,
         contentType: photo.format.contentType,
         bytes: bytes,
+      );
+      return ReferencePhotoUpload(
+        imageName: imageName,
+        photoHash: sha256HexOfBytes(bytes),
       );
     } on Exception catch (_) {
       // The cause is dropped on purpose: it can carry the file path.
@@ -154,9 +182,14 @@ class IllustrationRenderer {
   /// The portrait is derived from the child's photo and is private content: it
   /// stays inside ComfyUI, is never written into the library, and neither it
   /// nor its name is ever logged.
+  ///
+  /// [photo] fixes the seed: the portrait is a function of the child and their
+  /// photograph, never of the book being made, so every story of one child
+  /// redraws the same face.
   Future<String?> renderStylizedReference({
     required String storyId,
-    required String photoImageName,
+    required String profileId,
+    required ReferencePhotoUpload photo,
     required StoryIllustrationStyle style,
     required StoryGenderContext? gender,
   }) async {
@@ -166,8 +199,9 @@ class IllustrationRenderer {
     try {
       final promptId = await _submit(
         buildReferenceStylizeWorkflow(
-          storyId: storyId,
-          photoImageName: photoImageName,
+          profileId: profileId,
+          photoHash: photo.photoHash,
+          photoImageName: photo.imageName,
           style: style,
           gender: gender,
           settings: _config.illustration,

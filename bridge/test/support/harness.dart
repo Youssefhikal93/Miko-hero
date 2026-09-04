@@ -14,6 +14,7 @@ import 'package:iam_hero_bridge/src/generation/story_draft.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 import 'package:iam_hero_bridge/src/generation/story_library_writer.dart';
 import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
+import 'package:iam_hero_bridge/src/library/character_sheet_store.dart';
 import 'package:iam_hero_bridge/src/library/master_library.dart';
 import 'package:iam_hero_bridge/src/probes/probe_client.dart';
 import 'package:iam_hero_bridge/src/server/app_server.dart';
@@ -105,15 +106,21 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
   factory FakeOllamaStoryClient.writing({
     required String story,
     String? outline,
+    String? heroSheet,
     int pageCount = 6,
     FakeOllamaUnloadResponder? unloadResponder,
   }) {
     final plan = outline ?? outlinePayload(pageCount: pageCount);
-    return FakeOllamaStoryClient(
-      (OllamaGenerateRequest request, CancellationToken cancellation) async =>
-          ollamaEnvelope(isOutlineRequest(request) ? plan : story),
-      unloadResponder: unloadResponder,
-    );
+    final sheet = heroSheet ?? heroSheetPayload();
+    return FakeOllamaStoryClient((
+      OllamaGenerateRequest request,
+      CancellationToken cancellation,
+    ) async {
+      if (isVisionRequest(request)) {
+        return ollamaEnvelope(sheet);
+      }
+      return ollamaEnvelope(isOutlineRequest(request) ? plan : story);
+    }, unloadResponder: unloadResponder);
   }
 
   /// Fails every call by throwing [error], like a broken transport.
@@ -125,13 +132,22 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
   }
 
   /// Requests whose schema asked for page beats — the outline pass.
-  List<OllamaGenerateRequest> get outlineRequests =>
-      requests.where(isOutlineRequest).toList(growable: false);
+  List<OllamaGenerateRequest> get outlineRequests => requests
+      .where(
+        (request) => !isVisionRequest(request) && isOutlineRequest(request),
+      )
+      .toList(growable: false);
 
   /// Requests whose schema asked for finished pages — the page pass.
   List<OllamaGenerateRequest> get pageRequests => requests
-      .where((request) => !isOutlineRequest(request))
+      .where(
+        (request) => !isVisionRequest(request) && !isOutlineRequest(request),
+      )
       .toList(growable: false);
+
+  /// Requests that carried a picture — the character-sheet pass.
+  List<OllamaGenerateRequest> get visionRequests =>
+      requests.where(isVisionRequest).toList(growable: false);
 
   /// Behaviour invoked for every call.
   final FakeOllamaResponder responder;
@@ -326,6 +342,29 @@ bool isOutlineRequest(OllamaGenerateRequest request) {
   return properties is Map<String, Object?> && properties.containsKey('beats');
 }
 
+/// Whether [request] is the character-sheet pass.
+///
+/// Recognized by the picture it carries, which is what makes it a vision call
+/// in the first place — a real model tells the passes apart the same way.
+bool isVisionRequest(OllamaGenerateRequest request) =>
+    request.images.isNotEmpty;
+
+/// A schema-valid character-sheet answer.
+///
+/// Three colours and nothing else, exactly as the prompt demands; the outfit
+/// and the prop never come from the model.
+String heroSheetPayload({
+  String hair = 'short curly black hair',
+  String skinTone = 'warm brown',
+  String eyeColor = 'dark brown',
+}) {
+  return jsonEncode(<String, Object?>{
+    'hair': hair,
+    'skinTone': skinTone,
+    'eyeColor': eyeColor,
+  });
+}
+
 /// A schema-valid outline answer with [pageCount] beats.
 ///
 /// [includeHeroAppearance] can be turned off to reproduce a model that plans
@@ -402,7 +441,24 @@ class TestServer {
 
   /// Stops any unfinished generation or illustration job and closes the
   /// database.
-  Future<void> close() => server.close();
+  ///
+  /// Waits for the character-sheet work a photo upload deliberately leaves
+  /// running behind its response first, so nothing is still touching the
+  /// library when the temporary folder is deleted.
+  Future<void> close() async {
+    await server.awaitHeroSheetWork();
+    await server.close();
+  }
+
+  /// Waits for every background character-sheet refresh to finish.
+  ///
+  /// A photo upload answers before its sheet is derived, on purpose. A test
+  /// that wants to assert on the sheet says so here.
+  Future<void> settleHeroSheets() => server.awaitHeroSheetWork();
+
+  /// The stored character sheet of [profileId], or `null` when none exists.
+  HeroCharacterSheet? heroSheet(String profileId) =>
+      server.heroSheet(profileId);
 
   /// Number of rows currently stored in [table].
   int countRows(String table) {

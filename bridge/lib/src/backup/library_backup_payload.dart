@@ -151,6 +151,21 @@ const List<BackupTableSpec> backupTableSpecs = <BackupTableSpec>[
   ),
 ];
 
+/// Tables a restore must empty even though no backup carries them.
+///
+/// These hold **derived** rows: nothing in them is a fact the family typed, so
+/// a backup deliberately leaves them out and the bridge rebuilds them from what
+/// a backup does carry. `hero_character_sheets` is read from the photos again,
+/// and the photos are restored.
+///
+/// Emptying them is not tidiness. Each one references `profiles(id)`, foreign
+/// keys are enforced, and a restore clears `profiles` — so a stale sheet left
+/// behind would make the whole restore fail on a constraint. Worse if it did
+/// not: the sheet would describe a child the restored library no longer has.
+const List<String> derivedTablesClearedOnRestore = <String>[
+  'hero_character_sheets',
+];
+
 /// One library file carried inside a backup payload.
 class BackupFileEntry {
   /// Creates a file entry.

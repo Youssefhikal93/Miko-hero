@@ -23,6 +23,7 @@ class BridgeConfig {
     required this.generationTimeoutSeconds,
     required this.maxGenerationAttempts,
     required this.illustrationTimeoutSeconds,
+    this.visionModel = defaultVisionModel,
     this.allowedWebOrigins = const <String>[],
     this.illustration = IllustrationSettings.defaults,
   });
@@ -42,6 +43,17 @@ class BridgeConfig {
 
   /// Default Ollama model used for story generation.
   static const String defaultOllamaModel = 'gemma3:4b';
+
+  /// Default Ollama model used to read a child's reference photo once.
+  ///
+  /// Kept separate from [defaultOllamaModel] because the two jobs want
+  /// different models: story generation wants the best writer the card can
+  /// hold, and the recommended writers (`qwen3.5:*` and friends) cannot see an
+  /// image at all. `gemma3:4b` is small, already the story floor, and does have
+  /// vision — so an untouched configuration can describe a photo without any
+  /// second download, while a PC that has upgraded its writer keeps this key
+  /// pointing at something that can actually look.
+  static const String defaultVisionModel = 'gemma3:4b';
 
   /// Default wall-clock budget for one story generation call: 15 minutes.
   ///
@@ -99,6 +111,14 @@ class BridgeConfig {
   /// Ollama model tag used for story generation, e.g. `gemma3:4b`.
   final String ollamaModel;
 
+  /// Ollama model tag used to describe a reference photo, e.g. `gemma3:4b`.
+  ///
+  /// Called at most once per photo, to derive the child's drawn character
+  /// sheet. A tag without vision simply fails that call, and the bridge falls
+  /// back to letting the story planner invent an appearance line, as it did
+  /// before character sheets existed.
+  final String visionModel;
+
   /// Wall-clock budget for one story generation call, in seconds.
   final int generationTimeoutSeconds;
 
@@ -149,6 +169,19 @@ class BridgeConfig {
     callTimeout: generationTimeout,
   );
 
+  /// The same Ollama, aimed at the model that can look at a photograph.
+  ///
+  /// A second target rather than a second set of fields for the same reason
+  /// [ollama] is one: the character-sheet pass asks the configuration for a
+  /// request and never assembles a URL, a model tag and a budget itself. The
+  /// budget is its own — one small answer about three colours, nowhere near a
+  /// story's fifteen minutes — because a photo upload must not sit on the card.
+  late final OllamaTarget vision = OllamaTarget(
+    baseUrl: BaseUrl.parse(ollamaBaseUrl),
+    model: visionModel,
+    callTimeout: ollamaVisionCallTimeout,
+  );
+
   /// Everything an outbound ComfyUI call needs, assembled once.
   ///
   /// The control/transfer timeout split is the target's policy, so the
@@ -167,6 +200,7 @@ class BridgeConfig {
       'ollamaBaseUrl': ollamaBaseUrl,
       'comfyUiBaseUrl': comfyUiBaseUrl,
       'ollamaModel': ollamaModel,
+      'visionModel': visionModel,
       'generationTimeoutSeconds': generationTimeoutSeconds,
       'maxGenerationAttempts': maxGenerationAttempts,
       'illustrationTimeoutSeconds': illustrationTimeoutSeconds,
@@ -186,6 +220,7 @@ class BridgeConfig {
     'ollamaBaseUrl',
     'comfyUiBaseUrl',
     'ollamaModel',
+    'visionModel',
     'generationTimeoutSeconds',
     'maxGenerationAttempts',
     'illustrationTimeoutSeconds',
@@ -222,6 +257,7 @@ class BridgeConfig {
           reader.optionalBaseUrl('comfyUiBaseUrl')?.text ??
           defaultComfyUiBaseUrl,
       ollamaModel: reader.optionalString('ollamaModel') ?? defaultOllamaModel,
+      visionModel: reader.optionalString('visionModel') ?? defaultVisionModel,
       generationTimeoutSeconds: reader.optionalInt(
         'generationTimeoutSeconds',
         minimum: minimumGenerationTimeoutSeconds,
@@ -345,6 +381,7 @@ class BridgeConfig {
       ollamaBaseUrl: defaultOllamaBaseUrl,
       comfyUiBaseUrl: defaultComfyUiBaseUrl,
       ollamaModel: defaultOllamaModel,
+      visionModel: defaultVisionModel,
       generationTimeoutSeconds: defaultGenerationTimeoutSeconds,
       maxGenerationAttempts: defaultMaxGenerationAttempts,
       illustrationTimeoutSeconds: defaultIllustrationTimeoutSeconds,

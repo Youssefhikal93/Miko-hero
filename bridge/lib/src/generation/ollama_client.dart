@@ -23,6 +23,14 @@ const int maxOllamaResponseBytes = 4 * 1024 * 1024;
 /// only thing waiting on this is the release of the shared GPU lease.
 const Duration ollamaUnloadTimeout = Duration(seconds: 5);
 
+/// Budget for one call that asks a vision model to look at a photo.
+///
+/// Far below a story's budget on purpose. This is one small structured answer
+/// about three colours, and the callers that want it are a photo upload and the
+/// moment before a story starts — neither can afford to sit on the card for a
+/// quarter of an hour waiting for a model that is not going to answer.
+const Duration ollamaVisionCallTimeout = Duration(minutes: 2);
+
 /// Where the local Ollama is, which model it must answer with, and how long
 /// one call to it may take.
 ///
@@ -49,9 +57,14 @@ class OllamaTarget {
 
   /// One generation call carrying [prompt] and the schema its answer must
   /// conform to.
+  ///
+  /// [images] is base64 for the one caller that has a picture to show — the
+  /// character-sheet pass — and empty for every other call, which is what keeps
+  /// a story request byte-for-byte the body it has always been.
   OllamaGenerateRequest generateRequest({
     required String prompt,
     required Map<String, Object?> format,
+    List<String> images = const <String>[],
   }) {
     return OllamaGenerateRequest(
       baseUrl: baseUrl,
@@ -59,6 +72,7 @@ class OllamaTarget {
       prompt: prompt,
       format: format,
       timeout: callTimeout,
+      images: images,
     );
   }
 
@@ -81,6 +95,7 @@ class OllamaGenerateRequest {
     required this.prompt,
     required this.format,
     required this.timeout,
+    this.images = const <String>[],
   });
 
   /// Base URL of the local Ollama API, e.g. `http://127.0.0.1:11434`.
@@ -98,6 +113,15 @@ class OllamaGenerateRequest {
   /// Wall-clock budget for the whole call.
   final Duration timeout;
 
+  /// Base64-encoded images the model is asked to look at.
+  ///
+  /// Empty for every text call, which is all story generation makes. The one
+  /// caller that fills it is the character-sheet pass, which shows a child's
+  /// reference photo to a vision model exactly once per photo. Those bytes are
+  /// the most private thing the bridge holds: like [prompt], this list is never
+  /// logged and never echoed.
+  final List<String> images;
+
   /// The `/api/generate` endpoint derived from [baseUrl].
   Uri get endpoint => baseUrl.resolve(ollamaGeneratePath);
 
@@ -110,6 +134,10 @@ class OllamaGenerateRequest {
   /// spend the answer in Ollama's `thinking` field and return an empty
   /// `response`, which the bridge can only read as "no story". Models without
   /// a thinking mode ignore the flag.
+  ///
+  /// `images` is written only when there is one: a text-only model handed an
+  /// empty `images` array can refuse the whole call, and every story request
+  /// must keep the body it has always sent.
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'model': model,
@@ -117,6 +145,7 @@ class OllamaGenerateRequest {
       'stream': false,
       'think': false,
       'format': format,
+      if (images.isNotEmpty) 'images': images,
     };
   }
 

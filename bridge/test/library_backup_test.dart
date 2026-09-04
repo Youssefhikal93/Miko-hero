@@ -313,6 +313,59 @@ void main() {
     expect(devices.single.containsKey('token_hash'), isFalse);
   });
 
+  test('a restore clears a character sheet it does not carry', () async {
+    final printedCodes = <String>[];
+    final testServer = await createTestServer(notifyCode: printedCodes.add);
+    addTearDown(testServer.close);
+    await pairDevice(testServer, printedCodes);
+    seedStory(testServer.library);
+    // A sheet belonging to a profile the restore is about to delete. It is
+    // derived data, so no backup carries it — and because it references
+    // `profiles(id)` with foreign keys enforced, a restore that left it in
+    // place would fail on the constraint instead of restoring anything.
+    testServer.library.database.execute(
+      'INSERT INTO hero_character_sheets '
+      '(profile_id, hair, skin_tone, eye_color, outfit, prop, photo_hash, '
+      ' created_at_utc, updated_at_utc) '
+      "VALUES ('profile-1', 'short curly black hair', 'warm brown', "
+      "'dark brown', 'wearing a red cardigan', 'carrying a lantern', "
+      "'hash-a', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')",
+    );
+
+    final service = LibraryBackupService(library: testServer.library);
+    final creation = await service.createBackup(
+      password: _password,
+      nowUtc: DateTime.utc(2026, 9, 3, 12),
+    );
+    final backupBytes = File(
+      _exportPath(testServer.library, creation.fileName),
+    ).readAsBytesSync();
+
+    expect(
+      LibraryBackupPayload.fromBytes(
+        await BackupEnvelope.open(fileBytes: backupBytes, password: _password),
+      ).tables.containsKey('hero_character_sheets'),
+      isFalse,
+      reason: 'a sheet is re-read from the photos, not carried',
+    );
+
+    await service.restoreBackup(
+      fileName: creation.fileName,
+      password: _password,
+    );
+
+    expect(
+      testServer.library.database.select('SELECT * FROM hero_character_sheets'),
+      isEmpty,
+      reason: 'a sheet describing a profile the restore replaced must go',
+    );
+    expect(
+      testServer.library.database.select('SELECT * FROM profiles'),
+      hasLength(1),
+      reason: 'the restore itself still landed',
+    );
+  });
+
   test('the endpoints create and restore one backup over HTTP', () async {
     final printedCodes = <String>[];
     final testServer = await createTestServer(notifyCode: printedCodes.add);

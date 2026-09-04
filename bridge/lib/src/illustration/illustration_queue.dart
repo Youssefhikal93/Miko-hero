@@ -196,11 +196,11 @@ class IllustrationQueue
       return;
     }
 
-    final String? photoImageName = await _renderer.uploadReferencePhoto(
+    final ReferencePhotoUpload? photo = await _renderer.uploadReferencePhoto(
       plan.targets.profileId,
     );
     String? referenceImageName;
-    if (photoImageName != null) {
+    if (photo != null) {
       if (token.isCancelled) {
         _settleCancelled(jobId, start);
         return;
@@ -219,7 +219,8 @@ class IllustrationQueue
       referenceImageName = await _gate.run(_tenant, () {
         return _renderer.renderStylizedReference(
           storyId: plan.targets.storyId,
-          photoImageName: photoImageName,
+          profileId: plan.targets.profileId,
+          photo: photo,
           style: plan.style,
           gender: plan.gender,
         );
@@ -228,7 +229,7 @@ class IllustrationQueue
     logJob(
       jobId,
       'rendering pages=${pages.length} '
-      'photo=${photoImageName == null ? 'no' : 'yes'} '
+      'photo=${photo == null ? 'no' : 'yes'} '
       'reference=${referenceImageName == null ? 'no' : 'stylized'}',
     );
 

@@ -171,8 +171,8 @@ illustration of a story's pages, queued, running, then settled.
 _Avoid_: task, request (in the bridge), operation
 
 **GPU tenant**:
-Whichever of the two local services (Ollama, ComfyUI) holds the PC's single
-graphics card right now, and has to let go before the other may start.
+Whoever holds the PC's single graphics card right now — the writing model, the
+vision model, or ComfyUI — and has to let go before the next may start.
 _Avoid_: lease holder, lock owner
 
 **Outline**:
@@ -190,3 +190,9 @@ _Avoid_: theme, message, takeaway
 The page of an outline where the hero chooses the lesson. Always in the middle
 of the book: after page 1, before the last page.
 _Avoid_: climax, twist
+
+**Character sheet**:
+How one child's **drawn** hero looks, read from their photo once and kept: hair
+and colouring, one outfit, one prop. The same hero appears in every story that
+child gets.
+_Avoid_: profile, avatar, appearance (on its own), description of the photo
