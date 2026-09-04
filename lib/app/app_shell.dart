@@ -24,7 +24,7 @@ class AppShell extends StatelessWidget {
     final selectedIndex = _selectedIndex(location);
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= desktopBreakpoint) {
+        if (isDesktopWidth(constraints.maxWidth)) {
           return _DesktopShell(
             destinations: destinations,
             selectedIndex: selectedIndex,

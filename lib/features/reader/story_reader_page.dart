@@ -23,6 +23,7 @@ import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
 import 'package:miko_hero/shared/reading_badge_view.dart';
 import 'package:miko_hero/shared/reading_text_style.dart';
+import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_artwork.dart';
 
 /// Full-screen illustrated reader with free device narration.
@@ -448,7 +449,7 @@ class _ReaderPage extends StatelessWidget {
           bedtime: bedtime,
           highlightedSentence: highlightedSentence,
         );
-        if (constraints.maxWidth < 760) {
+        if (!isWideReaderWidth(constraints.maxWidth)) {
           return Padding(
             padding: const EdgeInsets.all(18),
             child: Column(

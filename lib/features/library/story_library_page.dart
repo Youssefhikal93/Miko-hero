@@ -405,6 +405,17 @@ String _filterKey(ShelfFilter filter) {
   };
 }
 
+/// Columns the book at [index] covers on a shelf mosaic of [columns] columns.
+///
+/// The newest book takes the whole width; every other book is a full-width row
+/// on a phone, where a third of the screen would leave no room for a title, and
+/// one of three columns in a desktop window. The count comes from the mosaic
+/// itself, so the shelf never has to guess how wide it turned out.
+int shelfTileSpan(int index, int columns) {
+  if (index == 0) return columns;
+  return columns == 3 ? 1 : 2;
+}
+
 /// The visible books, laid out on the shared mosaic.
 ///
 /// One column on a phone — the newest book on a cover tile and every other
@@ -423,43 +434,24 @@ class _ShelfMosaic extends ConsumerWidget {
   final List<StoryBook> stories;
 
   @override
-  /// Chooses each tile's span from the width the shelf actually has.
+  /// Shapes each tile from the column count the mosaic resolved for itself.
   Widget build(BuildContext context, WidgetRef ref) {
     final connection = ref.watch(aiConnectionControllerProvider).value;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= desktopBreakpoint ? 3 : 2;
-        return MosaicGrid(
-          tiles: <MosaicTile>[
-            for (var index = 0; index < stories.length; index++)
-              MosaicTile(
-                span: _spanFor(index, columns),
-                child: StoryCard(
-                  story: stories[index],
-                  variant: index == 0
-                      ? StoryCardVariant.large
-                      : StoryCardVariant.wide,
-                  actions: _actionsFor(
-                    context,
-                    ref,
-                    stories[index],
-                    connection,
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
+    return MosaicGrid.builder(
+      tiles: (columns) => <MosaicTile>[
+        for (var index = 0; index < stories.length; index++)
+          MosaicTile(
+            span: shelfTileSpan(index, columns),
+            child: StoryCard(
+              story: stories[index],
+              variant: index == 0
+                  ? StoryCardVariant.large
+                  : StoryCardVariant.wide,
+              actions: _actionsFor(context, ref, stories[index], connection),
+            ),
+          ),
+      ],
     );
-  }
-
-  /// Gives the newest book the whole width and fits the rows to the grid.
-  ///
-  /// A row is a full-width tile on a phone, where a third of the screen would
-  /// leave no room for a title, and one of three columns on a desktop window.
-  int _spanFor(int index, int columns) {
-    if (index == 0) return columns;
-    return columns == 3 ? 1 : 2;
   }
 
   /// Hands the tile the same commands and the same parent gates as before.

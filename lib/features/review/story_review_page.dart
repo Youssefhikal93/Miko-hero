@@ -55,7 +55,7 @@ class _ReviewQueue extends StatelessWidget {
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                final width = constraints.maxWidth >= 760
+                final width = isWideReaderWidth(constraints.maxWidth)
                     ? (constraints.maxWidth - 16) / 2
                     : constraints.maxWidth;
                 return Wrap(
