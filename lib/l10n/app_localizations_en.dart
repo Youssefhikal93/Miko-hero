@@ -1871,4 +1871,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDangerZone => 'Cannot be undone';
+
+  @override
+  String get nameSpellingsTitle => 'Name in each language';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'How $name\'s name is written in each story language. Leave one empty to use the name exactly as you typed it.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'Same name, that language\'s letters';
+
+  @override
+  String get suggestNameSpellings => 'Ask the PC';
+
+  @override
+  String get nameSpellingsSuggesting => 'Asking the PC how to write the name…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'The PC filled these in. Check them before you save.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'The PC could not suggest spellings. You can type them yourself.';
+
+  @override
+  String get nameSpellingsNeedName => 'Type the name first.';
+
+  @override
+  String get nameSpellingsNeedPc =>
+      'Connect the family PC to have these filled in for you.';
+
+  @override
+  String get nameSpellingTooLong => 'That is too long for a name.';
 }

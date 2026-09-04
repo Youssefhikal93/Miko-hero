@@ -566,5 +566,15 @@
   "settingsDataSummary": "Berättelser på enheten: {count}",
   "settingsNarrationTitle": "Läsa högt",
   "settingsNarrationBody": "Läshastighet, hur mycket som läses och insomningstimern väljs i läsaren varje gång en berättelse läses högt. Inget av det sparas på enheten.",
-  "settingsDangerZone": "Kan inte ångras"
+  "settingsDangerZone": "Kan inte ångras",
+  "nameSpellingsTitle": "Namnet på varje språk",
+  "nameSpellingsBody": "Hur {name}s namn skrivs på varje berättelsespråk. Lämna en ruta tom så används namnet precis som du skrev det.",
+  "nameSpellingsHint": "Samma namn, det språkets bokstäver",
+  "suggestNameSpellings": "Fråga datorn",
+  "nameSpellingsSuggesting": "Frågar datorn hur namnet skrivs…",
+  "nameSpellingsSuggested": "Datorn fyllde i dessa. Kontrollera dem innan du sparar.",
+  "nameSpellingsSuggestFailed": "Datorn kunde inte föreslå stavningar. Du kan skriva dem själv.",
+  "nameSpellingsNeedName": "Skriv namnet först.",
+  "nameSpellingsNeedPc": "Anslut familjens dator så fylls de i åt dig.",
+  "nameSpellingTooLong": "Det är för långt för ett namn."
 }

@@ -175,6 +175,7 @@ class StoryGenerationRequest {
     required this.moral,
     required this.pageCount,
     required this.illustrationStyle,
+    this.heroNameSpelling = '',
     this.favoriteTopics = '',
     this.recurringWorld = '',
   });
@@ -182,8 +183,19 @@ class StoryGenerationRequest {
   /// Stable child identity owning the generated story.
   final String profileId;
 
-  /// Child's name used as the story protagonist.
+  /// Child's name as the parent typed it, in whatever script that was.
   final String heroName;
+
+  /// How that name is written in [language], when the family confirmed it.
+  ///
+  /// Optional and empty by default: a device that never sends it — or a family
+  /// that has no spelling saved for this language — gets exactly the behaviour
+  /// the bridge had before spellings existed, with [heroName] used as-is.
+  ///
+  /// Present, it is the only spelling the story may use: the prompts hand the
+  /// model this string and forbid any other, and the language check stops
+  /// tolerating a Latin name inside Arabic prose (see `checkLanguagePurity`).
+  final String heroNameSpelling;
 
   /// Child's age in whole years, used for age-appropriate wording.
   final int ageYears;
@@ -218,6 +230,17 @@ class StoryGenerationRequest {
   /// Optional and empty by default, for the same reason as [favoriteTopics].
   final String recurringWorld;
 
+  /// The one spelling of the hero's name this story is written with.
+  ///
+  /// [heroNameSpelling] when the family confirmed one, otherwise [heroName].
+  /// Every prompt reads this and nothing else, so there is exactly one answer
+  /// to "what is this child called in this book".
+  String get storyHeroName =>
+      heroNameSpelling.isEmpty ? heroName : heroNameSpelling;
+
+  /// Whether the name is pinned to [language]'s own script by a spelling.
+  bool get hasHeroNameSpelling => heroNameSpelling.isNotEmpty;
+
   /// Validates and parses one `POST /stories/generate` body.
   ///
   /// Throws a [StoryRequestValidationException] naming the first offending
@@ -229,6 +252,13 @@ class StoryGenerationRequest {
     final profileId = reader.requireString('profileId', maxLength: 64);
     final heroName = reader.requireString(
       'heroName',
+      maxLength: maximumHeroNameLength,
+    );
+    // Absent, null and blank all mean "no spelling was confirmed for this
+    // language", which is the same thing a device that predates spellings
+    // says by staying silent.
+    final heroNameSpelling = reader.optionalText(
+      'heroNameSpelling',
       maxLength: maximumHeroNameLength,
     );
     final ageYears = reader.requireInt(
@@ -263,6 +293,7 @@ class StoryGenerationRequest {
     return StoryGenerationRequest(
       profileId: profileId,
       heroName: heroName,
+      heroNameSpelling: heroNameSpelling,
       ageYears: ageYears,
       gender: gender,
       language: language,

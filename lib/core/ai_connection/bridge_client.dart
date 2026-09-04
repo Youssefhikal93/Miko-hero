@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
 import 'package:miko_hero/core/ai_connection/bridge_sync_models.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 
 /// Address the bridge listens on out of the box, on the parent's own PC.
 const defaultBridgeBaseUrl = 'http://127.0.0.1:8765';
@@ -155,6 +156,25 @@ class BridgeClient {
       body: request.toJson(),
     );
     return BridgeJobSubmission.fromJson(answer);
+  }
+
+  /// Asks the PC how one child's name is written in each story language.
+  ///
+  /// [genderContext] is optional refinement, `girl` or `boy`; leaving it out
+  /// simply asks about a child. The answer is a suggestion — the parent
+  /// confirms or corrects it in the profile editor — and nothing about it is
+  /// stored on the PC, so this call names no profile.
+  Future<Map<AppLanguage, String>> suggestNameSpellings({
+    required String heroName,
+    String? genderContext,
+  }) async {
+    final answer = await _send(
+      'POST',
+      '/profiles/spellings/suggest',
+      authenticated: true,
+      body: <String, Object>{'heroName': heroName, 'gender': ?genderContext},
+    );
+    return bridgeNameSpellingsFromJson(answer);
   }
 
   /// Polls one job, including the whole story once it completed.

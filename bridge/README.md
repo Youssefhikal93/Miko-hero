@@ -417,6 +417,7 @@ Queues one story generation job. Body:
 {
   "profileId": "profile-1",
   "heroName": "Nour",
+  "heroNameSpelling": "نور",
   "ageYears": 6,
   "genderContext": "girl",
   "languageCode": "ar",
@@ -429,7 +430,10 @@ Queues one story generation job. Body:
 }
 ```
 
-Every field except the last two is required. `genderContext` is `girl` or
+`profileId`, `heroName`, `ageYears`, `genderContext`, `languageCode`, `theme`,
+`moral`, `pageCount` and `illustrationStyle` are required;
+`heroNameSpelling`, `favoriteTopics` and `recurringWorld` are optional.
+`genderContext` is `girl` or
 `boy` (the app's unspecified state never reaches here), `languageCode` is
 `ar`, `en`, `sv` or `so`, `pageCount` is `6`, `8` or `10`, and
 `illustrationStyle` is `pictureBook`, `watercolor` or `colorful3d`. Anything
@@ -441,6 +445,20 @@ all mean the same thing — nothing was filled in — and the prompt then says
 nothing about them at all. A present value of the wrong type or over the
 limit is still `400 invalid_field`. A device that never sends them keeps
 working unchanged.
+
+`heroNameSpelling` is **optional** (≤ 60 characters) and is how the family
+writes this child's name **in `languageCode`** — `مليكة` for an Arabic book,
+`Malika` for an English one. Ask *Suggest name spellings* below for it, or let
+the parent type it. Given one:
+
+- both prompts name the hero with it, and carry one line forbidding any other
+  spelling of the name anywhere in the answer — no transliteration, no
+  translation, no second script;
+- the language check stops tolerating letters of another script at all (see
+  **Language purity**).
+
+Absent, `null` and blank all mean the same thing: the story is written with
+`heroName` exactly as it always was.
 
 On success:
 
@@ -658,6 +676,56 @@ and a model that answered in the wrong shape all leave whatever was already
 stored, because none of them is something a parent could act on.
 
 Typed failures: `404 profile_not_found`.
+
+### `POST /profiles/spellings/suggest` — requires auth
+
+Asks the story model how one child's given name is written in each of the four
+story languages. Body:
+
+```json
+{ "heroName": "Malika", "gender": "girl" }
+```
+
+`heroName` is required (≤ 60 characters). `gender` is optional, `girl` or
+`boy`, and only refines the wording — leave it out and the prompt asks about a
+child. Anything else is `400 invalid_field` before any model call.
+
+```json
+{
+  "spellings": {
+    "ar": "مليكة",
+    "en": "Malika",
+    "sv": "Malika",
+    "so": "Maliika"
+  }
+}
+```
+
+The four values go back to the device, where the **parent confirms or corrects
+them** before they become part of that child's profile. They then travel with
+every story request as `heroNameSpelling`.
+
+Four things make this endpoint unlike the others:
+
+- **It names no profile and writes nothing.** The suggestion is about a string;
+  whose name it is stays the device's business, and nothing about it is stored
+  on the PC.
+- **It is answered inside the request**, not as a job — four short names are one
+  small call, and a parent is waiting in the profile editor for it. One Ollama
+  call with a JSON schema, on the **story** model (`ollamaModel`), taking its
+  turn at the same GPU gate as generation and rendering, and unloading that
+  model on the way out like every other tenant.
+- **Its budget is 15 seconds**, because the whole HTTP request is capped at 20.
+  A cold model on a busy card will miss that and answer
+  `503 ollama_unavailable`; asking again once the model is resident is cheap,
+  and the parent may always type the four spellings by hand.
+- **All four or none.** An answer that is not four names in the right scripts —
+  an Arabic spelling in Latin letters, a pronunciation guide, a missing
+  language — is refused whole rather than half-filling the editor.
+
+Errors: `400 invalid_field`, `400 invalid_json`, `401 unauthorized`,
+`503 ollama_unavailable` (unreachable, too slow, or an unusable answer). The
+name is never written to a log line, here or anywhere else.
 
 ### `POST /stories/<storyId>/illustrate` — requires auth
 
@@ -1146,6 +1214,16 @@ like a wrong page count.
   whitespace and Arabic vowel marks are not letters and never count.
 
 Not 100 %, on purpose: an invented creature's name is not a language failure.
+
+**Unless the request carried `heroNameSpelling`.** That tolerance only ever
+existed for a name the model had no way to write, and a confirmed spelling is
+exactly that gap closed: with `مليكة` in the request there is no reason left
+for a Latin letter to appear in Arabic prose, and the prompt has already said
+so. So a spelled request is checked at **every letter** — one stray Latin word
+fails the attempt and costs a retry, the same way `en`, `sv` and `so` have
+always refused a single Arabic letter. Nothing else about the check moves: a
+request with no spelling is checked exactly as it always was.
+
 This is script-level defense in depth behind the prompt, not a spellchecker —
 correct grammar is the model's job, and the reason the model choice matters.
 Scene descriptions are exempt, because they are deliberately English.
@@ -1184,6 +1262,11 @@ never written to the console or to any log.
 The character-sheet pass logs one verdict — `hero sheet derived`, `refreshed`,
 `unchanged`, `deferred` or `unavailable` — with no profile id, no photo hash,
 and not one word of the sheet itself.
+
+The name-spelling pass logs `name spellings suggested` or
+`name spellings unavailable`, plus the gate's own `spelling model unloaded`.
+The name it was asked about never appears in any of them, and neither does any
+spelling it answered with.
 
 ## Illustrations
 
@@ -1354,9 +1437,10 @@ story planner treats it exactly as it treats no sheet at all and invents the
 appearance itself, until the first photo fills the other half in. Which is also
 why a re-derive keeps the wardrobe: the two halves have two owners.
 
-**On the card.** The pass is a third Ollama tenant at the one-GPU gate. It takes
-a turn like either queue, and the gate unloads its model before the card changes
-hands, so ComfyUI never starts a render with a vision model still resident.
+**On the card.** The pass is a third Ollama tenant at the one-GPU gate (the
+fourth is the name-spelling pass). It takes a turn like either queue, and the
+gate unloads its model before the card changes hands, so ComfyUI never starts a
+render with a vision model still resident.
 
 **Not backed up, not synced.** The sheet is derived data: a
 [master-library backup](#master-library-backups) carries the photos, and the

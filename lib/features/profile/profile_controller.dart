@@ -163,6 +163,7 @@ class ProfileController {
       birthDate: age.birthDate,
       photoBase64: draft.photoBase64,
       gender: draft.gender,
+      nameSpellings: validChildNameSpellings(draft.nameSpellings),
       themeColorValue: customTheme
           ? existingProfile!.themeColorValue
           : defaultProfileThemeColorValue(draft.gender),

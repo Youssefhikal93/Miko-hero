@@ -620,5 +620,16 @@
   "@settingsDataSummary": {"placeholders": {"count": {"type": "int"}}},
   "settingsNarrationTitle": "Reading aloud",
   "settingsNarrationBody": "Reading speed, how much is read, and the sleep timer are chosen in the reader each time a story is read aloud. None of it is stored on this device.",
-  "settingsDangerZone": "Cannot be undone"
+  "settingsDangerZone": "Cannot be undone",
+  "nameSpellingsTitle": "Name in each language",
+  "nameSpellingsBody": "How {name}'s name is written in each story language. Leave one empty to use the name exactly as you typed it.",
+  "@nameSpellingsBody": {"placeholders": {"name": {"type": "String"}}},
+  "nameSpellingsHint": "Same name, that language's letters",
+  "suggestNameSpellings": "Ask the PC",
+  "nameSpellingsSuggesting": "Asking the PC how to write the name…",
+  "nameSpellingsSuggested": "The PC filled these in. Check them before you save.",
+  "nameSpellingsSuggestFailed": "The PC could not suggest spellings. You can type them yourself.",
+  "nameSpellingsNeedName": "Type the name first.",
+  "nameSpellingsNeedPc": "Connect the family PC to have these filled in for you.",
+  "nameSpellingTooLong": "That is too long for a name."
 }

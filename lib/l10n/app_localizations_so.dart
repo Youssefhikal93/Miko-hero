@@ -1892,4 +1892,39 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get settingsDangerZone => 'Lama celin karo';
+
+  @override
+  String get nameSpellingsTitle => 'Magaca luqad kasta';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'Sida magaca $name loo qoro luqad kasta oo sheeko. Mid ka tag madhan si loo isticmaalo magaca sidii aad u qortay.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'Isla magaca, xarfaha luqaddaas';
+
+  @override
+  String get suggestNameSpellings => 'Weydii PC-ga';
+
+  @override
+  String get nameSpellingsSuggesting =>
+      'Waxaa la weydiinayaa PC-ga sida magaca loo qoro…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'PC-gu wuu buuxiyay. Hubi ka hor inta aanad kaydin.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'PC-gu ma soo jeedin karin qorista. Adigu waad qori kartaa.';
+
+  @override
+  String get nameSpellingsNeedName => 'Marka hore qor magaca.';
+
+  @override
+  String get nameSpellingsNeedPc => 'Ku xir PC-ga qoyska si laguu buuxiyo.';
+
+  @override
+  String get nameSpellingTooLong => 'Taasi waa u dheer tahay magac.';
 }

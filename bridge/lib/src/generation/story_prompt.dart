@@ -56,7 +56,7 @@ String buildStoryOutlinePrompt(
 }) {
   final language = request.language.englishName;
   final pageCount = request.pageCount;
-  final name = request.heroName;
+  final name = request.storyHeroName;
 
   return '''
 You are a warm, careful children's storybook author. Before writing anything,
@@ -90,7 +90,7 @@ Hard requirements:
 3. Each "summary" is one or two short sentences: what happens on that page,
    and what $name feels or decides because of it. A beat that only lists an
    event is not enough; the reader has to be able to feel the page turn.
-${_heroAppearanceRule(request, heroSheet)}
+${_heroAppearanceRule(heroSheet)}
 5. "lessonMoment" is ONE sentence in $language naming the concrete situation
    where $name faces the lesson: what happens, who is there, and what $name
    has to decide. Name the situation, do not restate the lesson, and do not
@@ -118,7 +118,7 @@ String buildStoryPagesPrompt(
   final language = request.language.englishName;
   final possessive = request.gender.pronoun;
   final pageCount = request.pageCount;
-  final name = request.heroName;
+  final name = request.storyHeroName;
 
   return '''
 You are a warm, careful children's storybook author writing one complete
@@ -199,12 +199,11 @@ Answer with one JSON object matching the requested schema and nothing else.
 /// unchanged. Copying is asked for rather than the field being dropped because
 /// the schema still carries it, and a planner that has read the hero's coat
 /// writes beats that agree with it.
-String _heroAppearanceRule(StoryGenerationRequest request, String? heroSheet) {
+String _heroAppearanceRule(String? heroSheet) {
   final sheet = heroSheet?.trim() ?? '';
   if (sheet.isEmpty) {
-    final name = request.heroName;
     return '''
-4. "heroAppearance" is ONE short English line describing how $name looks in
+4. "heroAppearance" is ONE short English line describing how the hero looks in
    the pictures: hair, clothing colours, and one small prop that recurs — for
    example "short curly black hair, mustard-yellow raincoat, red boots,
    carries a small brass lantern". It is read only by the picture model, so
@@ -225,11 +224,21 @@ String _heroAppearanceRule(StoryGenerationRequest request, String? heroSheet) {
 }
 
 /// The hero description shared by both passes.
+///
+/// The name written here is the family's confirmed spelling for this story's
+/// language when there is one, so an Arabic book says مليكة everywhere and an
+/// English one says Malika. The spelling rule below is the other half of that
+/// promise: without it a model handed مليكة still slips "Malika" into a
+/// sentence, or transliterates it back on the next page.
 String _heroBlock(StoryGenerationRequest request) {
-  final name = request.heroName;
+  final name = request.storyHeroName;
   final language = request.language.englishName;
   return '''
 - Name: $name
+- Write the hero's name EXACTLY as "$name", letter for letter, every single
+  time it appears. This is the family's own spelling of it in $language: never
+  transliterate it, translate it, shorten it, add to it, or write it in any
+  other spelling or script anywhere in this answer.
 - The hero is a ${request.gender.wireName}; refer to $name with
   "${request.gender.subjectPronoun}" and "${request.gender.pronoun}" wording
   that is natural in $language.
@@ -238,7 +247,7 @@ String _heroBlock(StoryGenerationRequest request) {
 
 /// The parent's idea, lesson and saved preferences, shared by both passes.
 String _storyIdeaBlock(StoryGenerationRequest request) {
-  final name = request.heroName;
+  final name = request.storyHeroName;
   final lines = <String>[
     '- Setting or adventure idea: ${request.theme}',
     '- Lesson the story must teach through what $name does: ${request.moral}',

@@ -566,5 +566,15 @@
   "settingsDataSummary": "القصص على هذا الجهاز: {count}",
   "settingsNarrationTitle": "القراءة بصوت عالٍ",
   "settingsNarrationBody": "تُختار سرعة القراءة ومقدارها ومؤقّت النوم داخل القارئ في كل مرة تُقرأ فيها قصة بصوت عالٍ. لا يُحفظ أي من ذلك على هذا الجهاز.",
-  "settingsDangerZone": "لا يمكن التراجع"
+  "settingsDangerZone": "لا يمكن التراجع",
+  "nameSpellingsTitle": "الاسم في كل لغة",
+  "nameSpellingsBody": "كيف يُكتب اسم {name} في كل لغة من لغات القصص. اترك الخانة فارغة لاستخدام الاسم كما كتبته تمامًا.",
+  "nameSpellingsHint": "الاسم نفسه بحروف تلك اللغة",
+  "suggestNameSpellings": "اسأل الكمبيوتر",
+  "nameSpellingsSuggesting": "نسأل الكمبيوتر كيف يُكتب الاسم…",
+  "nameSpellingsSuggested": "ملأ الكمبيوتر هذه الخانات. راجعها قبل الحفظ.",
+  "nameSpellingsSuggestFailed": "لم يستطع الكمبيوتر اقتراح الكتابة. يمكنك كتابتها بنفسك.",
+  "nameSpellingsNeedName": "اكتب الاسم أولًا.",
+  "nameSpellingsNeedPc": "اربط كمبيوتر العائلة ليملأها لك.",
+  "nameSpellingTooLong": "هذا أطول من أن يكون اسمًا."
 }

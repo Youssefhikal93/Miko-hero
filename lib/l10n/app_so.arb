@@ -566,5 +566,15 @@
   "settingsDataSummary": "Sheekooyinka qalabkan ku jira: {count}",
   "settingsNarrationTitle": "Kor u akhrinta",
   "settingsNarrationBody": "Xawaaraha akhriska, inta la akhriyo, iyo saacadda hurdada waxaa lagu doortaa akhristaha mar kasta oo sheeko kor loo akhriyo. Midna qalabkan lagama kaydiyo.",
-  "settingsDangerZone": "Lama celin karo"
+  "settingsDangerZone": "Lama celin karo",
+  "nameSpellingsTitle": "Magaca luqad kasta",
+  "nameSpellingsBody": "Sida magaca {name} loo qoro luqad kasta oo sheeko. Mid ka tag madhan si loo isticmaalo magaca sidii aad u qortay.",
+  "nameSpellingsHint": "Isla magaca, xarfaha luqaddaas",
+  "suggestNameSpellings": "Weydii PC-ga",
+  "nameSpellingsSuggesting": "Waxaa la weydiinayaa PC-ga sida magaca loo qoro…",
+  "nameSpellingsSuggested": "PC-gu wuu buuxiyay. Hubi ka hor inta aanad kaydin.",
+  "nameSpellingsSuggestFailed": "PC-gu ma soo jeedin karin qorista. Adigu waad qori kartaa.",
+  "nameSpellingsNeedName": "Marka hore qor magaca.",
+  "nameSpellingsNeedPc": "Ku xir PC-ga qoyska si laguu buuxiyo.",
+  "nameSpellingTooLong": "Taasi waa u dheer tahay magac."
 }

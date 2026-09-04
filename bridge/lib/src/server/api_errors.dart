@@ -69,6 +69,13 @@ abstract final class ApiErrorCode {
   /// The illustration exists but has no rendered image file yet.
   static const String illustrationNotReady = 'illustration_not_ready';
 
+  /// The local Ollama could not answer a call the request was waiting on.
+  ///
+  /// The same wire code a generation job reports, because it is the same fact
+  /// about the same machine — only reported inside the request rather than on
+  /// a job, since the name-spelling suggestion is answered synchronously.
+  static const String ollamaUnavailable = 'ollama_unavailable';
+
   /// Unexpected server-side failure.
   static const String internalError = 'internal_error';
 }

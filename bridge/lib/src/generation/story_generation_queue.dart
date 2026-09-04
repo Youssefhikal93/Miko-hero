@@ -297,6 +297,9 @@ class StoryGenerationQueue
   /// Defense in depth behind the prompt, and deliberately reported as invalid
   /// model output so it consumes a retry exactly like a wrong page count. The
   /// message carries counts only, never a word of the story.
+  ///
+  /// A request that carries a confirmed spelling of the hero's name is checked
+  /// strictly: the one thing the tolerance was ever for is now in the prompt.
   void _requirePureLanguage(
     StoryGenerationRequest request,
     Iterable<String> texts,
@@ -304,6 +307,7 @@ class StoryGenerationQueue
     final verdict = checkLanguagePurity(
       language: request.language,
       texts: texts,
+      heroNameIsSpelled: request.hasHeroNameSpelling,
     );
     final String? failure = verdict.failure;
     if (failure != null) {

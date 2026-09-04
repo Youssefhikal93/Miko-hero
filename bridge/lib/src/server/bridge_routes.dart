@@ -121,4 +121,14 @@ const List<BridgeRoute> bridgeRoutes = <BridgeRoute>[
   BridgeRoute(method: 'POST', path: '/sync/complete', requiresAuth: true),
   BridgeRoute(method: 'POST', path: '/library/backup', requiresAuth: true),
   BridgeRoute(method: 'POST', path: '/library/restore', requiresAuth: true),
+  // Spelling a child's name in the four story languages. Three segments and a
+  // POST, so it cannot be confused with `DELETE /profiles/<profileId>` or with
+  // either `/profiles/<profileId>/photo`, whichever order they are registered
+  // in. It names no profile on purpose: the answer is a suggestion about a
+  // string, and only the device decides whose profile it belongs to.
+  BridgeRoute(
+    method: 'POST',
+    path: '/profiles/spellings/suggest',
+    requiresAuth: true,
+  ),
 ];

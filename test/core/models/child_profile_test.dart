@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 
 /// Verifies that a child's displayed age stays correct as the child grows.
@@ -88,6 +89,105 @@ void main() {
       () => _profileJsonWith(formatChildBirthDate(lastMonth)),
       throwsA(isA<FormatException>()),
     );
+  });
+
+  test('a profile saved before spellings existed keeps its one name', () {
+    final profile = ChildProfile.fromJson(<String, Object?>{
+      'id': 'malika',
+      'name': 'Malika',
+      'age': 7,
+      'photoBase64': 'cGhvdG8=',
+      'gender': 'girl',
+    });
+
+    expect(profile.nameSpellings, isEmpty);
+    for (final language in AppLanguage.values) {
+      expect(profile.nameIn(language), 'Malika');
+      expect(profile.heroNameIn(language), 'Malika hero');
+    }
+    expect(
+      profile.toJson().containsKey('nameSpellings'),
+      isFalse,
+      reason: 'a profile with no spellings encodes as it always did',
+    );
+  });
+
+  test('one spelling per language survives a storage round trip', () {
+    final saved = _malika().withNameSpellings(<AppLanguage, String>{
+      AppLanguage.arabic: 'مليكة',
+      AppLanguage.somali: 'Maliika',
+    });
+
+    final restored = ChildProfile.fromJson(saved.toJson());
+
+    expect(restored.nameIn(AppLanguage.arabic), 'مليكة');
+    expect(restored.nameIn(AppLanguage.somali), 'Maliika');
+    expect(
+      restored.nameIn(AppLanguage.english),
+      'Malika',
+      reason: 'a language with no spelling uses the entered name',
+    );
+    expect(restored.heroNameIn(AppLanguage.arabic), 'مليكة hero');
+    expect(restored.toJson()['nameSpellings'], <String, Object>{
+      'ar': 'مليكة',
+      'so': 'Maliika',
+    });
+  });
+
+  test('a cleared box is an absent language, not an empty spelling', () {
+    final saved = _malika().withNameSpellings(<AppLanguage, String>{
+      AppLanguage.arabic: '  مليكة  ',
+      AppLanguage.swedish: '   ',
+    });
+
+    expect(saved.nameSpellings.keys, <AppLanguage>[AppLanguage.arabic]);
+    expect(saved.nameSpellings[AppLanguage.arabic], 'مليكة');
+    expect(saved.nameIn(AppLanguage.swedish), 'Malika');
+  });
+
+  test('spellings survive every other saved change to the profile', () {
+    final saved = _malika()
+        .withNameSpellings(<AppLanguage, String>{AppLanguage.arabic: 'مليكة'})
+        .withThemeColor(0xFF112233)
+        .withFinishedStory('story-1');
+
+    expect(saved.nameIn(AppLanguage.arabic), 'مليكة');
+  });
+
+  final malformedSpellings = <String, Object?>{
+    'a spelling list that is not an object': <Object?>['مليكة'],
+    'an unsupported language code': <String, Object?>{'de': 'Malika'},
+    'a blank spelling': <String, Object?>{'ar': '   '},
+    'a spelling that is not a string': <String, Object?>{'ar': 7},
+    'an oversized spelling': <String, Object?>{
+      'ar': 'م' * (maximumChildNameSpellingLength + 1),
+    },
+  };
+  malformedSpellings.forEach((description, encoded) {
+    test('$description is refused at the storage boundary', () {
+      expect(
+        () => ChildProfile.fromJson(<String, Object?>{
+          'id': 'malika',
+          'name': 'Malika',
+          'age': 7,
+          'nameSpellings': encoded,
+          'photoBase64': 'cGhvdG8=',
+          'gender': 'girl',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+    });
+  });
+}
+
+/// One valid profile whose name is written differently in different languages.
+ChildProfile _malika() {
+  return ChildProfile.fromJson(<String, Object?>{
+    'id': 'malika',
+    'name': 'Malika',
+    'age': 7,
+    'photoBase64': 'cGhvdG8=',
+    'gender': 'girl',
   });
 }
 

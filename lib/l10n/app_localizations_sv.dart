@@ -1893,4 +1893,39 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get settingsDangerZone => 'Kan inte ångras';
+
+  @override
+  String get nameSpellingsTitle => 'Namnet på varje språk';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'Hur ${name}s namn skrivs på varje berättelsespråk. Lämna en ruta tom så används namnet precis som du skrev det.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'Samma namn, det språkets bokstäver';
+
+  @override
+  String get suggestNameSpellings => 'Fråga datorn';
+
+  @override
+  String get nameSpellingsSuggesting => 'Frågar datorn hur namnet skrivs…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'Datorn fyllde i dessa. Kontrollera dem innan du sparar.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'Datorn kunde inte föreslå stavningar. Du kan skriva dem själv.';
+
+  @override
+  String get nameSpellingsNeedName => 'Skriv namnet först.';
+
+  @override
+  String get nameSpellingsNeedPc =>
+      'Anslut familjens dator så fylls de i åt dig.';
+
+  @override
+  String get nameSpellingTooLong => 'Det är för långt för ett namn.';
 }

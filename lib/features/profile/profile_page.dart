@@ -7,8 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/profile/hero_sheet_controller.dart';
+import 'package:miko_hero/features/profile/name_spellings_section.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
@@ -192,6 +194,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   String? _photoBase64;
   DateTime? _birthDate;
   ChildGender? _gender;
+  Map<AppLanguage, String> _nameSpellings = const <AppLanguage, String>{};
   bool _birthDateMissing = false;
   bool _saving = false;
 
@@ -218,6 +221,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _nameController = TextEditingController(text: widget.initialProfile?.name);
     _photoBase64 = widget.initialProfile?.photoBase64;
     _birthDate = widget.initialProfile?.birthDate;
+    _nameSpellings =
+        widget.initialProfile?.nameSpellings ?? const <AppLanguage, String>{};
     final storedGender = widget.initialProfile?.gender;
     _gender = storedGender?.isSpecified == true ? storedGender : null;
     _loadHeroSheet();
@@ -277,6 +282,14 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               selectedGender: _gender,
               enabled: !_saving,
               onSelected: (gender) => setState(() => _gender = gender),
+            ),
+            const SizedBox(height: 20),
+            NameSpellingsSection(
+              heroName: _nameController.text,
+              gender: _gender,
+              spellings: _nameSpellings,
+              enabled: !_saving,
+              onChanged: (spellings) => _nameSpellings = spellings,
             ),
             if (_photoBase64 == null) ...<Widget>[
               const SizedBox(height: 12),
@@ -539,6 +552,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               birthDate: birthDate,
               photoBase64: photoBase64,
               gender: gender,
+              nameSpellings: _nameSpellings,
             ),
           );
       // The PC's half of the save, and only its own failure is reported: the

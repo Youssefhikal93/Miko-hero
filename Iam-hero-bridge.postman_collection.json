@@ -294,7 +294,7 @@
     },
     {
       "name": "Profiles",
-      "description": "The child's reference photo — the one thing that makes the hero look like the same child on every page — and the hero sheet the PC reads out of it. Set `profileId` by hand before using this folder. The bytes never leave the library: they are not logged, not echoed, and never sent to a paired device, only to the local ComfyUI while a page renders. The sheet does leave, but only to a paired device that asked for one named child, and never into a log or a sync manifest.",
+      "description": "What the PC knows about one child: the reference photo — the one thing that makes the hero look like the same child on every page — the hero sheet the PC reads out of it, and how that child's name is written in each story language. Set `profileId` by hand before using the requests that name one. The photo bytes never leave the library: they are not logged, not echoed, and never sent to a paired device, only to the local ComfyUI while a page renders. The sheet does leave, but only to a paired device that asked for one named child, and never into a log or a sync manifest.",
       "item": [
         {
           "name": "Upload reference photo",
@@ -387,6 +387,34 @@
             "description": "Requires auth. Reads the child's stored reference photo again and rewrites the three derived traits, **ignoring the photo-hash cache** — that is the whole point of the request. The outfit and the prop are never touched.\n\nAnswers `202` with `\"started\": true` and the sheet as it stands by the time the PC answers:\n\n```json\n{\n  \"profileId\": \"profile-1\",\n  \"started\": true,\n  \"sheet\": { \"hair\": \"long straight brown hair\", \"…\": \"…\" }\n}\n```\n\nThe re-read takes its turn at the one GPU gate like a story or a render does, so a card that is busy drawing a book keeps it and the sheet in the answer is still the old one; ask again, or read the sheet, once the PC is free. Nothing here fails: a profile with no photo, an Ollama that is down and a model that answered in the wrong shape all leave whatever was already stored.\n\nErrors: `404 profile_not_found`, `401 unauthorized`."
           },
           "response": []
+        },
+        {
+          "name": "Suggest name spellings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"heroName\": \"Malika\",\n  \"gender\": \"girl\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profiles/spellings/suggest",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "spellings", "suggest"]
+            },
+            "description": "Requires auth. Asks the story model how one child's given name is written in each of the four story languages, and answers `200`:\n\n```json\n{\n  \"spellings\": {\n    \"ar\": \"مليكة\",\n    \"en\": \"Malika\",\n    \"sv\": \"Malika\",\n    \"so\": \"Maliika\"\n  }\n}\n```\n\nOne Ollama call with a JSON schema, on the **story** model (`ollamaModel`), taking its turn at the same GPU gate as generation and rendering. Its budget is 15 seconds — the whole request is capped at 20 — because a parent is waiting in the profile editor for the answer. A cold model on a busy card will miss that; asking again once it is resident is cheap, and the parent may always type the four spellings by hand.\n\nNames no profile and writes nothing: this is a suggestion about a string, and the device decides whose profile it belongs to. The name is never written to a log line, here or anywhere else.\n\n`heroName` is required (≤ 60 characters). `gender` is optional, `girl` or `boy`, and only refines the wording — leave it out and the prompt says nothing about it.\n\nAll four values come back or none do: an answer that is not four names in the right scripts is refused whole. The spelling then travels back on `POST /stories/generate` as `heroNameSpelling`.\n\nErrors: `400 invalid_field`, `400 invalid_json`, `401 unauthorized`, `503 ollama_unavailable` (unreachable, too slow, or an answer that was not four names)."
+          },
+          "response": []
         }
       ]
     },
@@ -424,7 +452,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"profileId\": \"profile-1\",\n  \"heroName\": \"Nour\",\n  \"ageYears\": 6,\n  \"genderContext\": \"girl\",\n  \"languageCode\": \"ar\",\n  \"theme\": \"A lantern festival by the sea\",\n  \"moral\": \"Sharing a small light makes it bigger\",\n  \"pageCount\": 6,\n  \"illustrationStyle\": \"pictureBook\",\n  \"favoriteTopics\": \"sea turtles and paper boats\",\n  \"recurringWorld\": \"the Lantern Harbour\"\n}",
+              "raw": "{\n  \"profileId\": \"profile-1\",\n  \"heroName\": \"Nour\",\n  \"heroNameSpelling\": \"نور\",\n  \"ageYears\": 6,\n  \"genderContext\": \"girl\",\n  \"languageCode\": \"ar\",\n  \"theme\": \"A lantern festival by the sea\",\n  \"moral\": \"Sharing a small light makes it bigger\",\n  \"pageCount\": 6,\n  \"illustrationStyle\": \"pictureBook\",\n  \"favoriteTopics\": \"sea turtles and paper boats\",\n  \"recurringWorld\": \"the Lantern Harbour\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -436,7 +464,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["stories", "generate"]
             },
-            "description": "Requires auth. Queues one story generation job and answers `202` — nothing has been written yet:\n\n```json\n{ \"jobId\": \"…\", \"queuePosition\": 1 }\n```\n\n**The test script stores `jobId`**, so Read story job below polls this job with no copy-paste. Position `1` means next or already starting.\n\nEvery field except the last two is required. `genderContext` is `girl` or `boy`, `languageCode` is `ar`, `en`, `sv` or `so`, `pageCount` is `6`, `8` or `10`, and `illustrationStyle` is `pictureBook`, `watercolor` or `colorful3d`. `favoriteTopics` and `recurringWorld` are optional (≤ 240 characters each); absent, `null` and blank all mean the same thing and the prompt then says nothing about them.\n\nErrors: `400 invalid_field` (before a job exists), `400 invalid_json`, `401 unauthorized`, `413 body_too_large`. Failures reported later on the job itself: `ollama_unavailable`, `ollama_timeout`, `invalid_model_output`, `library_write_failed`, `cancelled`, `internal_error`."
+            "description": "Requires auth. Queues one story generation job and answers `202` — nothing has been written yet:\n\n```json\n{ \"jobId\": \"…\", \"queuePosition\": 1 }\n```\n\n**The test script stores `jobId`**, so Read story job below polls this job with no copy-paste. Position `1` means next or already starting.\n\n`profileId`, `heroName`, `ageYears`, `genderContext`, `languageCode`, `theme`, `moral`, `pageCount` and `illustrationStyle` are required. `genderContext` is `girl` or `boy`, `languageCode` is `ar`, `en`, `sv` or `so`, `pageCount` is `6`, `8` or `10`, and `illustrationStyle` is `pictureBook`, `watercolor` or `colorful3d`. `favoriteTopics` and `recurringWorld` are optional (≤ 240 characters each); absent, `null` and blank all mean the same thing and the prompt then says nothing about them.\n\n`heroNameSpelling` is optional (≤ 60 characters) and is **how the family writes this child's name in `languageCode`** — `مليكة` for an Arabic book, `Malika` for an English one; see **Profiles → Suggest name spellings**. Given one, both prompts use it and forbid any other spelling of the name in the answer, and the language check stops tolerating letters of another script at all — the tolerance only ever existed for a name the model had no way to write. Absent, `null` and blank all mean the same thing and the story is written with `heroName` exactly as before.\n\nErrors: `400 invalid_field` (before a job exists), `400 invalid_json`, `401 unauthorized`, `413 body_too_large`. Failures reported later on the job itself: `ollama_unavailable`, `ollama_timeout`, `invalid_model_output`, `library_write_failed`, `cancelled`, `internal_error`."
           },
           "response": []
         },

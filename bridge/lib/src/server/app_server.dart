@@ -5,6 +5,7 @@ import 'package:iam_hero_bridge/src/common/gpu_gate.dart';
 import 'package:iam_hero_bridge/src/common/job_queue.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/generation_job.dart';
+import 'package:iam_hero_bridge/src/generation/hero_name_spelling_service.dart';
 import 'package:iam_hero_bridge/src/generation/hero_sheet_service.dart';
 import 'package:iam_hero_bridge/src/generation/ollama_client.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_queue.dart';
@@ -33,6 +34,7 @@ import 'package:iam_hero_bridge/src/server/health_handler.dart';
 import 'package:iam_hero_bridge/src/server/hero_sheet_handlers.dart';
 import 'package:iam_hero_bridge/src/server/illustration_handlers.dart';
 import 'package:iam_hero_bridge/src/server/management_handlers.dart';
+import 'package:iam_hero_bridge/src/server/name_spelling_handlers.dart';
 import 'package:iam_hero_bridge/src/server/pairing_handlers.dart';
 import 'package:iam_hero_bridge/src/server/profile_photo_handlers.dart';
 import 'package:iam_hero_bridge/src/server/request_limits.dart';
@@ -165,6 +167,17 @@ class AppServer {
     _backupHandlers = BackupHandlers(
       service: LibraryBackupService(library: library),
     );
+    // The fourth Ollama tenant at the same gate: spelling one child's name in
+    // the four story languages, answered inside the request because a parent
+    // is waiting in the profile editor for it.
+    _nameSpellingHandlers = NameSpellingHandlers(
+      service: HeroNameSpellingService(
+        config: config,
+        client: ollamaClient,
+        gate: gpuGate,
+        log: logEvent,
+      ),
+    );
   }
 
   /// Runtime configuration this server was built from.
@@ -210,6 +223,7 @@ class AppServer {
   late final ManagementHandlers _managementHandlers;
   late final SyncHandlers _syncHandlers;
   late final BackupHandlers _backupHandlers;
+  late final NameSpellingHandlers _nameSpellingHandlers;
 
   /// The handler wired to each route of [bridgeRoutes], keyed by
   /// [BridgeRoute.key].
@@ -249,6 +263,8 @@ class AppServer {
       'POST /sync/complete': _syncHandlers.completeSync,
       'POST /library/backup': _backupHandlers.createBackup,
       'POST /library/restore': _backupHandlers.restoreBackup,
+      'POST /profiles/spellings/suggest':
+          _nameSpellingHandlers.suggestSpellings,
     };
   }
 

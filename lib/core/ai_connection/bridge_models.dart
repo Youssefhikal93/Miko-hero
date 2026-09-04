@@ -1,4 +1,5 @@
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 
 /// Health of the PC bridge and of the local services it depends on.
 ///
@@ -380,6 +381,30 @@ class BridgeStoryPage {
   }
 }
 
+/// Validates one `POST /profiles/spellings/suggest` answer.
+///
+/// The PC either spelled the name in every story language or it did not answer
+/// at all, so a partial map is refused rather than half-filling the editor.
+/// Nothing here is stored on the PC: this is a suggestion about a string, and
+/// the parent confirms or corrects it before it becomes part of a profile.
+Map<AppLanguage, String> bridgeNameSpellingsFromJson(
+  Map<String, Object?> json,
+) {
+  final spellings = json['spellings'];
+  if (spellings is! Map<String, Object?>) {
+    throw const BridgeException(BridgeFailure.invalidResponse);
+  }
+  final suggested = <AppLanguage, String>{};
+  for (final language in AppLanguage.values) {
+    final spelling = spellings[language.code];
+    if (spelling is! String || spelling.trim().isEmpty) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    suggested[language] = spelling.trim();
+  }
+  return Map<AppLanguage, String>.unmodifiable(suggested);
+}
+
 /// Stored reference photo of one child exactly as the PC recorded it.
 ///
 /// The photo itself never comes back: the app already holds the bytes it sent,
@@ -699,6 +724,7 @@ class BridgeStoryRequest {
     required this.moral,
     required this.pageCount,
     required this.illustrationStyle,
+    this.heroNameSpelling = '',
     this.favoriteTopics = '',
     this.recurringWorld = '',
   });
@@ -706,8 +732,16 @@ class BridgeStoryRequest {
   /// Stable local child identity, reused as the PC library profile key.
   final String profileId;
 
-  /// Child's name used as the story protagonist.
+  /// Child's name as the parent typed it, in whatever script that was.
   final String heroName;
+
+  /// How the family writes that name in [languageCode], when they confirmed it.
+  ///
+  /// Optional on the wire: an empty value is left out of the body entirely,
+  /// which is also what a bridge build from before this field existed sees, and
+  /// what a child with no saved spelling for this language sends. Given one,
+  /// the PC writes the whole story with it and refuses any other spelling.
+  final String heroNameSpelling;
 
   /// Child's age in whole years on the day the request is sent.
   final int ageYears;
@@ -746,6 +780,7 @@ class BridgeStoryRequest {
     return <String, Object>{
       'profileId': profileId,
       'heroName': heroName,
+      if (heroNameSpelling.isNotEmpty) 'heroNameSpelling': heroNameSpelling,
       'ageYears': ageYears,
       'genderContext': genderContext,
       'languageCode': languageCode,

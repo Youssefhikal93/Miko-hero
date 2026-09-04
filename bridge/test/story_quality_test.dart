@@ -14,12 +14,14 @@ StoryGenerationRequest request({
   StoryLanguage language = StoryLanguage.english,
   int ageYears = 6,
   int pageCount = 6,
+  String heroNameSpelling = '',
   String favoriteTopics = '',
   String recurringWorld = '',
 }) {
   return StoryGenerationRequest(
     profileId: 'profile-1',
     heroName: 'Nour',
+    heroNameSpelling: heroNameSpelling,
     ageYears: ageYears,
     gender: StoryGenderContext.girl,
     language: language,
@@ -307,6 +309,43 @@ void main() {
       expect(verdict.isPure, isTrue);
     });
 
+    test('a confirmed spelling ends that tolerance for Arabic', () {
+      final verdict = checkLanguagePurity(
+        language: StoryLanguage.arabic,
+        texts: const <String>[arabicPage, arabicPage, arabicPage, 'Nour'],
+        heroNameIsSpelled: true,
+      );
+
+      expect(verdict.isPure, isFalse);
+      expect(verdict.failure, contains('4 letters of another script'));
+      expect(
+        verdict.failure,
+        contains("carried the hero's name spelled in Arabic"),
+      );
+    });
+
+    test('the tightened check still accepts a page that is all Arabic', () {
+      final verdict = checkLanguagePurity(
+        language: StoryLanguage.arabic,
+        texts: const <String>['مليكة وفوانيس البحر', arabicPage, '١٢٣ — ؟،'],
+        heroNameIsSpelled: true,
+      );
+
+      expect(verdict.isPure, isTrue);
+      expect(verdict.latinLetters, 0);
+    });
+
+    test('a confirmed spelling tightens the Latin languages too', () {
+      final verdict = checkLanguagePurity(
+        language: StoryLanguage.swedish,
+        texts: const <String>[swedishPage, swedishPage, 'Привет'],
+        heroNameIsSpelled: true,
+      );
+
+      expect(verdict.isPure, isFalse);
+      expect(verdict.otherLetters, greaterThan(0));
+    });
+
     for (final language in <StoryLanguage>[
       StoryLanguage.english,
       StoryLanguage.swedish,
@@ -554,6 +593,54 @@ void main() {
       expect(prompt, contains('Page 5 is the turn: on that page'));
       expect(prompt, contains('chooses the lesson in what Nour actually does'));
       expect(prompt, contains('how making it feels in the'));
+    });
+
+    test('both passes write the confirmed spelling and forbid another', () {
+      final arabic = request(
+        language: StoryLanguage.arabic,
+        heroNameSpelling: 'مليكة',
+      );
+
+      // A plan with no Latin name in it either, so the assertion below is
+      // about the prompt builder rather than about the fixture.
+      final plan = outline(
+        title: 'فوانيس البحر',
+        lessonMoment: 'She is asked to share her only lit lantern.',
+      );
+      for (final prompt in <String>[
+        buildStoryOutlinePrompt(arabic),
+        buildStoryPagesPrompt(arabic, plan),
+      ]) {
+        expect(
+          prompt,
+          contains('- Name: مليكة'),
+          reason: 'the story is written about the name the family confirmed',
+        );
+        expect(
+          prompt,
+          contains(
+            'Write the hero\'s name EXACTLY as "مليكة", letter for letter, '
+            'every single\n  time it appears.',
+          ),
+          reason: 'the one line that forbids any other spelling of the name',
+        );
+        expect(prompt, contains('never\n  transliterate it'));
+        expect(
+          prompt,
+          isNot(contains('Nour')),
+          reason: 'the Latin spelling has no business in an Arabic book',
+        );
+      }
+    });
+
+    test('without a spelling the prompts say the entered name, as before', () {
+      for (final prompt in <String>[
+        buildStoryOutlinePrompt(request()),
+        buildStoryPagesPrompt(request(), outline()),
+      ]) {
+        expect(prompt, contains('- Name: Nour'));
+        expect(prompt, contains('Write the hero\'s name EXACTLY as "Nour"'));
+      }
     });
 
     test('the name is asked for naturally, not in every sentence', () {

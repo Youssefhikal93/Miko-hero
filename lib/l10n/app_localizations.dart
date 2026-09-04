@@ -3365,6 +3365,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cannot be undone'**
   String get settingsDangerZone;
+
+  /// No description provided for @nameSpellingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Name in each language'**
+  String get nameSpellingsTitle;
+
+  /// No description provided for @nameSpellingsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'How {name}\'s name is written in each story language. Leave one empty to use the name exactly as you typed it.'**
+  String nameSpellingsBody(String name);
+
+  /// No description provided for @nameSpellingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Same name, that language\'s letters'**
+  String get nameSpellingsHint;
+
+  /// No description provided for @suggestNameSpellings.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the PC'**
+  String get suggestNameSpellings;
+
+  /// No description provided for @nameSpellingsSuggesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking the PC how to write the name…'**
+  String get nameSpellingsSuggesting;
+
+  /// No description provided for @nameSpellingsSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC filled these in. Check them before you save.'**
+  String get nameSpellingsSuggested;
+
+  /// No description provided for @nameSpellingsSuggestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC could not suggest spellings. You can type them yourself.'**
+  String get nameSpellingsSuggestFailed;
+
+  /// No description provided for @nameSpellingsNeedName.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the name first.'**
+  String get nameSpellingsNeedName;
+
+  /// No description provided for @nameSpellingsNeedPc.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the family PC to have these filled in for you.'**
+  String get nameSpellingsNeedPc;
+
+  /// No description provided for @nameSpellingTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'That is too long for a name.'**
+  String get nameSpellingTooLong;
 }
 
 class _AppLocalizationsDelegate

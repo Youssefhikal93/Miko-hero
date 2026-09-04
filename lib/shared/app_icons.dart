@@ -32,6 +32,10 @@ abstract final class AppIcons {
   /// it, the button that sends a story request, and the mark on demo artwork.
   static const IconData sparkle = Icons.auto_awesome_rounded;
 
+  /// Asking the PC to fill something in that the parent could also type: the
+  /// four spellings of a child's name.
+  static const IconData suggest = Icons.auto_fix_high_rounded;
+
   /// Stories as a body of work: the app's own mark, the About row, an empty
   /// shelf, the first-story reading badge, the Kingdom's book symbol.
   static const IconData stories = Icons.auto_stories_rounded;

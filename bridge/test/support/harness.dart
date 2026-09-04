@@ -107,17 +107,22 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
     required String story,
     String? outline,
     String? heroSheet,
+    String? nameSpellings,
     int pageCount = 6,
     FakeOllamaUnloadResponder? unloadResponder,
   }) {
     final plan = outline ?? outlinePayload(pageCount: pageCount);
     final sheet = heroSheet ?? heroSheetPayload();
+    final spellings = nameSpellings ?? nameSpellingsPayload();
     return FakeOllamaStoryClient((
       OllamaGenerateRequest request,
       CancellationToken cancellation,
     ) async {
       if (isVisionRequest(request)) {
         return ollamaEnvelope(sheet);
+      }
+      if (isSpellingRequest(request)) {
+        return ollamaEnvelope(spellings);
       }
       return ollamaEnvelope(isOutlineRequest(request) ? plan : story);
     }, unloadResponder: unloadResponder);
@@ -141,9 +146,16 @@ class FakeOllamaStoryClient implements OllamaStoryClient {
   /// Requests whose schema asked for finished pages — the page pass.
   List<OllamaGenerateRequest> get pageRequests => requests
       .where(
-        (request) => !isVisionRequest(request) && !isOutlineRequest(request),
+        (request) =>
+            !isVisionRequest(request) &&
+            !isSpellingRequest(request) &&
+            !isOutlineRequest(request),
       )
       .toList(growable: false);
+
+  /// Requests whose schema asked for one name per language.
+  List<OllamaGenerateRequest> get spellingRequests =>
+      requests.where(isSpellingRequest).toList(growable: false);
 
   /// Requests that carried a picture — the character-sheet pass.
   List<OllamaGenerateRequest> get visionRequests =>
@@ -348,6 +360,32 @@ bool isOutlineRequest(OllamaGenerateRequest request) {
 /// in the first place — a real model tells the passes apart the same way.
 bool isVisionRequest(OllamaGenerateRequest request) =>
     request.images.isNotEmpty;
+
+/// Whether [request] is the name-spelling pass.
+///
+/// Read off the requested schema, exactly as the outline pass is: this is the
+/// only call whose answer is keyed by language code.
+bool isSpellingRequest(OllamaGenerateRequest request) {
+  final properties = request.format['properties'];
+  return properties is Map<String, Object?> &&
+      properties.containsKey('ar') &&
+      properties.containsKey('so');
+}
+
+/// A schema-valid name-spelling answer: the same name in four scripts.
+String nameSpellingsPayload({
+  String arabic = 'مليكة',
+  String english = 'Malika',
+  String swedish = 'Malika',
+  String somali = 'Maliika',
+}) {
+  return jsonEncode(<String, Object?>{
+    'ar': arabic,
+    'en': english,
+    'sv': swedish,
+    'so': somali,
+  });
+}
 
 /// A schema-valid character-sheet answer.
 ///

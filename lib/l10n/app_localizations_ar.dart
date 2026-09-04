@@ -1853,4 +1853,38 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsDangerZone => 'لا يمكن التراجع';
+
+  @override
+  String get nameSpellingsTitle => 'الاسم في كل لغة';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'كيف يُكتب اسم $name في كل لغة من لغات القصص. اترك الخانة فارغة لاستخدام الاسم كما كتبته تمامًا.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'الاسم نفسه بحروف تلك اللغة';
+
+  @override
+  String get suggestNameSpellings => 'اسأل الكمبيوتر';
+
+  @override
+  String get nameSpellingsSuggesting => 'نسأل الكمبيوتر كيف يُكتب الاسم…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'ملأ الكمبيوتر هذه الخانات. راجعها قبل الحفظ.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'لم يستطع الكمبيوتر اقتراح الكتابة. يمكنك كتابتها بنفسك.';
+
+  @override
+  String get nameSpellingsNeedName => 'اكتب الاسم أولًا.';
+
+  @override
+  String get nameSpellingsNeedPc => 'اربط كمبيوتر العائلة ليملأها لك.';
+
+  @override
+  String get nameSpellingTooLong => 'هذا أطول من أن يكون اسمًا.';
 }

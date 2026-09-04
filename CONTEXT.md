@@ -19,6 +19,13 @@ story preferences, Kingdom decoration, reading settings, and the stories they
 finished.
 _Avoid_: account, user, kid
 
+**Name spelling**:
+How one child's name is written in one story language — Malika as مليكة in
+Arabic, Malika in English, Swedish and Somali. A language the parent left
+blank has no spelling and uses the name as typed. The story is written with
+it and the interface reads it.
+_Avoid_: translation, transliteration, alias, localized name
+
 **Hero face**:
 The one way a child's photo (or, failing that, their initial) is drawn on any
 screen, ringed in their own accent.

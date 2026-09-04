@@ -31,6 +31,16 @@ const Duration ollamaUnloadTimeout = Duration(seconds: 5);
 /// quarter of an hour waiting for a model that is not going to answer.
 const Duration ollamaVisionCallTimeout = Duration(minutes: 2);
 
+/// Budget for the call that spells one child's name in the four languages.
+///
+/// The tightest budget in the bridge, and deliberately so: this one is asked
+/// *synchronously*, from a parent standing in the profile editor, and the whole
+/// HTTP request it sits inside is capped at 20 seconds. Anything slower is not
+/// a suggestion any more — the editor says so and the parent types the four
+/// spellings, which is always allowed. A cold model on a busy card will miss
+/// this; asking again once it is resident is cheap.
+const Duration ollamaNameSpellingCallTimeout = Duration(seconds: 15);
+
 /// Where the local Ollama is, which model it must answer with, and how long
 /// one call to it may take.
 ///

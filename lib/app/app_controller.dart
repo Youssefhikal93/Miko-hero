@@ -71,6 +71,7 @@ final storyGeneratorProvider = Provider<StoryGenerator>((ref) {
       deviceToken: connection.credential?.deviceToken,
     ),
     resolveAgeYears: (request) => _heroAgeYears(ref, request),
+    resolveNameSpelling: (request) => _heroNameSpelling(ref, request),
     currentTime: DateTime.now,
     pollInterval: ref.watch(localAiPollIntervalProvider),
     onProgress: (progress) {
@@ -89,6 +90,19 @@ int _heroAgeYears(Ref ref, StoryRequest request) {
       .value
       ?.profileById(request.profileId);
   return profile?.age ?? defaultChildProfileAgeYears;
+}
+
+/// Resolves how the family writes the hero's name in the story's language.
+///
+/// Empty whenever there is nothing to say — a deleted profile, or a child with
+/// no confirmed spelling for this language — which the bridge reads as "write
+/// the name exactly as it was typed", the behaviour it always had.
+String _heroNameSpelling(Ref ref, StoryRequest request) {
+  final profile = ref
+      .read(appControllerProvider)
+      .value
+      ?.profileById(request.profileId);
+  return profile?.nameSpellings[request.presentation.language] ?? '';
 }
 
 /// Supplies free narration through the current device's installed voices.

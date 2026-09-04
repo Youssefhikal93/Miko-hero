@@ -182,6 +182,20 @@ class BridgeConfig {
     callTimeout: ollamaVisionCallTimeout,
   );
 
+  /// The same Ollama and the same writer, on a parent-sized budget.
+  ///
+  /// The name-spelling pass runs the story model — spelling a name in four
+  /// languages is a writer's job, not a vision model's — but it answers a
+  /// parent who is waiting in the profile editor, so it may not inherit a
+  /// story's fifteen minutes. A third target rather than a duration passed at
+  /// the call site, for the same reason [ollama] is one: nobody assembles a
+  /// URL, a model tag and a budget themselves.
+  late final OllamaTarget nameSpelling = OllamaTarget(
+    baseUrl: BaseUrl.parse(ollamaBaseUrl),
+    model: ollamaModel,
+    callTimeout: ollamaNameSpellingCallTimeout,
+  );
+
   /// Everything an outbound ComfyUI call needs, assembled once.
   ///
   /// The control/transfer timeout split is the target's policy, so the

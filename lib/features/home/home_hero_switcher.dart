@@ -6,6 +6,7 @@ import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/hero_face.dart';
+import 'package:miko_hero/shared/hero_label.dart';
 
 /// Home's header: who the app is reading as, and the way to change it.
 ///
@@ -54,7 +55,9 @@ class HomeHeroHeader extends ConsumerWidget {
                       children: <Widget>[
                         Flexible(
                           child: Text(
-                            profile?.name ?? text.chooseHero,
+                            profile == null
+                                ? text.chooseHero
+                                : context.heroDisplayName(profile),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium,
@@ -170,7 +173,7 @@ class _HeroSwitcherSheet extends StatelessWidget {
               key: ValueKey<String>('home-hero-${profile.id}'),
               onTap: () => Navigator.of(context).pop(profile),
               leading: HomeHeroAvatar(profile: profile, radius: 16),
-              title: Text(profile.heroName),
+              title: Text(context.heroDisplayLabel(profile)),
               subtitle: Text(text.yearsOld(profile.age)),
               trailing: active
                   ? Icon(

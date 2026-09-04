@@ -20,6 +20,7 @@ import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/empty_state.dart';
 import 'package:miko_hero/shared/hero_face.dart';
+import 'package:miko_hero/shared/hero_label.dart';
 import 'package:miko_hero/shared/parent_gated_action.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
@@ -314,7 +315,7 @@ class _ChildChip extends StatelessWidget {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(profile.heroName),
+          Text(context.heroDisplayLabel(profile)),
           if (showSymbol) ...<Widget>[
             const SizedBox(width: 6),
             Icon(
