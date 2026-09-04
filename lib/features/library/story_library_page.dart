@@ -17,7 +17,7 @@ import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/hero_face.dart';
-import 'package:miko_hero/shared/parent_access_gate.dart';
+import 'package:miko_hero/shared/parent_gated_action.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
@@ -483,10 +483,12 @@ Future<void> _toggleFavorite(
   WidgetRef ref,
   StoryBook story,
 ) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final text = AppLocalizations.of(context);
   try {
     await ref.read(storyControllerProvider).toggleFavorite(story.id);
   } on Exception {
-    if (context.mounted) _showStorageError(context);
+    reportActionOutcome(messenger, text.somethingWentWrong);
   }
 }
 
@@ -495,29 +497,17 @@ Future<void> _manageCollections(
   BuildContext context,
   WidgetRef ref,
   StoryBook story,
-) async {
-  final hasAccess = await requestParentAccess(context, ref);
-  if (!hasAccess || !context.mounted) return;
-  final collections = await showStoryCollectionsDialog(
+) {
+  return runParentGatedAction<List<String>, void>(
     context,
-    story.collections,
+    ref,
+    confirm: (context) =>
+        showStoryCollectionsDialog(context, story.collections),
+    run: (context, collections) =>
+        ref.read(storyControllerProvider).setCollections(story.id, collections),
+    // The labels the parent just chose are back on the card already.
+    report: (text, _) => null,
   );
-  if (collections == null || !context.mounted) return;
-  try {
-    await ref
-        .read(storyControllerProvider)
-        .setCollections(story.id, collections);
-  } on Exception {
-    if (context.mounted) _showStorageError(context);
-  }
-}
-
-/// Shows generic local persistence feedback without exposing family data.
-void _showStorageError(BuildContext context) {
-  final text = AppLocalizations.of(context);
-  ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(text.somethingWentWrong)));
 }
 
 /// Empty result for a search or a filter that no book on the shelf answers.

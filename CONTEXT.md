@@ -34,6 +34,15 @@ A count-based reward for stories finished on this device (1, 5, 10, 25). No
 streaks, no dates.
 _Avoid_: achievement, trophy, streak
 
+### Parents
+
+**Parent-gated action**:
+One parent-only action on a story — deleting it, making its pictures, writing a
+story file, reading one back, changing its collections, saving a PDF — run as
+one sequence: the PIN gate, the parent's confirmation, the action itself, then
+the one sentence it leaves behind.
+_Avoid_: flow, handler, protected action
+
 ### Stories
 
 **Story**:

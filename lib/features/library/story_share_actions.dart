@@ -9,7 +9,7 @@ import 'package:miko_hero/features/library/story_share_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/encrypted_file_messages.dart';
 import 'package:miko_hero/shared/encryption_password_dialog.dart';
-import 'package:miko_hero/shared/parent_access_gate.dart';
+import 'package:miko_hero/shared/parent_gated_action.dart';
 
 /// Saves one story as an encrypted single-story file, behind the parent gate.
 ///
@@ -19,36 +19,37 @@ Future<void> exportStoryFile(
   BuildContext context,
   WidgetRef ref,
   StoryBook story,
-) async {
-  if (!await requestParentAccess(context, ref) || !context.mounted) return;
-  final text = AppLocalizations.of(context);
-  final password = await showEncryptionPasswordDialog(
+) {
+  return runParentGatedAction<String, bool>(
     context,
-    copy: _storyPasswordCopy(
-      text,
-      title: text.createStoryPasswordTitle,
-      requirements:
-          '${text.backupPasswordRequirements} ${text.storyFileNotice}',
-    ),
-    confirmPassword: true,
+    ref,
+    confirm: (context) {
+      final text = AppLocalizations.of(context);
+      return showEncryptionPasswordDialog(
+        context,
+        copy: _storyPasswordCopy(
+          text,
+          title: text.createStoryPasswordTitle,
+          requirements:
+              '${text.backupPasswordRequirements} ${text.storyFileNotice}',
+        ),
+        confirmPassword: true,
+      );
+    },
+    run: (context, password) {
+      final text = AppLocalizations.of(context);
+      return ref
+          .read(storyShareControllerProvider)
+          .exportStory(
+            story.id,
+            password,
+            dialogTitle: text.saveStoryFileDialogTitle,
+          );
+    },
+    report: (text, saved) =>
+        saved ? text.storyFileSaved : text.storyFileSaveCancelled,
+    onFailure: storyFileMessage,
   );
-  if (password == null || !context.mounted) return;
-  try {
-    final saved = await ref
-        .read(storyShareControllerProvider)
-        .exportStory(
-          story.id,
-          password,
-          dialogTitle: text.saveStoryFileDialogTitle,
-        );
-    if (!context.mounted) return;
-    _showMessage(
-      context,
-      saved ? text.storyFileSaved : text.storyFileSaveCancelled,
-    );
-  } on Exception catch (error) {
-    if (context.mounted) _showMessage(context, storyFileMessage(text, error));
-  }
 }
 
 /// Imports one encrypted story file into a profile the parent chooses.
@@ -60,45 +61,69 @@ Future<void> importStoryFile(
   WidgetRef ref, {
   required AppState state,
 }) async {
-  final text = AppLocalizations.of(context);
   if (state.profiles.isEmpty) {
-    _showMessage(context, text.importStoryNeedsProfile);
+    reportActionOutcome(
+      ScaffoldMessenger.of(context),
+      AppLocalizations.of(context).importStoryNeedsProfile,
+    );
     return;
   }
-  if (!await requestParentAccess(context, ref) || !context.mounted) return;
-  final controller = ref.read(storyShareControllerProvider);
-  try {
-    final shared = await controller.openStoryFile(
-      askPassword: (fileName) async {
-        if (!context.mounted) return null;
-        return showEncryptionPasswordDialog(
-          context,
-          copy: _storyPasswordCopy(
-            text,
-            title: text.enterStoryPasswordTitle,
-            requirements: text.backupPasswordRequirements,
-          ),
-          confirmPassword: false,
-          fileContext: text.restoreFileName(fileName),
-        );
-      },
-    );
-    if (shared == null || !context.mounted) return;
-    final profileId = await showDialog<String>(
-      context: context,
-      builder: (context) => _ImportStoryDialog(
-        shared: shared,
-        profiles: state.profiles,
-        initialProfileId: state.activeProfileId ?? state.profiles.first.id,
-      ),
-    );
-    if (profileId == null || !context.mounted) return;
-    await controller.importStory(shared, profileId);
-    if (!context.mounted) return;
-    _showMessage(context, text.storyImported(shared.story.content.title));
-  } on Exception catch (error) {
-    if (context.mounted) _showMessage(context, storyFileMessage(text, error));
-  }
+  await runParentGatedAction<_StoryImport, String>(
+    context,
+    ref,
+    confirm: (context) => _chooseImport(context, ref, state),
+    run: (context, import) async {
+      await ref
+          .read(storyShareControllerProvider)
+          .importStory(import.shared, import.profileId);
+      return import.shared.story.content.title;
+    },
+    report: (text, title) => text.storyImported(title),
+    onFailure: storyFileMessage,
+  );
+}
+
+/// One decoded story file and the shelf the parent chose to put it on.
+typedef _StoryImport = ({SharedStory shared, String profileId});
+
+/// Picks a file, unlocks it, previews it, and asks whose shelf it belongs on.
+///
+/// Four questions, one answer: dismissing any of them imports nothing, which
+/// is exactly what a null confirmation means to the shared action.
+Future<_StoryImport?> _chooseImport(
+  BuildContext context,
+  WidgetRef ref,
+  AppState state,
+) async {
+  final text = AppLocalizations.of(context);
+  final shared = await ref
+      .read(storyShareControllerProvider)
+      .openStoryFile(
+        askPassword: (fileName) async {
+          if (!context.mounted) return null;
+          return showEncryptionPasswordDialog(
+            context,
+            copy: _storyPasswordCopy(
+              text,
+              title: text.enterStoryPasswordTitle,
+              requirements: text.backupPasswordRequirements,
+            ),
+            confirmPassword: false,
+            fileContext: text.restoreFileName(fileName),
+          );
+        },
+      );
+  if (shared == null || !context.mounted) return null;
+  final profileId = await showDialog<String>(
+    context: context,
+    builder: (context) => _ImportStoryDialog(
+      shared: shared,
+      profiles: state.profiles,
+      initialProfileId: state.activeProfileId ?? state.profiles.first.id,
+    ),
+  );
+  if (profileId == null) return null;
+  return (shared: shared, profileId: profileId);
 }
 
 /// Preview of a decoded story plus the profile that will receive it.
@@ -196,11 +221,4 @@ EncryptionPasswordCopy _storyPasswordCopy(
     cancel: text.cancel,
     confirmAction: text.continueAction,
   );
-}
-
-/// Replaces any earlier notice with the latest story-file outcome.
-void _showMessage(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
 }

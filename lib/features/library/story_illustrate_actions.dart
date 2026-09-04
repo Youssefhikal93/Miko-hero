@@ -9,7 +9,7 @@ import 'package:miko_hero/features/library/illustrate_story_controller.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
-import 'package:miko_hero/shared/parent_access_gate.dart';
+import 'package:miko_hero/shared/parent_gated_action.dart';
 
 /// Whether the picture-making action belongs on [story]'s card at all.
 ///
@@ -31,23 +31,26 @@ Future<void> illustrateStoryWithParentGate(
   BuildContext context,
   WidgetRef ref,
   StoryBook story,
-) async {
-  final hasAccess = await requestParentAccess(context, ref);
-  if (!hasAccess || !context.mounted) return;
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => const _IllustrateStoryDialog(),
+) {
+  return runParentGatedAction<bool, void>(
+    context,
+    ref,
+    confirm: confirmedByDialog((context) => const _IllustrateStoryDialog()),
+    run: (context, _) async {
+      unawaited(
+        ref.read(illustrateStoryControllerProvider.notifier).illustrate(story),
+      );
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const _IllustrationRunDialog(),
+      );
+      ref.read(illustrateStoryControllerProvider.notifier).dismiss();
+    },
+    // The run dialog has already said how it went, in more words than a
+    // passing notice could hold; repeating it underneath would be noise.
+    report: (text, _) => null,
   );
-  if (confirmed != true || !context.mounted) return;
-  unawaited(
-    ref.read(illustrateStoryControllerProvider.notifier).illustrate(story),
-  );
-  await showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => const _IllustrationRunDialog(),
-  );
-  ref.read(illustrateStoryControllerProvider.notifier).dismiss();
 }
 
 /// States what making the pictures costs before any of it starts.

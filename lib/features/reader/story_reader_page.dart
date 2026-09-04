@@ -21,7 +21,7 @@ import 'package:miko_hero/features/reader/story_export_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/hero_face.dart';
-import 'package:miko_hero/shared/parent_access_gate.dart';
+import 'package:miko_hero/shared/parent_gated_action.dart';
 import 'package:miko_hero/shared/reading_badge_view.dart';
 import 'package:miko_hero/shared/reading_text_style.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -194,7 +194,10 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
           .recordFinishedStory(story.content.request.profileId, story.id);
       if (badge == null || !mounted) return;
       final text = AppLocalizations.of(context);
-      _showMessage(text.badgeEarned(readingBadgeName(text, badge)));
+      reportActionOutcome(
+        ScaffoldMessenger.of(context),
+        text.badgeEarned(readingBadgeName(text, badge)),
+      );
     } on Exception {
       // A profile deleted while its story is open must not break reading.
     }
@@ -211,7 +214,8 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     if (_sleepTimerChosen || _narration.sleepTimer.isActive) return;
     _narration.setSleepTimer(NarrationSleepTimer.tenMinutes);
     final duration = NarrationSleepTimer.tenMinutes.duration!;
-    _showMessage(
+    reportActionOutcome(
+      ScaffoldMessenger.of(context),
       AppLocalizations.of(context).bedtimeSleepTimerApplied(duration.inMinutes),
     );
   }
@@ -304,7 +308,10 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
           .setReadingSettings(profileId, settings);
     } on Exception {
       if (mounted) {
-        _showMessage(AppLocalizations.of(context).somethingWentWrong);
+        reportActionOutcome(
+          ScaffoldMessenger.of(context),
+          AppLocalizations.of(context).somethingWentWrong,
+        );
       }
     }
   }
@@ -324,47 +331,45 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   /// The photo question is only asked when the hero still has a saved photo;
   /// otherwise the photo-free cover is the only possible result.
   Future<void> _exportStory(StoryBook story, ChildProfile? profile) async {
-    if (_exporting || !await requestParentAccess(context, ref)) return;
-    if (!mounted) return;
-    final hasPhoto = profile != null && profile.photoBase64.isNotEmpty;
-    var includePhoto = false;
-    if (hasPhoto) {
-      // Parents expect the hero's face, so the question starts already answered
-      // yes and only a deliberate change leaves it off the cover.
-      final choice = await showExportOptionsDialog(
-        context,
-        current: true,
-        childName: profile.name,
-      );
-      if (choice == null || !mounted) return;
-      includePhoto = choice;
-    }
-    await _savePdf(story, includePhoto: includePhoto);
+    if (_exporting) return;
+    await runParentGatedAction<bool, bool>(
+      context,
+      ref,
+      confirm: (context) => _chooseCover(context, profile),
+      run: (context, includePhoto) =>
+          _savePdf(story, includePhoto: includePhoto),
+      report: (text, saved) => saved ? text.pdfSaved : text.pdfSaveCancelled,
+      onFailure: (text, failure) => text.pdfExportFailed,
+    );
+  }
+
+  /// Asks about the cover photo only while the hero still has one.
+  ///
+  /// Parents expect the hero's face, so the question starts already answered
+  /// yes and only a deliberate change leaves it off the cover.
+  Future<bool?> _chooseCover(
+    BuildContext context,
+    ChildProfile? profile,
+  ) async {
+    if (profile == null || profile.photoBase64.isEmpty) return false;
+    return showExportOptionsDialog(
+      context,
+      current: true,
+      childName: profile.name,
+    );
   }
 
   /// Renders and saves the PDF while keeping cancellation non-exceptional.
-  Future<void> _savePdf(StoryBook story, {required bool includePhoto}) async {
+  Future<bool> _savePdf(StoryBook story, {required bool includePhoto}) async {
     final text = AppLocalizations.of(context);
     setState(() => _exporting = true);
     try {
-      final saved = await ref
+      return await ref
           .read(storyExportControllerProvider)
           .export(story, text.exportPdfDialogTitle, includePhoto: includePhoto);
-      if (mounted) {
-        _showMessage(saved ? text.pdfSaved : text.pdfSaveCancelled);
-      }
-    } on Exception {
-      if (mounted) _showMessage(text.pdfExportFailed);
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
-  }
-
-  /// Replaces any reader notice with the latest export outcome.
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Explains a missing platform voice without blocking text-based reading.
