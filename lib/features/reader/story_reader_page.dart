@@ -16,6 +16,7 @@ import 'package:miko_hero/core/narration/narration_options.dart';
 import 'package:miko_hero/core/narration/sentence_splitter.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/reader/narration_controller.dart';
+import 'package:miko_hero/features/reader/reader_dialogs.dart';
 import 'package:miko_hero/features/reader/story_export_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -267,9 +268,9 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   /// Pace and sleep timer apply to playback that is already running, so a
   /// bedtime limit never costs the listener their place in the story.
   Future<void> _changeNarrationSettings() async {
-    final selected = await showDialog<_NarrationSelection>(
-      context: context,
-      builder: (_) => _NarrationSettingsDialog(selection: _selection),
+    final selected = await showNarrationSettingsDialog(
+      context,
+      current: _selection,
     );
     if (selected == null || !mounted) return;
     final requeue = selected.scope != _narration.scope;
@@ -286,15 +287,31 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   /// The choice is the same reading comfort My Kingdom edits, so a size picked
   /// mid-story is the size this child keeps in every later book.
   Future<void> _changeTextSize(ChildProfile profile) async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => _TextSizeDialog(profileId: profile.id),
-    );
+    final settings = profile.readingSettings;
+    final size = await showTextSizeDialog(context, current: settings.textSize);
+    if (size == null || size == settings.textSize || !mounted) return;
+    await _saveReadingSettings(profile.id, settings.withTextSize(size));
+  }
+
+  /// Persists one prose size through the same command My Kingdom already uses.
+  Future<void> _saveReadingSettings(
+    String profileId,
+    ChildReadingSettings settings,
+  ) async {
+    try {
+      await ref
+          .read(profileControllerProvider)
+          .setReadingSettings(profileId, settings);
+    } on Exception {
+      if (mounted) {
+        _showMessage(AppLocalizations.of(context).somethingWentWrong);
+      }
+    }
   }
 
   /// Returns the current session choices as one immutable dialog value.
-  _NarrationSelection get _selection {
-    return _NarrationSelection(
+  NarrationSelection get _selection {
+    return NarrationSelection(
       speed: _narration.speed,
       scope: _narration.scope,
       sleepTimer: _narration.sleepTimer,
@@ -312,9 +329,12 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     final hasPhoto = profile != null && profile.photoBase64.isNotEmpty;
     var includePhoto = false;
     if (hasPhoto) {
-      final choice = await showDialog<bool>(
-        context: context,
-        builder: (_) => _ExportOptionsDialog(childName: profile.name),
+      // Parents expect the hero's face, so the question starts already answered
+      // yes and only a deliberate change leaves it off the cover.
+      final choice = await showExportOptionsDialog(
+        context,
+        current: true,
+        childName: profile.name,
       );
       if (choice == null || !mounted) return;
       includePhoto = choice;
@@ -354,61 +374,6 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(text.narrationUnavailable)));
-  }
-}
-
-/// Export choices asked once per PDF, before any rendering work starts.
-class _ExportOptionsDialog extends StatefulWidget {
-  /// Creates the dialog for a hero who currently has a saved photo.
-  const _ExportOptionsDialog({required this.childName});
-
-  final String childName;
-
-  @override
-  /// Creates the checkbox state discarded when the dialog is dismissed.
-  State<_ExportOptionsDialog> createState() => _ExportOptionsDialogState();
-}
-
-/// Holds the cover-photo choice, which starts included as parents expect.
-class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
-  bool _includePhoto = true;
-
-  @override
-  /// Explains that the saved file is unencrypted before the photo is added.
-  Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(text.exportPdfOptionsTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _includePhoto,
-            title: Text(text.includePhotoOnCover(widget.childName)),
-            onChanged: (value) {
-              setState(() => _includePhoto = value ?? false);
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            text.exportPdfPhotoNotice,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(text.cancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_includePhoto),
-          child: Text(text.exportPdf),
-        ),
-      ],
-    );
   }
 }
 
@@ -983,82 +948,6 @@ class _PageDot extends StatelessWidget {
   }
 }
 
-/// The hero's saved prose size, changed without closing the book.
-class _TextSizeDialog extends ConsumerWidget {
-  /// Creates the size chooser for the child whose story is open.
-  const _TextSizeDialog({required this.profileId});
-
-  final String profileId;
-
-  @override
-  /// Saves each choice immediately so the page behind reflows at once.
-  Widget build(BuildContext context, WidgetRef ref) {
-    final text = AppLocalizations.of(context);
-    final profile = ref
-        .watch(appControllerProvider)
-        .value
-        ?.profileById(profileId);
-    final settings = profile?.readingSettings ?? const ChildReadingSettings();
-    return AlertDialog(
-      title: Text(text.readerTextSize),
-      content: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: ReaderTextSize.values
-            .map((size) {
-              return ChoiceChip(
-                key: ValueKey<String>('reader-prose-size-${size.name}'),
-                selected: settings.textSize == size,
-                onSelected: (_) {
-                  unawaited(_save(context, ref, settings.withTextSize(size)));
-                },
-                label: Text(_textSizeLabel(text, size)),
-              );
-            })
-            .toList(growable: false),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(text.close),
-        ),
-      ],
-    );
-  }
-
-  /// Persists one size through the same command My Kingdom already uses.
-  Future<void> _save(
-    BuildContext context,
-    WidgetRef ref,
-    ChildReadingSettings settings,
-  ) async {
-    try {
-      await ref
-          .read(profileControllerProvider)
-          .setReadingSettings(profileId, settings);
-    } on Exception {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).somethingWentWrong),
-          ),
-        );
-    }
-  }
-
-  /// Localizes one prose size while keeping its stable storage name.
-  String _textSizeLabel(AppLocalizations text, ReaderTextSize size) {
-    return switch (size) {
-      ReaderTextSize.small => text.textSizeSmall,
-      ReaderTextSize.medium => text.textSizeMedium,
-      ReaderTextSize.large => text.textSizeLarge,
-      ReaderTextSize.extraLarge => text.textSizeExtraLarge,
-    };
-  }
-}
-
 /// Immutable values needed to render the reader control bar.
 class _ReaderStatus {
   /// Groups page progress and narration state into one control input.
@@ -1105,210 +994,6 @@ class _ReaderNavigation {
 
   final VoidCallback? previous;
   final VoidCallback? next;
-}
-
-/// Immutable narration choices returned only after dialog confirmation.
-class _NarrationSelection {
-  /// Groups speech pace, scope, and bedtime limit as one dialog value.
-  const _NarrationSelection({
-    required this.speed,
-    required this.scope,
-    required this.sleepTimer,
-    this.sleepTimerChosen = false,
-    this.remainingSleep,
-  });
-
-  final NarrationSpeed speed;
-  final NarrationScope scope;
-  final NarrationSleepTimer sleepTimer;
-
-  /// Whether the parent touched the sleep timer in this dialog.
-  ///
-  /// Bedtime mode only suggests a limit; an explicit choice always wins.
-  final bool sleepTimerChosen;
-
-  final Duration? remainingSleep;
-}
-
-/// Session-only narration controls that do not alter a child's saved profile.
-class _NarrationSettingsDialog extends StatefulWidget {
-  /// Creates settings from the reader's current narration choices.
-  const _NarrationSettingsDialog({required this.selection});
-
-  final _NarrationSelection selection;
-
-  @override
-  /// Creates a disposable edit buffer for pace and spoken scope.
-  State<_NarrationSettingsDialog> createState() {
-    return _NarrationSettingsDialogState();
-  }
-}
-
-/// Holds uncommitted narration choices until the reader confirms them.
-class _NarrationSettingsDialogState extends State<_NarrationSettingsDialog> {
-  late NarrationSpeed _speed;
-  late NarrationScope _scope;
-  late NarrationSleepTimer _sleepTimer;
-  bool _sleepTimerChosen = false;
-
-  @override
-  /// Copies reader values so dismissing the dialog changes nothing.
-  void initState() {
-    super.initState();
-    _speed = widget.selection.speed;
-    _scope = widget.selection.scope;
-    _sleepTimer = widget.selection.sleepTimer;
-  }
-
-  @override
-  /// Composes localized choice chips and explicit cancel/apply actions.
-  Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(text.narrationSettings),
-      content: SingleChildScrollView(child: _content(text)),
-      actions: _actions(text),
-    );
-  }
-
-  /// Separates pace, spoken scope, and bedtime limit into scannable sections.
-  Widget _content(AppLocalizations text) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(text.narrationSpeed),
-        const SizedBox(height: 8),
-        _speedChoices(text),
-        const SizedBox(height: 20),
-        Text(text.narrationScope),
-        const SizedBox(height: 8),
-        _scopeChoices(text),
-        const SizedBox(height: 20),
-        Text(text.sleepTimer),
-        const SizedBox(height: 8),
-        _sleepTimerChoices(text),
-        ..._remainingSleep(text),
-      ],
-    );
-  }
-
-  /// Builds the off, five, ten, and twenty minute bedtime limits.
-  Widget _sleepTimerChoices(AppLocalizations text) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: NarrationSleepTimer.values
-          .map((timer) {
-            return ChoiceChip(
-              key: ValueKey<String>('sleep-timer-${timer.name}'),
-              selected: _sleepTimer == timer,
-              onSelected: (_) => setState(() {
-                _sleepTimer = timer;
-                _sleepTimerChosen = true;
-              }),
-              label: Text(_sleepTimerLabel(text, timer)),
-            );
-          })
-          .toList(growable: false),
-    );
-  }
-
-  /// Shows how long a running countdown still has, rounded up to whole minutes.
-  List<Widget> _remainingSleep(AppLocalizations text) {
-    final remaining = widget.selection.remainingSleep;
-    if (remaining == null || _sleepTimer != widget.selection.sleepTimer) {
-      return const <Widget>[];
-    }
-    final minutes = (remaining.inSeconds / Duration.secondsPerMinute).ceil();
-    return <Widget>[
-      const SizedBox(height: 10),
-      Text(
-        text.sleepTimerRemaining(minutes),
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-    ];
-  }
-
-  /// Builds pace choices from the bounded platform-safe enum values.
-  Widget _speedChoices(AppLocalizations text) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: NarrationSpeed.values
-          .map((speed) {
-            return ChoiceChip(
-              selected: _speed == speed,
-              onSelected: (_) => setState(() => _speed = speed),
-              label: Text(_speedLabel(text, speed)),
-            );
-          })
-          .toList(growable: false),
-    );
-  }
-
-  /// Builds visible-page and remaining-story speech scope choices.
-  Widget _scopeChoices(AppLocalizations text) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: NarrationScope.values
-          .map((scope) {
-            return ChoiceChip(
-              selected: _scope == scope,
-              onSelected: (_) => setState(() => _scope = scope),
-              label: Text(_scopeLabel(text, scope)),
-            );
-          })
-          .toList(growable: false),
-    );
-  }
-
-  /// Returns cancel and apply actions without saving dismissed changes.
-  List<Widget> _actions(AppLocalizations text) {
-    return <Widget>[
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: Text(text.cancel),
-      ),
-      FilledButton(
-        onPressed: () => Navigator.of(context).pop(
-          _NarrationSelection(
-            speed: _speed,
-            scope: _scope,
-            sleepTimer: _sleepTimer,
-            sleepTimerChosen: _sleepTimerChosen,
-          ),
-        ),
-        child: Text(text.applyNarrationSettings),
-      ),
-    ];
-  }
-
-  /// Localizes one bedtime limit without duplicating its stored minutes.
-  String _sleepTimerLabel(AppLocalizations text, NarrationSleepTimer timer) {
-    final duration = timer.duration;
-    return duration == null
-        ? text.sleepTimerOff
-        : text.sleepTimerMinutes(duration.inMinutes);
-  }
-
-  /// Localizes one device narration pace.
-  String _speedLabel(AppLocalizations text, NarrationSpeed speed) {
-    return switch (speed) {
-      NarrationSpeed.slow => text.slowSpeed,
-      NarrationSpeed.normal => text.normalSpeed,
-      NarrationSpeed.fast => text.fastSpeed,
-    };
-  }
-
-  /// Localizes one reader narration scope.
-  String _scopeLabel(AppLocalizations text, NarrationScope scope) {
-    return switch (scope) {
-      NarrationScope.currentPage => text.currentPage,
-      NarrationScope.remainingStory => text.remainingStory,
-    };
-  }
 }
 
 /// Safe destination when a deep link targets a deleted local story.
