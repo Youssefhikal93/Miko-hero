@@ -209,15 +209,7 @@ class _ShelfHeading extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(
-          child: Text(
-            text.onTheShelf.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 13,
-              letterSpacing: 1.3,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.mutedDeep,
-            ),
-          ),
+          child: Text(text.onTheShelf.toUpperCase(), style: AppTheme.overline),
         ),
         TextButton(
           key: const ValueKey<String>('home-see-all'),

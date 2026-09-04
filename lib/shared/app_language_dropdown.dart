@@ -154,11 +154,6 @@ class _LanguageBadge extends StatelessWidget {
 
   /// Keeps two-letter language codes compact and visually distinct.
   TextStyle _textStyle(Color primary) {
-    return TextStyle(
-      color: primary,
-      fontSize: 12,
-      fontWeight: FontWeight.w800,
-      letterSpacing: 0.7,
-    );
+    return AppTheme.codeBadge.copyWith(color: primary);
   }
 }

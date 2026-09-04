@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
@@ -227,7 +228,7 @@ class _ReadinessRow extends StatelessWidget {
   @override
   /// Uses color as reinforcement while keeping status available as text.
   Widget build(BuildContext context) {
-    final statusColor = isReady ? Colors.greenAccent : Colors.orangeAccent;
+    final statusColor = isReady ? AppTheme.ready : AppTheme.attention;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),

@@ -146,11 +146,9 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
   Widget _sectionTitle(String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: AppTheme.mutedDeep,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 1.3,
-      ),
+      style: Theme.of(
+        context,
+      ).textTheme.labelLarge?.merge(AppTheme.sectionLabel),
     );
   }
 
@@ -338,12 +336,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                   // needs the Arabic-capable face whatever the interface uses.
                   label: Text(
                     _storyLanguageName(text, language),
-                    style: language.usesLatinScript
-                        ? null
-                        : TextStyle(
-                            fontFamily: interfaceFontFamilyFor(language),
-                            fontVariations: const <FontVariation>[],
-                          ),
+                    style: AppTheme.scriptStyleFor(language),
                   ),
                   showCheckmark: false,
                   selected: _draft.language == language,

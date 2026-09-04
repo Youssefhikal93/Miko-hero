@@ -49,7 +49,7 @@ class ScreenLayout extends StatelessWidget {
   static const _ambientGradient = RadialGradient(
     center: Alignment(0.8, -0.9),
     radius: 1.2,
-    colors: <Color>[Color(0x222F2340), AppTheme.night],
+    colors: <Color>[AppTheme.ambientGlow, AppTheme.night],
   );
 }
 

@@ -183,9 +183,9 @@ class _PageIllustration extends ConsumerWidget {
         key: const ValueKey<String>('page-placeholder-face'),
         profile: pageContext.profile,
         size: 144,
-        background: Colors.white24,
+        background: AppTheme.onCoverVeil,
         fallbackIcon: AppIcons.hero,
-        fallbackColor: Colors.white,
+        fallbackColor: AppTheme.onCover,
       ),
     );
   }

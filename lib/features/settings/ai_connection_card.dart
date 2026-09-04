@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/ai_connection_settings.dart';
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
 import 'package:miko_hero/core/ai_connection/bridge_credential.dart';
@@ -222,7 +223,7 @@ class _LoadedAiConnectionCardState
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         isAvailable ? AppIcons.bridgeAvailable : AppIcons.bridgeUnavailable,
-        color: isAvailable ? Colors.greenAccent : Colors.orangeAccent,
+        color: isAvailable ? AppTheme.ready : AppTheme.attention,
       ),
       title: Text(title),
       trailing: Text(

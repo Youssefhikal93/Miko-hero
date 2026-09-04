@@ -96,7 +96,7 @@ class StoryCard extends StatelessWidget {
                         _StoryOverflowMenu(
                           story: story,
                           actions: actions,
-                          color: Colors.white,
+                          color: AppTheme.onCover,
                         ),
                     ],
                   ),
@@ -112,7 +112,7 @@ class StoryCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
+                          color: AppTheme.onCover,
                           height: 1.15,
                         ),
                       ),
@@ -121,10 +121,7 @@ class StoryCard extends StatelessWidget {
                         _meta(context, text),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.frost,
-                        ),
+                        style: AppTheme.coverCaption,
                       ),
                     ],
                   ),
@@ -157,7 +154,7 @@ class StoryCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.white),
+                ).textTheme.titleMedium?.copyWith(color: AppTheme.onCover),
               ),
             ),
           ),
@@ -214,10 +211,7 @@ class StoryCard extends StatelessWidget {
                           _meta(context, text),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.mutedDeep,
-                          ),
+                          style: AppTheme.caption,
                         ),
                       ),
                     ],
@@ -477,14 +471,7 @@ class _CoverScrim extends StatelessWidget {
   /// Keeps a title readable over whatever the PC happened to draw.
   Widget build(BuildContext context) {
     return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          stops: <double>[0, 0.65],
-          colors: <Color>[Color(0xD106080F), Color(0x1406080F)],
-        ),
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.coverScrim),
     );
   }
 }
@@ -503,12 +490,12 @@ class StoryDemoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
+        color: AppTheme.coverPill,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         AppLocalizations.of(context).demoBadge,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+        style: AppTheme.badgeLabel,
       ),
     );
   }
@@ -546,7 +533,7 @@ class StoryCover extends StatelessWidget {
                   alignment: Alignment.topRight,
                   child: Icon(
                     AppIcons.sparkle,
-                    color: Color(0xCCFFFFFF),
+                    color: AppTheme.onCoverMuted,
                     size: 28,
                   ),
                 ),
@@ -565,7 +552,7 @@ class StoryCover extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.onCover,
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           height: 1.1,
@@ -616,7 +603,7 @@ class _StoryCoverArt extends ConsumerWidget {
       bytes,
       key: const ValueKey<String>('story-cover-image'),
       fit: BoxFit.cover,
-      color: Colors.black45,
+      color: AppTheme.coverShade,
       colorBlendMode: BlendMode.darken,
       gaplessPlayback: true,
     );

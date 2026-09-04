@@ -45,17 +45,12 @@ class HomeKeepReadingTile extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     text.keepReading.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.3,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.candleLight,
-                    ),
+                    style: AppTheme.overlineTile,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     text.storyPageCount(story.content.pages.length),
-                    style: const TextStyle(fontSize: 13, color: AppTheme.frost),
+                    style: AppTheme.coverCaption,
                   ),
                 ],
               ),
@@ -151,10 +146,7 @@ class HomeReadingBadgesTile extends StatelessWidget {
                   text.readingBadgesTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.mutedDeep,
-                  ),
+                  style: AppTheme.caption,
                 ),
               ],
             ),
@@ -225,10 +217,7 @@ class HomeDraftsRow extends StatelessWidget {
                     text.draftsWaitingHint,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.mutedDeep,
-                    ),
+                    style: AppTheme.caption,
                   ),
                 ],
               ),

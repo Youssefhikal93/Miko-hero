@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/features/settings/ai_connection_card.dart';
@@ -68,9 +69,7 @@ class _SettingsContent extends ConsumerWidget {
               onPressed: () => _confirmDeleteAll(context, ref),
               icon: const Icon(AppIcons.deleteEverything),
               label: Text(text.deleteAllData),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.redAccent,
-              ),
+              style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
             ),
           ),
         ],

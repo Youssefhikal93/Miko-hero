@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
@@ -43,7 +44,7 @@ void main() {
           IllustrationStyle.colorful3d,
           gender,
         ).last,
-        storyArtworkViolet,
+        AppTheme.violet,
       );
     }
   });

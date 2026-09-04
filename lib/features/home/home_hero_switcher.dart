@@ -49,14 +49,7 @@ class HomeHeroHeader extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(
-                      text.readingAs,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.1,
-                        color: AppTheme.mutedDeep,
-                      ),
-                    ),
+                    Text(text.readingAs, style: AppTheme.overlineSoft),
                     Row(
                       children: <Widget>[
                         Flexible(

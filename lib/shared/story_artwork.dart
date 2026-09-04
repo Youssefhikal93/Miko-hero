@@ -8,13 +8,6 @@ import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 
-/// Violet that closes the colorful-3D placeholder, used nowhere else.
-///
-/// Deliberately not [AppTheme.purple]: that token names a kingdom palette a
-/// parent can pick for a child, so borrowing it would make an unrelated
-/// decoration choice and a story's artwork move together.
-const storyArtworkViolet = Color(0xFF8A31CB);
-
 /// Every story's artwork: the picture the PC drew, or the colours standing in.
 ///
 /// One table decides what a book looks like before ComfyUI has drawn it, and
@@ -38,10 +31,14 @@ abstract final class StoryArtwork {
         secondary,
         primary.withValues(alpha: 0.78),
       ],
+      // The violet is a palette decision, not an artwork-private one: the
+      // redesign reference paints its own cover placeholders with it. It is
+      // [AppTheme.violet] rather than [AppTheme.purple] so a parent choosing a
+      // purple kingdom cannot repaint a story's artwork.
       IllustrationStyle.colorful3d => <Color>[
         primary,
         secondary,
-        storyArtworkViolet,
+        AppTheme.violet,
       ],
     };
   }

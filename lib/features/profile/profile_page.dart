@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:miko_hero/app/app_controller.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
@@ -268,7 +269,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               const SizedBox(height: 12),
               Text(
                 text.photoRequired,
-                style: const TextStyle(color: Colors.redAccent),
+                style: const TextStyle(color: AppTheme.danger),
               ),
             ],
             const SizedBox(height: 28),
@@ -570,7 +571,7 @@ class _PhotoEditor extends StatelessWidget {
         dimension: 112,
         child: encodedPhoto == null
             ? ColoredBox(
-                color: Color(0xFF222635),
+                color: AppTheme.mediaWell,
                 child: Icon(
                   AppIcons.addPhoto,
                   size: 36,
