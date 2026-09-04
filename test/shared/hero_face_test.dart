@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 
 /// A one-pixel PNG, small enough to decode inside a widget test.
@@ -71,10 +72,10 @@ void main() {
     await _pumpFace(
       tester,
       _profile(name: 'Miko', photoBase64: ''),
-      fallbackIcon: Icons.face_rounded,
+      fallbackIcon: AppIcons.hero,
     );
 
-    expect(find.byIcon(Icons.face_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.hero), findsOneWidget);
     expect(find.text('M'), findsNothing);
   });
 

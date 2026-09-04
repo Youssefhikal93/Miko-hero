@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 /// Protects parent-only destinations while preserving the surrounding shell.
 class ParentAccessGate extends ConsumerWidget {
@@ -69,7 +70,7 @@ class _ParentUnlockPanel extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const Icon(Icons.lock_rounded, size: 42),
+                  const Icon(AppIcons.lock, size: 42),
                   const SizedBox(height: 14),
                   Text(
                     text.parentAreaLocked,
@@ -174,7 +175,7 @@ class _ParentUnlockFormState extends ConsumerState<_ParentUnlockForm> {
                     dimension: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.lock_open_rounded),
+                : const Icon(AppIcons.unlock),
             label: Text(text.unlock),
           ),
         ),
@@ -273,7 +274,7 @@ class _ParentAccessError extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const Icon(Icons.error_outline_rounded, size: 42),
+          const Icon(AppIcons.error, size: 42),
           const SizedBox(height: 12),
           Text(text.somethingWentWrong),
           const SizedBox(height: 16),

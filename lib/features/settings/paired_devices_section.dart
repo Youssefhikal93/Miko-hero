@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
 
@@ -117,7 +118,7 @@ class _PairedDevicesSectionState extends ConsumerState<PairedDevicesSection> {
       contentPadding: EdgeInsets.zero,
       key: ValueKey<String>('paired-device-${device.id}'),
       leading: Icon(
-        device.isCaller ? Icons.smartphone_rounded : Icons.devices_rounded,
+        device.isCaller ? AppIcons.thisDevice : AppIcons.pairedDevice,
       ),
       title: Text(
         device.isCaller
@@ -139,7 +140,7 @@ class _PairedDevicesSectionState extends ConsumerState<PairedDevicesSection> {
               onPressed: _isRemoving
                   ? null
                   : () => unawaited(_removeDevice(device)),
-              icon: const Icon(Icons.link_off_rounded),
+              icon: const Icon(AppIcons.removeDevice),
             ),
     );
   }

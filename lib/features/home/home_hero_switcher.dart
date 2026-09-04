@@ -4,6 +4,7 @@ import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 
 /// Home's header: who the app is reading as, and the way to change it.
@@ -67,7 +68,7 @@ class HomeHeroHeader extends ConsumerWidget {
                           ),
                         ),
                         const Icon(
-                          Icons.expand_more_rounded,
+                          AppIcons.expandMore,
                           size: 20,
                           color: AppTheme.mutedDeep,
                         ),
@@ -134,7 +135,7 @@ class HomeHeroAvatar extends StatelessWidget {
       size: radius * 2,
       ring: true,
       background: AppTheme.sunken,
-      fallbackIcon: Icons.person_rounded,
+      fallbackIcon: AppIcons.heroSilhouette,
       fallbackColor: AppTheme.mutedDeep,
     );
   }
@@ -180,7 +181,7 @@ class _HeroSwitcherSheet extends StatelessWidget {
               subtitle: Text(text.yearsOld(profile.age)),
               trailing: active
                   ? Icon(
-                      Icons.check_rounded,
+                      AppIcons.activeHero,
                       color: Color(profile.themeColorValue),
                     )
                   : null,

@@ -9,6 +9,7 @@ import 'package:miko_hero/features/settings/backup_settings_card.dart';
 import 'package:miko_hero/features/settings/parent_security_settings_card.dart';
 import 'package:miko_hero/features/settings/settings_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -65,7 +66,7 @@ class _SettingsContent extends ConsumerWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => _confirmDeleteAll(context, ref),
-              icon: const Icon(Icons.delete_forever_rounded),
+              icon: const Icon(AppIcons.deleteEverything),
               label: Text(text.deleteAllData),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.redAccent,
@@ -104,10 +105,10 @@ class _SettingsContent extends ConsumerWidget {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: const Icon(Icons.groups_2_rounded),
+        leading: const Icon(AppIcons.heroFamily),
         title: Text(text.manageProfiles),
         subtitle: Text(text.profileCount(state.profiles.length)),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        trailing: const Icon(AppIcons.forward),
         onTap: () => context.go('/profiles'),
       ),
     );
@@ -122,7 +123,7 @@ class _SettingsContent extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Icon(
-              Icons.shield_rounded,
+              AppIcons.privacy,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 14),
@@ -150,7 +151,7 @@ class _SettingsContent extends ConsumerWidget {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.all(20),
-        leading: const Icon(Icons.auto_stories_rounded),
+        leading: const Icon(AppIcons.stories),
         title: Text(text.aboutTitle),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 6),

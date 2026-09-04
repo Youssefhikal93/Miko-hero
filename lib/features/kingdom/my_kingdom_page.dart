@@ -11,6 +11,7 @@ import 'package:miko_hero/features/kingdom/reading_rewards_card.dart';
 import 'package:miko_hero/features/kingdom/story_preferences_card.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
@@ -174,7 +175,7 @@ class _EmptyKingdom extends StatelessWidget {
         padding: const EdgeInsets.all(28),
         child: Column(
           children: <Widget>[
-            const Icon(Icons.castle_rounded, size: 54),
+            const Icon(AppIcons.kingdom, size: 54),
             const SizedBox(height: 14),
             Text(
               text.noProfilesTitle,
@@ -185,7 +186,7 @@ class _EmptyKingdom extends StatelessWidget {
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: () => context.go('/profiles/new'),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
+              icon: const Icon(AppIcons.addHero),
               label: Text(text.addProfile),
             ),
           ],
@@ -264,7 +265,7 @@ class _ChooseHeroPrompt extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Row(
           children: <Widget>[
-            const Icon(Icons.touch_app_rounded),
+            const Icon(AppIcons.tapHint),
             const SizedBox(width: 14),
             Expanded(child: Text(text.chooseHero)),
           ],
@@ -321,12 +322,12 @@ class _ProfileSummary extends StatelessWidget {
                     children: <Widget>[
                       FilledButton.tonalIcon(
                         onPressed: () => context.go('/profiles/${profile.id}'),
-                        icon: const Icon(Icons.edit_rounded),
+                        icon: const Icon(AppIcons.editHero),
                         label: Text(text.editHeroProfile),
                       ),
                       TextButton.icon(
                         onPressed: () => context.go('/profiles/new'),
-                        icon: const Icon(Icons.person_add_alt_1_rounded),
+                        icon: const Icon(AppIcons.addHero),
                         label: Text(text.addAnotherHero),
                       ),
                     ],
@@ -390,7 +391,7 @@ class _ThemeCard extends StatelessWidget {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: onCustomColor,
-              icon: const Icon(Icons.palette_rounded),
+              icon: const Icon(AppIcons.palette),
               label: Text(text.customColor),
             ),
           ],

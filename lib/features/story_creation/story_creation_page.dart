@@ -14,6 +14,7 @@ import 'package:miko_hero/features/story_creation/generation_progress_controller
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/features/story_creation/story_request_draft.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/hero_face.dart';
@@ -372,7 +373,7 @@ class _StoryFormState extends ConsumerState<_StoryForm> {
                 dimension: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.auto_awesome_rounded),
+            : const Icon(AppIcons.sparkle),
         label: Text(text.writeTheStory),
       ),
     );
@@ -478,7 +479,7 @@ class _StoryHeader extends StatelessWidget {
         IconButton.filledTonal(
           onPressed: () => _leave(context),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(AppIcons.back),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -540,7 +541,7 @@ class _GeneratorPill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(
-                localAi ? Icons.memory_rounded : Icons.science_outlined,
+                localAi ? AppIcons.localAi : AppIcons.demo,
                 size: 16,
                 color: AppTheme.candle,
               ),
@@ -663,10 +664,7 @@ class _AddHeroCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const Icon(
-                Icons.person_add_alt_1_rounded,
-                color: AppTheme.mutedDeep,
-              ),
+              const Icon(AppIcons.addHero, color: AppTheme.mutedDeep),
               const SizedBox(height: 8),
               Text(
                 label,

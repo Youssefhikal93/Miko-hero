@@ -8,6 +8,7 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/gender_selector.dart';
 import 'package:miko_hero/shared/hero_face.dart';
@@ -30,7 +31,7 @@ class ProfilePage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/profiles/new'),
-        icon: const Icon(Icons.person_add_alt_1_rounded),
+        icon: const Icon(AppIcons.addHero),
         label: Text(text.addProfile),
       ),
     );
@@ -93,7 +94,7 @@ class _ProfileCard extends StatelessWidget {
         trailing: IconButton(
           tooltip: text.editProfile,
           onPressed: () => context.go('/profiles/${profile.id}'),
-          icon: const Icon(Icons.edit_rounded),
+          icon: const Icon(AppIcons.editHero),
         ),
         onTap: () => context.go('/profiles/${profile.id}'),
       ),
@@ -125,7 +126,7 @@ class _NoProfiles extends StatelessWidget {
         padding: const EdgeInsets.all(28),
         child: Column(
           children: <Widget>[
-            const Icon(Icons.groups_2_outlined, size: 52),
+            const Icon(AppIcons.heroFamily, size: 52),
             const SizedBox(height: 14),
             Text(
               text.noProfilesTitle,
@@ -136,7 +137,7 @@ class _NoProfiles extends StatelessWidget {
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: () => context.go('/profiles/new'),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
+              icon: const Icon(AppIcons.addHero),
               label: Text(text.addProfile),
             ),
           ],
@@ -280,7 +281,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.lock_rounded),
+                    : const Icon(AppIcons.lock),
                 label: Text(text.saveProfile),
               ),
             ),
@@ -478,7 +479,7 @@ class _BirthDateField extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: enabled ? onPick : null,
-                icon: const Icon(Icons.event_rounded),
+                icon: const Icon(AppIcons.birthDate),
                 label: Text(
                   selected == null
                       ? text.chooseBirthDate
@@ -536,7 +537,7 @@ class _PhotoEditor extends StatelessWidget {
                     children: <Widget>[
                       FilledButton.tonalIcon(
                         onPressed: onPick,
-                        icon: const Icon(Icons.photo_library_outlined),
+                        icon: const Icon(AppIcons.photoLibrary),
                         label: Text(
                           photoBase64 == null
                               ? text.choosePhoto
@@ -546,7 +547,7 @@ class _PhotoEditor extends StatelessWidget {
                       if (photoBase64 != null)
                         TextButton.icon(
                           onPressed: onRemove,
-                          icon: const Icon(Icons.delete_outline),
+                          icon: const Icon(AppIcons.delete),
                           label: Text(text.removePhoto),
                         ),
                     ],
@@ -571,7 +572,7 @@ class _PhotoEditor extends StatelessWidget {
             ? ColoredBox(
                 color: Color(0xFF222635),
                 child: Icon(
-                  Icons.add_a_photo_outlined,
+                  AppIcons.addPhoto,
                   size: 36,
                   color: Theme.of(context).colorScheme.primary,
                 ),

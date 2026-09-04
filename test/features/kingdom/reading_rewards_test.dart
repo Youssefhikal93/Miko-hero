@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miko_hero/app/app_controller.dart';
@@ -9,6 +8,7 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 import '../../support/seeded_device.dart';
 
@@ -106,7 +106,7 @@ void main() {
 
     expect(find.text('New badge earned: First story'), findsNothing);
 
-    await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
+    await tester.tap(find.byIcon(AppIcons.nextPage));
     await tester.pumpAndSettle();
 
     expect(find.text('Page 2 of 2'), findsOneWidget);
@@ -122,7 +122,7 @@ void main() {
 
     appRouter.go('/story/story-moon');
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
+    await tester.tap(find.byIcon(AppIcons.nextPage));
     await tester.pumpAndSettle();
 
     expect(find.text('New badge earned: First story'), findsNothing);

@@ -9,6 +9,7 @@ import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/reading_text_style.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -161,12 +162,12 @@ class _ReviewContent extends ConsumerWidget {
             children: <Widget>[
               FilledButton.icon(
                 onPressed: () => _approve(context, ref),
-                icon: const Icon(Icons.verified_rounded),
+                icon: const Icon(AppIcons.approveStory),
                 label: Text(text.approveStory),
               ),
               OutlinedButton.icon(
                 onPressed: () => _delete(context, ref),
-                icon: const Icon(Icons.delete_outline_rounded),
+                icon: const Icon(AppIcons.delete),
                 label: Text(text.deleteDraft),
               ),
             ],
@@ -323,7 +324,7 @@ class _NoDrafts extends StatelessWidget {
         padding: const EdgeInsets.all(28),
         child: Column(
           children: <Widget>[
-            const Icon(Icons.fact_check_outlined, size: 48),
+            const Icon(AppIcons.factCheck, size: 48),
             const SizedBox(height: 12),
             Text(text.noDrafts, textAlign: TextAlign.center),
             const SizedBox(height: 16),

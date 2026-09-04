@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/features/settings/backup_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/encrypted_file_messages.dart';
 import 'package:miko_hero/shared/encryption_password_dialog.dart';
 
@@ -35,7 +36,7 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
           children: <Widget>[
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.backup_rounded),
+              leading: const Icon(AppIcons.backup),
               title: Text(text.encryptedBackupTitle),
               subtitle: Text(text.encryptedBackupBody),
             ),
@@ -46,12 +47,12 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
               children: <Widget>[
                 FilledButton.icon(
                   onPressed: _isBusy ? null : _exportBackup,
-                  icon: const Icon(Icons.file_download_rounded),
+                  icon: const Icon(AppIcons.export),
                   label: Text(text.exportEncryptedBackup),
                 ),
                 OutlinedButton.icon(
                   onPressed: _isBusy ? null : _restoreBackup,
-                  icon: const Icon(Icons.settings_backup_restore_rounded),
+                  icon: const Icon(AppIcons.restoreBackup),
                   label: Text(text.restoreEncryptedBackup),
                 ),
                 if (_isBusy)
@@ -157,7 +158,7 @@ class _BackupSettingsCardState extends ConsumerState<BackupSettingsCard> {
                 );
               }
             },
-            icon: const Icon(Icons.download_rounded),
+            icon: const Icon(AppIcons.download),
             label: Text(text.downloadBackup),
           ),
         ],

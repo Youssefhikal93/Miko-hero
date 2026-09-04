@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_routes.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
 /// Responsive navigation frame retained around every application route.
@@ -44,28 +45,24 @@ class AppShell extends StatelessWidget {
   /// Builds the five localized destinations in their stable route order.
   List<_NavigationDestination> _destinations(AppLocalizations text) {
     return <_NavigationDestination>[
+      _NavigationDestination(icon: AppIcons.home, label: text.home, route: '/'),
       _NavigationDestination(
-        icon: Icons.home_rounded,
-        label: text.home,
-        route: '/',
-      ),
-      _NavigationDestination(
-        icon: Icons.auto_awesome_rounded,
+        icon: AppIcons.sparkle,
         label: text.create,
         route: '/create',
       ),
       _NavigationDestination(
-        icon: Icons.menu_book_rounded,
+        icon: AppIcons.shelf,
         label: text.library,
         route: '/library',
       ),
       _NavigationDestination(
-        icon: Icons.castle_rounded,
+        icon: AppIcons.kingdom,
         label: text.myKingdom,
         route: '/kingdom',
       ),
       _NavigationDestination(
-        icon: Icons.settings_rounded,
+        icon: AppIcons.settings,
         label: text.settings,
         route: '/settings',
       ),
@@ -351,7 +348,7 @@ class _Brand extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.auto_stories_rounded, color: Colors.black),
+            child: const Icon(AppIcons.stories, color: Colors.black),
           ),
           const SizedBox(width: 12),
           const Expanded(

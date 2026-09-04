@@ -6,6 +6,7 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
 /// Verifies what each of the three story tile shapes shows and does.
@@ -42,11 +43,11 @@ void main() {
     );
 
     expect(find.text('DEMO'), findsOneWidget);
-    expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.favourite), findsOneWidget);
     expect(find.text('Moon Garden'), findsOneWidget);
     expect(find.textContaining('2 pages · '), findsOneWidget);
-    expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.moreActions), findsOneWidget);
+    expect(find.byIcon(AppIcons.delete), findsNothing);
   });
 
   testWidgets('the small tile shows the cover and the title only', (
@@ -60,7 +61,7 @@ void main() {
 
     expect(find.text('Moon Garden'), findsOneWidget);
     expect(find.text('DEMO'), findsNothing);
-    expect(find.byIcon(Icons.more_horiz_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.moreActions), findsNothing);
   });
 
   testWidgets('a feature that allows nothing gets no overflow control', (
@@ -72,7 +73,7 @@ void main() {
       actions: StoryCardActions(open: () {}),
     );
 
-    expect(find.byIcon(Icons.more_horiz_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.moreActions), findsNothing);
   });
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 /// Required Girl/Boy choice shared by profile and story forms.
 class GenderSelector extends StatelessWidget {
@@ -44,12 +45,12 @@ class GenderSelector extends StatelessWidget {
               segments: <ButtonSegment<ChildGender>>[
                 ButtonSegment<ChildGender>(
                   value: ChildGender.girl,
-                  icon: const Icon(Icons.face_3_rounded),
+                  icon: const Icon(AppIcons.girlHero),
                   label: Text(text.girl),
                 ),
                 ButtonSegment<ChildGender>(
                   value: ChildGender.boy,
-                  icon: const Icon(Icons.face_6_rounded),
+                  icon: const Icon(AppIcons.boyHero),
                   label: Text(text.boy),
                 ),
               ],

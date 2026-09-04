@@ -8,6 +8,7 @@ import 'package:miko_hero/core/generation/story_generator.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 import '../support/seeded_device.dart';
 
@@ -309,7 +310,7 @@ void main() {
     expect(find.text('DEMO'), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
+    await tester.tap(find.byIcon(AppIcons.nextPage));
     await tester.pumpAndSettle();
     expect(
       find.text(

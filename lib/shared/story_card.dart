@@ -7,6 +7,7 @@ import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/story_artwork.dart';
 
 /// Shape one story takes inside the shared mosaic.
@@ -362,7 +363,7 @@ class _StoryOverflowMenu extends StatelessWidget {
     final text = AppLocalizations.of(context);
     return PopupMenuButton<StoryCardCommand>(
       tooltip: text.moreStoryActions,
-      icon: Icon(Icons.more_horiz_rounded, color: color),
+      icon: Icon(AppIcons.moreActions, color: color),
       onSelected: (command) => command.run(),
       itemBuilder: (context) => <PopupMenuEntry<StoryCardCommand>>[
         for (final command in actions.secondaryCommands)
@@ -386,13 +387,11 @@ class _StoryOverflowMenu extends StatelessWidget {
   IconData _iconFor(StoryCardCommandKind kind) {
     return switch (kind) {
       StoryCardCommandKind.favorite =>
-        story.isFavorite
-            ? Icons.favorite_rounded
-            : Icons.favorite_border_rounded,
-      StoryCardCommandKind.collections => Icons.folder_copy_outlined,
-      StoryCardCommandKind.illustrate => Icons.palette_outlined,
-      StoryCardCommandKind.share => Icons.ios_share_rounded,
-      StoryCardCommandKind.delete => Icons.delete_outline_rounded,
+        story.isFavorite ? AppIcons.favourite : AppIcons.notFavourite,
+      StoryCardCommandKind.collections => AppIcons.collection,
+      StoryCardCommandKind.illustrate => AppIcons.illustrate,
+      StoryCardCommandKind.share => AppIcons.storyFile,
+      StoryCardCommandKind.delete => AppIcons.delete,
     };
   }
 
@@ -464,7 +463,7 @@ class _FavoriteHeart extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsetsDirectional.only(start: 4),
-      child: Icon(Icons.favorite_rounded, size: size, color: AppTheme.candle),
+      child: Icon(AppIcons.favourite, size: size, color: AppTheme.candle),
     );
   }
 }
@@ -546,7 +545,7 @@ class StoryCover extends StatelessWidget {
                 const Align(
                   alignment: Alignment.topRight,
                   child: Icon(
-                    Icons.auto_awesome,
+                    AppIcons.sparkle,
                     color: Color(0xCCFFFFFF),
                     size: 28,
                   ),

@@ -5,6 +5,7 @@ import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/reading_badge.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/story_card.dart';
 
 /// The book Home offers to open again, on a full-width cover tile.
@@ -89,11 +90,7 @@ class HomeNewStoryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            const Icon(
-              Icons.auto_awesome_rounded,
-              size: 26,
-              color: AppTheme.onCandle,
-            ),
+            const Icon(AppIcons.sparkle, size: 26, color: AppTheme.onCandle),
             Text(
               text.newStory,
               maxLines: 2,
@@ -141,11 +138,7 @@ class HomeReadingBadgesTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            const Icon(
-              Icons.emoji_events_rounded,
-              size: 26,
-              color: AppTheme.candle,
-            ),
+            const Icon(AppIcons.readingBadge, size: 26, color: AppTheme.candle),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -208,7 +201,7 @@ class HomeDraftsRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
-                Icons.fact_check_rounded,
+                AppIcons.factCheck,
                 size: 20,
                 color: AppTheme.candle,
               ),
@@ -240,7 +233,7 @@ class HomeDraftsRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppTheme.mutedDeep),
+            const Icon(AppIcons.forward, color: AppTheme.mutedDeep),
           ],
         ),
       ),

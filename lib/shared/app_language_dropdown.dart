@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 /// Four-language selector shared by app and story settings.
 class AppLanguageDropdown extends StatelessWidget {
@@ -61,9 +62,9 @@ class AppLanguageDropdown extends StatelessWidget {
       requestFocusOnTap: false,
       selectOnly: true,
       label: Text(label),
-      leadingIcon: Icon(Icons.language_rounded, color: primary),
-      trailingIcon: const Icon(Icons.keyboard_arrow_down_rounded),
-      selectedTrailingIcon: const Icon(Icons.keyboard_arrow_up_rounded),
+      leadingIcon: Icon(AppIcons.language, color: primary),
+      trailingIcon: const Icon(AppIcons.dropdownClosed),
+      selectedTrailingIcon: const Icon(AppIcons.dropdownOpen),
       inputDecorationTheme: _inputDecoration(primary),
       menuStyle: _menuStyle,
       dropdownMenuEntries: _languageEntries(text, primary),
@@ -98,7 +99,7 @@ class AppLanguageDropdown extends StatelessWidget {
             label: _languageName(text, language),
             leadingIcon: _LanguageBadge(language: language),
             trailingIcon: language == selectedLanguage
-                ? Icon(Icons.check_circle_rounded, color: primary)
+                ? Icon(AppIcons.selectedLanguage, color: primary)
                 : null,
             style: _entryStyle,
           );

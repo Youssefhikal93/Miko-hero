@@ -15,6 +15,7 @@ import 'package:miko_hero/features/library/story_share_actions.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/parent_gated_action.dart';
@@ -176,12 +177,12 @@ class _ShelfHeader extends ConsumerWidget {
             if (draftCount > 0)
               FilledButton.tonalIcon(
                 onPressed: () => context.go('/review'),
-                icon: const Icon(Icons.fact_check_rounded),
+                icon: const Icon(AppIcons.factCheck),
                 label: Text(text.reviewDraftCount(draftCount)),
               ),
             OutlinedButton.icon(
               onPressed: () => importStoryFile(context, ref, state: state),
-              icon: const Icon(Icons.file_open_rounded),
+              icon: const Icon(AppIcons.import),
               label: Text(text.importStoryFile),
             ),
           ],
@@ -230,12 +231,12 @@ class _TitleSearchField extends StatelessWidget {
       onChanged: onQueryChanged,
       decoration: InputDecoration(
         labelText: text.searchStoryTitles,
-        prefixIcon: const Icon(Icons.search_rounded),
+        prefixIcon: const Icon(AppIcons.search),
         suffixIcon: controller.text.isEmpty
             ? null
             : IconButton(
                 tooltip: text.clearStorySearch,
-                icon: const Icon(Icons.close_rounded),
+                icon: const Icon(AppIcons.close),
                 onPressed: () {
                   controller.clear();
                   onQueryChanged('');
@@ -360,7 +361,7 @@ class _FilterChips extends StatelessWidget {
         _chip(
           filter: const FavoriteStories(),
           label: text.favoriteStories,
-          icon: Icons.favorite_border_rounded,
+          icon: AppIcons.notFavourite,
         ),
         for (final collection in collections)
           _chip(filter: StoriesInCollection(collection), label: collection),
@@ -550,7 +551,7 @@ class _EmptyShelf extends StatelessWidget {
         child: Center(
           child: Column(
             children: <Widget>[
-              const Icon(Icons.auto_stories_outlined, size: 54),
+              const Icon(AppIcons.stories, size: 54),
               const SizedBox(height: 16),
               Text(
                 text.emptyLibraryTitle,

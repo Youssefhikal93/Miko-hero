@@ -3,6 +3,7 @@ import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/reader/narration_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 
 /// The reader's chrome above and below the open book.
@@ -116,14 +117,14 @@ class ReaderTopRow extends StatelessWidget {
             IconButton(
               onPressed: onClose,
               tooltip: text.close,
-              icon: const Icon(Icons.close_rounded),
+              icon: const Icon(AppIcons.close),
             ),
             IconButton(
               onPressed: onBedtime,
               tooltip: bedtime ? text.turnOffBedtimeMode : text.bedtimeMode,
               isSelected: bedtime,
               icon: Icon(
-                bedtime ? Icons.bedtime_rounded : Icons.bedtime_outlined,
+                AppIcons.bedtime,
                 color: bedtime ? AppTheme.candle : null,
               ),
             ),
@@ -214,7 +215,7 @@ class ReaderControls extends StatelessWidget {
       children: <Widget>[
         _pageTurnButton(
           tooltip: text.previousPage,
-          icon: Icons.arrow_back_rounded,
+          icon: AppIcons.previousPage,
           onPressed: actions.navigation.previous,
         ),
         const SizedBox(width: 12),
@@ -223,14 +224,14 @@ class ReaderControls extends StatelessWidget {
           const SizedBox(width: 12),
           _pageTurnButton(
             tooltip: text.stopNarration,
-            icon: Icons.stop_rounded,
+            icon: AppIcons.narrationStop,
             onPressed: actions.stopNarration,
           ),
         ],
         const SizedBox(width: 12),
         _pageTurnButton(
           tooltip: text.nextPage,
-          icon: Icons.arrow_forward_rounded,
+          icon: AppIcons.nextPage,
           onPressed: actions.navigation.next,
         ),
       ],
@@ -298,17 +299,17 @@ class ReaderControls extends StatelessWidget {
         IconButton(
           onPressed: actions.narrationSettings,
           tooltip: text.narrationSpeed,
-          icon: const Icon(Icons.speed_rounded),
+          icon: const Icon(AppIcons.narrationSpeed),
         ),
         IconButton(
           onPressed: actions.narrationSettings,
           tooltip: text.sleepTimer,
-          icon: const Icon(Icons.timer_outlined),
+          icon: const Icon(AppIcons.sleepTimer),
         ),
         IconButton(
           onPressed: actions.textSize,
           tooltip: text.readerTextSize,
-          icon: const Icon(Icons.text_fields_rounded),
+          icon: const Icon(AppIcons.readerTextSize),
         ),
         IconButton(
           onPressed: status.exporting ? null : actions.export,
@@ -318,7 +319,7 @@ class ReaderControls extends StatelessWidget {
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.picture_as_pdf_rounded),
+              : const Icon(AppIcons.savePdf),
         ),
       ],
     );
@@ -345,9 +346,9 @@ class ReaderControls extends StatelessWidget {
   /// Mirrors the narration state so the control never lies about what it does.
   IconData _narrationIcon() {
     return switch (status.playback) {
-      NarrationPlayback.playing => Icons.pause_rounded,
-      NarrationPlayback.paused => Icons.play_arrow_rounded,
-      NarrationPlayback.idle => Icons.play_arrow_rounded,
+      NarrationPlayback.playing => AppIcons.narrationPause,
+      NarrationPlayback.paused => AppIcons.narrationPlay,
+      NarrationPlayback.idle => AppIcons.narrationPlay,
     };
   }
 }

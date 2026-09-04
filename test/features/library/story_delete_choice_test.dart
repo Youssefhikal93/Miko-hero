@@ -6,6 +6,7 @@ import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 import '../../support/fake_bridge_http_client.dart';
 import '../../support/seeded_device.dart';
@@ -141,7 +142,7 @@ FakeBridgeHttpClient _unreachableBridge() {
 
 /// Opens the story's delete action from the child's shelf.
 Future<void> _tapDelete(WidgetTester tester) async {
-  final overflow = find.byIcon(Icons.more_horiz_rounded).first;
+  final overflow = find.byIcon(AppIcons.moreActions).first;
   await tester.ensureVisible(overflow);
   await tester.pumpAndSettle();
   await tester.tap(overflow);

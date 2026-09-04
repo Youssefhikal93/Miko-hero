@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 /// Standard loading and recovery boundary for locally persisted application state.
 class AppStateBoundary extends ConsumerWidget {
@@ -33,7 +34,7 @@ class AppStateBoundary extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Icon(Icons.error_outline_rounded, size: 42),
+                const Icon(AppIcons.error, size: 42),
                 const SizedBox(height: 12),
                 Text(text.somethingWentWrong),
                 const SizedBox(height: 16),

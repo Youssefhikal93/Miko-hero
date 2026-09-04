@@ -10,6 +10,7 @@ import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/sentence_splitter.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/reading_text_style.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
@@ -133,7 +134,7 @@ class _PageIllustration extends ConsumerWidget {
               top: 18,
               start: 18,
               child: Chip(
-                avatar: const Icon(Icons.science_outlined, size: 16),
+                avatar: const Icon(AppIcons.demo, size: 16),
                 label: Text(AppLocalizations.of(context).demoBadge),
               ),
             ),
@@ -183,7 +184,7 @@ class _PageIllustration extends ConsumerWidget {
         profile: pageContext.profile,
         size: 144,
         background: Colors.white24,
-        fallbackIcon: Icons.face_rounded,
+        fallbackIcon: AppIcons.hero,
         fallbackColor: Colors.white,
       ),
     );

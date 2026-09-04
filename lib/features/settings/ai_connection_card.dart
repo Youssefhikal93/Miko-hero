@@ -11,6 +11,7 @@ import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/settings/library_sync_section.dart';
 import 'package:miko_hero/features/settings/paired_devices_section.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 
 /// Parent-only controls for the generator mode, the PC bridge, and pairing.
@@ -90,7 +91,7 @@ class _LoadedAiConnectionCardState
           children: <Widget>[
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.hub_rounded),
+              leading: const Icon(AppIcons.bridge),
               title: Text(text.aiConnectionTitle),
               subtitle: Text(text.aiConnectionBody),
             ),
@@ -146,12 +147,12 @@ class _LoadedAiConnectionCardState
           segments: <ButtonSegment<StoryGeneratorMode>>[
             ButtonSegment<StoryGeneratorMode>(
               value: StoryGeneratorMode.demo,
-              icon: const Icon(Icons.science_outlined),
+              icon: const Icon(AppIcons.demo),
               label: Text(text.demoGeneratorMode),
             ),
             ButtonSegment<StoryGeneratorMode>(
               value: StoryGeneratorMode.localAi,
-              icon: const Icon(Icons.memory_rounded),
+              icon: const Icon(AppIcons.localAi),
               label: Text(text.localAiGeneratorMode),
             ),
           ],
@@ -186,7 +187,7 @@ class _LoadedAiConnectionCardState
       children: <Widget>[
         FilledButton.tonalIcon(
           onPressed: _isBusy ? null : () => unawaited(_saveAddress()),
-          icon: const Icon(Icons.save_rounded),
+          icon: const Icon(AppIcons.save),
           label: Text(text.saveBridgeAddress),
         ),
         OutlinedButton.icon(
@@ -196,7 +197,7 @@ class _LoadedAiConnectionCardState
                   dimension: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.monitor_heart_outlined),
+              : const Icon(AppIcons.testConnection),
           label: Text(text.testBridgeConnection),
         ),
       ],
@@ -220,7 +221,7 @@ class _LoadedAiConnectionCardState
       dense: true,
       contentPadding: EdgeInsets.zero,
       leading: Icon(
-        isAvailable ? Icons.check_circle_rounded : Icons.cancel_rounded,
+        isAvailable ? AppIcons.bridgeAvailable : AppIcons.bridgeUnavailable,
         color: isAvailable ? Colors.greenAccent : Colors.orangeAccent,
       ),
       title: Text(title),
@@ -245,13 +246,13 @@ class _LoadedAiConnectionCardState
         if (deviceName == null)
           FilledButton.icon(
             onPressed: _isBusy ? null : () => unawaited(_pairDevice()),
-            icon: const Icon(Icons.link_rounded),
+            icon: const Icon(AppIcons.pair),
             label: Text(text.pairWithPc),
           )
         else
           OutlinedButton.icon(
             onPressed: _isBusy ? null : () => unawaited(_forgetDevice()),
-            icon: const Icon(Icons.link_off_rounded),
+            icon: const Icon(AppIcons.forgetDevice),
             label: Text(text.forgetPairedDevice),
           ),
       ],
@@ -549,7 +550,7 @@ class _AiConnectionErrorCard extends StatelessWidget {
     final text = AppLocalizations.of(context);
     return Card(
       child: ListTile(
-        leading: const Icon(Icons.error_outline_rounded),
+        leading: const Icon(AppIcons.error),
         title: Text(text.somethingWentWrong),
         trailing: TextButton(onPressed: onRetry, child: Text(text.retry)),
       ),

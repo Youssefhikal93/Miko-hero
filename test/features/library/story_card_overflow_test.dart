@@ -9,6 +9,7 @@ import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/core/security/parent_security_service.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 import '../../support/seeded_device.dart';
 
@@ -57,12 +58,12 @@ void main() {
     await _storeFamily();
     await _pumpLibrary(tester, service);
 
-    expect(find.byIcon(Icons.favorite_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.favourite), findsNothing);
     await _openOverflow(tester);
     await tester.tap(find.text('Add to favorites'));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.favourite), findsOneWidget);
     final reopened = await (await LocalRepository.open()).readState();
     expect(reopened.stories.single.isFavorite, isTrue);
   });
@@ -74,7 +75,7 @@ void main() {
     await _pumpLibrary(tester, service);
 
     expect(find.text('DEMO'), findsOneWidget);
-    expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.favourite), findsOneWidget);
     expect(find.textContaining('2 pages · '), findsOneWidget);
   });
 }
@@ -90,7 +91,7 @@ Future<void> _pumpLibrary(WidgetTester tester, ParentSecurityService service) {
 
 /// Opens the one overflow control the story tile offers.
 Future<void> _openOverflow(WidgetTester tester) async {
-  final overflow = find.byIcon(Icons.more_horiz_rounded).first;
+  final overflow = find.byIcon(AppIcons.moreActions).first;
   await tester.ensureVisible(overflow);
   await tester.pumpAndSettle();
   await tester.tap(overflow);

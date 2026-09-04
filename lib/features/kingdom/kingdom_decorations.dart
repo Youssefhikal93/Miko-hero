@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/hero_face.dart';
 
 /// Resolves the Material icon that stands for one favourite symbol.
@@ -12,18 +13,18 @@ import 'package:miko_hero/shared/hero_face.dart';
 /// binary asset and no download is ever needed.
 IconData kingdomSymbolIcon(KingdomSymbol symbol) {
   return switch (symbol) {
-    KingdomSymbol.star => Icons.star_rounded,
-    KingdomSymbol.rocket => Icons.rocket_launch_rounded,
-    KingdomSymbol.crown => Icons.workspace_premium_rounded,
-    KingdomSymbol.butterfly => Icons.emoji_nature_rounded,
-    KingdomSymbol.dragon => Icons.pets_rounded,
-    KingdomSymbol.flower => Icons.local_florist_rounded,
-    KingdomSymbol.football => Icons.sports_soccer_rounded,
-    KingdomSymbol.music => Icons.music_note_rounded,
-    KingdomSymbol.book => Icons.auto_stories_rounded,
-    KingdomSymbol.paw => Icons.cruelty_free_rounded,
-    KingdomSymbol.rainbow => Icons.gradient_rounded,
-    KingdomSymbol.sparkles => Icons.auto_awesome_rounded,
+    KingdomSymbol.star => AppIcons.star,
+    KingdomSymbol.rocket => AppIcons.rocket,
+    KingdomSymbol.crown => AppIcons.crown,
+    KingdomSymbol.butterfly => AppIcons.butterfly,
+    KingdomSymbol.dragon => AppIcons.dragon,
+    KingdomSymbol.flower => AppIcons.flower,
+    KingdomSymbol.football => AppIcons.football,
+    KingdomSymbol.music => AppIcons.music,
+    KingdomSymbol.book => AppIcons.stories,
+    KingdomSymbol.paw => AppIcons.paw,
+    KingdomSymbol.rainbow => AppIcons.rainbow,
+    KingdomSymbol.sparkles => AppIcons.sparkle,
   };
 }
 

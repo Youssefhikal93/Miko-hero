@@ -7,6 +7,7 @@ import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_language_dropdown.dart';
 
 /// Per-child story defaults, recurring world, interests, and safety controls.
@@ -30,7 +31,7 @@ class StoryPreferencesCard extends ConsumerWidget {
           children: <Widget>[
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.menu_book_rounded),
+              leading: const Icon(AppIcons.shelf),
               title: Text(text.storyPreferencesTitle),
               subtitle: Text(text.storyPreferencesBody(profile.name)),
             ),
@@ -38,7 +39,7 @@ class StoryPreferencesCard extends ConsumerWidget {
             const SizedBox(height: 16),
             FilledButton.tonalIcon(
               onPressed: () => _editPreferences(context, ref),
-              icon: const Icon(Icons.tune_rounded),
+              icon: const Icon(AppIcons.storyPreferences),
               label: Text(text.editStoryPreferences),
             ),
             const Divider(height: 34),
