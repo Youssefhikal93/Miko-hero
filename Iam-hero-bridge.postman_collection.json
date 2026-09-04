@@ -294,7 +294,7 @@
     },
     {
       "name": "Profiles",
-      "description": "The child's reference photo — the one thing that makes the hero look like the same child on every page. Set `profileId` by hand before using this folder. The bytes never leave the library: they are not logged, not echoed, and never sent to a paired device, only to the local ComfyUI while a page renders.",
+      "description": "The child's reference photo — the one thing that makes the hero look like the same child on every page — and the hero sheet the PC reads out of it. Set `profileId` by hand before using this folder. The bytes never leave the library: they are not logged, not echoed, and never sent to a paired device, only to the local ComfyUI while a page renders. The sheet does leave, but only to a paired device that asked for one named child, and never into a log or a sync manifest.",
       "item": [
         {
           "name": "Upload reference photo",
@@ -333,6 +333,58 @@
               "path": ["profiles", "{{profileId}}", "photo"]
             },
             "description": "Requires auth. Removes the photo and answers `200`:\n\n```json\n{ \"profileId\": \"profile-1\", \"removed\": true }\n```\n\nIdempotent: a profile that has no photo answers `200` with `\"removed\": false`. Pages rendered afterwards simply stop resembling anyone in particular.\n\nErrors: `404 profile_not_found`, `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Read hero sheet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profiles/{{profileId}}/hero-sheet",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "{{profileId}}", "hero-sheet"]
+            },
+            "description": "Requires auth. How this child's hero is **drawn**: the three traits the PC read from the reference photo, the outfit and prop the hero always has, and the hash of the photo the first three came from.\n\n```json\n{\n  \"profileId\": \"profile-1\",\n  \"sheet\": {\n    \"hair\": \"short curly black hair\",\n    \"skinTone\": \"warm brown\",\n    \"eyeColor\": \"dark brown\",\n    \"outfit\": \"wearing a red knitted cardigan over a white collared shirt\",\n    \"prop\": \"carrying a small brass lantern\",\n    \"photoHash\": \"9f2c…\",\n    \"updatedAtUtc\": \"2026-09-03T20:14:02.000Z\"\n  }\n}\n```\n\nA child whose photo has never been read answers `200` with `\"sheet\": null` — a state, not a failure. A sheet may also hold only an outfit and a prop, with the three derived values empty, when a parent typed a wardrobe before any photo reached the PC.\n\nErrors: `404 profile_not_found`, `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Set what the hero wears and carries",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit\": \"wearing a mustard-yellow raincoat over a striped shirt\",\n  \"prop\": \"carrying a small brass lantern\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profiles/{{profileId}}/hero-sheet",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "{{profileId}}", "hero-sheet"]
+            },
+            "description": "Requires auth. Writes the half of the sheet the **parent** owns and nothing else: `outfit` and `prop`. The three derived values are the PC's, read from the photo, and cannot be set here — `hair`, `skinTone`, `eyeColor` and `photoHash` are refused as unknown fields.\n\nBoth fields are optional and both may be blank, which clears them. Each is at most 80 characters, because the line they join is repeated into every page's scene description.\n\nAnswers `200` with the same body *Read hero sheet* returns. A profile whose photo has never been read still gets its wardrobe stored; the derived half fills in the first time a photo is read.\n\nErrors: `400 invalid_field` (an unknown field, or one over the length limit), `404 profile_not_found`, `401 unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Read the photo again",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profiles/{{profileId}}/hero-sheet/rederive",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "{{profileId}}", "hero-sheet", "rederive"]
+            },
+            "description": "Requires auth. Reads the child's stored reference photo again and rewrites the three derived traits, **ignoring the photo-hash cache** — that is the whole point of the request. The outfit and the prop are never touched.\n\nAnswers `202` with `\"started\": true` and the sheet as it stands by the time the PC answers:\n\n```json\n{\n  \"profileId\": \"profile-1\",\n  \"started\": true,\n  \"sheet\": { \"hair\": \"long straight brown hair\", \"…\": \"…\" }\n}\n```\n\nThe re-read takes its turn at the one GPU gate like a story or a render does, so a card that is busy drawing a book keeps it and the sheet in the answer is still the old one; ask again, or read the sheet, once the PC is free. Nothing here fails: a profile with no photo, an Ollama that is down and a model that answered in the wrong shape all leave whatever was already stored.\n\nErrors: `404 profile_not_found`, `401 unauthorized`."
           },
           "response": []
         }

@@ -520,5 +520,21 @@
   "bridgePhotoTooLarge": "Fotot är för stort för datorn.",
   "bridgeUnsupportedImage": "Datorn kan bara använda ett foto i JPEG eller PNG.",
   "bridgeIllustrationNotFound": "Datorn har inte längre den bilden.",
-  "bridgeIllustrationNotReady": "Den bilden är inte gjord än."
+  "bridgeIllustrationNotReady": "Den bilden är inte gjord än.",
+  "heroSheetTitle": "Så ritas hjälten",
+  "heroSheetIntro": "Datorn läser barnets foto en gång och ritar sedan samma hjälte i varje saga. Du bestämmer vad hjälten alltid har på sig och bär med sig.",
+  "heroSheetReadFromPhoto": "Läst från fotot",
+  "heroSheetHair": "Hår",
+  "heroSheetSkinTone": "Hudton",
+  "heroSheetEyeColor": "Ögon",
+  "heroSheetNotReadYet": "Datorn har inte läst det här fotot än.",
+  "heroSheetOutfit": "Har alltid på sig",
+  "heroSheetProp": "Bär alltid med sig",
+  "heroSheetWardrobeHelper": "En kort fras på engelska, eftersom ritmodellen läser engelska.",
+  "heroSheetReadAgain": "Läs fotot en gång till",
+  "heroSheetRereadDone": "Datorn läste fotot en gång till.",
+  "heroSheetRereadPending": "Datorn är upptagen. Den läser fotot en gång till om en stund.",
+  "heroSheetRereadFailed": "Datorn kunde inte läsa fotot en gång till.",
+  "heroSheetSaveFailed": "Det hjälten har på sig kunde inte sparas på datorn.",
+  "heroSheetUnavailable": "Datorn svarade inte, så hjältens utseende visas inte."
 }

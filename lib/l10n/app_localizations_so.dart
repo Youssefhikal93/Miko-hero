@@ -1732,4 +1732,57 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get bridgeIllustrationNotReady => 'Sawirkaas weli lama samayn.';
+
+  @override
+  String get heroSheetTitle => 'Sida geesiga loo sawiro';
+
+  @override
+  String get heroSheetIntro =>
+      'PC-gu hal mar buu akhriyaa sawirka ilmahan, sheeko kastana wuxuu ku sawiraa geesi isku mid ah. Adigaa go\'aaminaya waxa uu geesigu had iyo jeer xidho iyo waxa uu wato.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'Sawirka laga akhriyay';
+
+  @override
+  String get heroSheetHair => 'Timaha';
+
+  @override
+  String get heroSheetSkinTone => 'Midabka maqaarka';
+
+  @override
+  String get heroSheetEyeColor => 'Indhaha';
+
+  @override
+  String get heroSheetNotReadYet => 'PC-gu weli ma akhrin sawirkan.';
+
+  @override
+  String get heroSheetOutfit => 'Had iyo jeer wuxuu xidhaa';
+
+  @override
+  String get heroSheetProp => 'Had iyo jeer wuxuu wataa';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'Weedh gaaban oo Ingiriisi ah, maxaa yeelay moodalka sawiridda wuxuu akhriyaa Ingiriisi.';
+
+  @override
+  String get heroSheetReadAgain => 'Mar kale ka akhri sawirka';
+
+  @override
+  String get heroSheetRereadDone => 'PC-gu mar kale ayuu akhriyay sawirka.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'PC-gu waa mashquul. Wuxuu dhawaan mar kale akhrinayaa sawirka.';
+
+  @override
+  String get heroSheetRereadFailed => 'PC-gu ma akhrin karin sawirka mar kale.';
+
+  @override
+  String get heroSheetSaveFailed =>
+      'Waxa geesigu xidho lagu kaydin waayay PC-ga.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'PC-gu ma jawaabin, sidaas darteed muuqaalka geesiga lama tusayo.';
 }

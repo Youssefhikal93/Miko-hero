@@ -21,6 +21,12 @@ const int maximumCharacterSheetFieldLength = 80;
 /// from. It is what makes the sheet a cache: the same photo answers from the
 /// database, a replaced photo re-derives, and a photo that never changes never
 /// costs a model call again.
+///
+/// A sheet may also exist **before** anything has been read from a photo: a
+/// parent who tells the PC what their hero always wears writes the wardrobe
+/// half on its own, and the three derived traits stay empty until there is a
+/// photo to read them from. [isDerived] is the question every caller
+/// downstream asks before using the line.
 class HeroCharacterSheet {
   /// Creates a sheet.
   const HeroCharacterSheet({
@@ -58,14 +64,73 @@ class HeroCharacterSheet {
   /// When the sheet was last written.
   final DateTime updatedAtUtc;
 
+  /// Whether the three traits that come from the photo have been read.
+  ///
+  /// False for a sheet holding only the wardrobe a parent typed: there is a
+  /// hero being dressed, but nobody has looked at the child's photo yet, so
+  /// there is no drawn face to promise. The story planner treats that exactly
+  /// as it treats no sheet at all and invents the appearance itself.
+  bool get isDerived =>
+      hair.isNotEmpty &&
+      skinTone.isNotEmpty &&
+      eyeColor.isNotEmpty &&
+      photoHash.isNotEmpty;
+
   /// The one English line the story planner and the illustrator both use.
   ///
   /// Deliberately the same shape the outline pass used to invent — hair,
   /// colours, clothes, one recurring prop — so everything downstream
   /// (`withHeroAppearance`, the scene descriptions, the picture prompts) keeps
   /// working unchanged; only the author of the line has changed.
+  ///
+  /// A part nobody has filled in is left out rather than written as an empty
+  /// gap: a hero described as ` skin,  eyes` would be worse than a hero
+  /// described in four words.
   String toPromptLine() {
-    return '$hair, $skinTone skin, $eyeColor eyes, $outfit, $prop';
+    return <String>[
+      hair,
+      if (skinTone.isNotEmpty) '$skinTone skin',
+      if (eyeColor.isNotEmpty) '$eyeColor eyes',
+      outfit,
+      prop,
+    ].where((part) => part.isNotEmpty).join(', ');
+  }
+
+  /// Returns a copy wearing [outfit] and carrying [prop].
+  ///
+  /// The derived half is untouched: the PC owns what was read from the photo,
+  /// and the parent owns what the hero wears and carries.
+  HeroCharacterSheet withWardrobe({
+    required String outfit,
+    required String prop,
+    required DateTime updatedAtUtc,
+  }) {
+    return HeroCharacterSheet(
+      profileId: profileId,
+      hair: hair,
+      skinTone: skinTone,
+      eyeColor: eyeColor,
+      outfit: outfit,
+      prop: prop,
+      photoHash: photoHash,
+      updatedAtUtc: updatedAtUtc,
+    );
+  }
+
+  /// JSON shape the hero-sheet endpoints answer with.
+  ///
+  /// Private content in the same sense the photo is, so it travels only to a
+  /// paired device that asked for this profile by id, and never into a log.
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'hair': hair,
+      'skinTone': skinTone,
+      'eyeColor': eyeColor,
+      'outfit': outfit,
+      'prop': prop,
+      'photoHash': photoHash,
+      'updatedAtUtc': updatedAtUtc.toUtc().toIso8601String(),
+    };
   }
 
   /// Returns a copy carrying freshly derived traits and [photoHash].
@@ -95,9 +160,11 @@ class HeroCharacterSheet {
 /// Reads and writes the `hero_character_sheets` rows of the master library.
 ///
 /// The sheet is private content in the same sense the photo is — it is how one
-/// particular child's hero looks — so it is never logged and never echoed in a
-/// response. It is deliberately **not** part of the sync manifest yet: this
-/// milestone keeps it on the PC.
+/// particular child's hero looks — so it is never logged, and it leaves the PC
+/// only through the three `/profiles/<id>/hero-sheet` endpoints, to a paired
+/// device that asked for one named profile. It is deliberately **not** part of
+/// the sync manifest: a manifest is broadcast metadata every device downloads
+/// wholesale, and how one child is drawn is not that.
 class CharacterSheetStore {
   /// Creates a store over [library].
   const CharacterSheetStore({required this.library});
@@ -159,5 +226,40 @@ class CharacterSheetStore {
         ],
       );
     });
+  }
+
+  /// Stores what [profileId]'s hero always wears and carries.
+  ///
+  /// The half of the sheet the **parent** owns, written without touching the
+  /// half the PC read from the photo. A profile that has no sheet yet gets one
+  /// carrying the wardrobe alone: the derived traits stay empty until there is
+  /// a photo to read, and the parent's choice is not lost in the meantime.
+  ///
+  /// Returns the sheet as it now stands.
+  HeroCharacterSheet saveWardrobe({
+    required String profileId,
+    required String outfit,
+    required String prop,
+    required DateTime nowUtc,
+  }) {
+    final HeroCharacterSheet? stored = findSheet(profileId);
+    final HeroCharacterSheet saved =
+        stored?.withWardrobe(
+          outfit: outfit,
+          prop: prop,
+          updatedAtUtc: nowUtc,
+        ) ??
+        HeroCharacterSheet(
+          profileId: profileId,
+          hair: '',
+          skinTone: '',
+          eyeColor: '',
+          outfit: outfit,
+          prop: prop,
+          photoHash: '',
+          updatedAtUtc: nowUtc,
+        );
+    saveSheet(saved);
+    return saved;
   }
 }

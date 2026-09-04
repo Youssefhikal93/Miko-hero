@@ -566,6 +566,99 @@ Removes the photo. Idempotent — a profile that has none answers `200` with
 { "profileId": "profile-1", "removed": true }
 ```
 
+### `GET /profiles/<profileId>/hero-sheet` — requires auth
+
+How this child's hero is **drawn** — see
+[One child, one drawn hero](#one-child-one-drawn-hero) for what the sheet is
+and where each half of it comes from.
+
+```json
+{
+  "profileId": "profile-1",
+  "sheet": {
+    "hair": "short curly black hair",
+    "skinTone": "warm brown",
+    "eyeColor": "dark brown",
+    "outfit": "wearing a red knitted cardigan over a white collared shirt",
+    "prop": "carrying a small brass lantern",
+    "photoHash": "9f2c…",
+    "updatedAtUtc": "2026-09-03T20:14:02.000Z"
+  }
+}
+```
+
+A child whose photo has never been read answers `200` with `"sheet": null`.
+That is a state, not a failure: it is what a family sees before their first
+illustrated book, and the app shows it as "the PC has not read this photo yet".
+
+A sheet may also carry **only** `outfit` and `prop`, with the three derived
+values and `photoHash` empty, when a parent said what their hero wears before
+any photo reached the PC. `isDerived` is that distinction on the bridge side,
+and a sheet that is not derived is treated as no sheet at all by the story
+planner.
+
+Typed failures: `404 profile_not_found` (an unknown or malformed id).
+
+### `PUT /profiles/<profileId>/hero-sheet` — requires auth
+
+Sets what this child's hero always wears and carries, and nothing else.
+
+```json
+{
+  "outfit": "wearing a mustard-yellow raincoat over a striped shirt",
+  "prop": "carrying a small brass lantern"
+}
+```
+
+The sheet has two owners and this endpoint writes one of them. `hair`,
+`skinTone`, `eyeColor` and `photoHash` are the PC's — it is the only thing that
+ever looks at the photo — and are refused here as unknown fields; the only way
+to move them is to have the photo read again. `outfit` and `prop` were never in
+the photo (see the wardrobe reasoning below), so they are the parent's.
+
+Both fields are optional, and a blank one clears that half of the wardrobe: a
+parent may undress a hero as deliberately as they dressed one. Each is at most
+80 characters — the same limit the vision pass's own fields have — because the
+one line they join is repeated into every page's scene description.
+
+Answers `200` with the same body `GET` returns. A profile whose photo has never
+been read still gets its wardrobe stored, and the derived half fills in the
+first time a photo is read.
+
+Typed failures: `400 invalid_field` (an unknown field, or one over the limit),
+`404 profile_not_found`.
+
+### `POST /profiles/<profileId>/hero-sheet/rederive` — requires auth
+
+Reads the stored reference photo again and rewrites the three derived traits,
+**ignoring the photo-hash cache**. That cache is the whole reason the sheet is
+cheap, and asking to read the photo again is exactly a request to stop trusting
+it for one call. The outfit and the prop are not touched.
+
+Answers `202`:
+
+```json
+{
+  "profileId": "profile-1",
+  "started": true,
+  "sheet": { "hair": "long straight brown hair", "…": "…" }
+}
+```
+
+`202` rather than `200` because the PC accepts the request rather than
+promising it is finished. The re-read takes its turn at the
+[one-GPU gate](#one-gpu-one-job--story-or-picture-never-both) like a story or a
+render does, and unlike the nudge behind a photo upload it **waits** for the
+card instead of stepping aside — a parent asked for this. The `sheet` in the
+answer is the best the PC has by the time it answers: usually the fresh one,
+and the old one when the card was still busy drawing a book.
+
+Nothing here fails the caller. A profile with no photo, an Ollama that is down,
+and a model that answered in the wrong shape all leave whatever was already
+stored, because none of them is something a parent could act on.
+
+Typed failures: `404 profile_not_found`.
+
 ### `POST /stories/<storyId>/illustrate` — requires auth
 
 Queues rendering of every page of the story that does not have an image yet:
@@ -1234,7 +1327,8 @@ profile exists, a new photo repaints the hair and colouring and leaves the hero
 dressed as the last book left them, and every entry was written once to be
 English, drawn and appropriate for a picture book.
 
-**When it runs.** Twice over, so that neither path is load-bearing on its own:
+**When it runs.** Twice over, so that neither path is load-bearing on its own,
+plus once more when a parent asks:
 
 - **On `PUT /profiles/<id>/photo`**, as a detached best-effort task using the
   bytes that were just uploaded. Detached because a request has 20 seconds and
@@ -1244,9 +1338,21 @@ English, drawn and appropriate for a picture book.
   its `photo_hash` no longer matches. This is the guarantee — a restart, a busy
   card, an Ollama that was down, a restored backup all end here — and the story
   that triggers it already has its sheet.
+- **On `POST /profiles/<id>/hero-sheet/rederive`**, when a parent asks from the
+  app. The only path that ignores the `photo_hash` cache, and the only one that
+  waits for the card rather than stepping aside.
 
 The same photo never costs a second model call, however many books the child
-gets.
+gets, unless a parent asks for one.
+
+**The parent's half.** The wardrobe is chosen for a child, not fixed forever:
+`PUT /profiles/<id>/hero-sheet` replaces the `outfit` and the `prop` with
+whatever the parent typed, and touches nothing the photo was read into. A
+parent may also write a wardrobe before any photo has reached the PC. The row
+then exists with its three derived values empty — `isDerived` is false — and the
+story planner treats it exactly as it treats no sheet at all and invents the
+appearance itself, until the first photo fills the other half in. Which is also
+why a re-derive keeps the wardrobe: the two halves have two owners.
 
 **On the card.** The pass is a third Ollama tenant at the one-GPU gate. It takes
 a turn like either queue, and the gate unloads its model before the card changes
@@ -1257,8 +1363,14 @@ hands, so ComfyUI never starts a render with a vision model still resident.
 sheet is read again from those. A **restore empties the table** rather than
 leaving it — the restored profiles are a different set, and a sheet describing a
 child the library no longer has would be both wrong and, since it references
-`profiles(id)`, a foreign-key failure on the restore itself. It is also PC-only
-for now — no endpoint returns it and it is not in the sync manifest.
+`profiles(id)`, a foreign-key failure on the restore itself.
+
+It is **not in the sync manifest** either, and that one is a choice rather than
+an omission. The manifest is broadcast metadata: every paired device downloads
+all of it, every sync, and applies it wholesale. How one named child is drawn is
+not that. The three `/profiles/<id>/hero-sheet` endpoints hand the sheet to a
+device that asked for one child by id, when a parent opened that child's editor,
+and the app keeps no copy — so the sheet still lives in exactly one place.
 
 **Never logged.** The log lines are `hero sheet derived`, `refreshed`,
 `unchanged`, `deferred` or `unavailable` — verdicts with no profile id and not

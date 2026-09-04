@@ -280,6 +280,53 @@ class BridgeClient {
     return removed;
   }
 
+  /// Reads how the PC draws one child's hero.
+  ///
+  /// Answers null for a child whose photo the PC has never read: that is a
+  /// state a parent is shown, not a failure.
+  Future<BridgeHeroSheet?> readHeroSheet(String profileId) async {
+    final answer = await _send(
+      'GET',
+      '/profiles/${Uri.encodeComponent(profileId)}/hero-sheet',
+      authenticated: true,
+    );
+    return BridgeHeroSheet.optionalFromEnvelope(answer);
+  }
+
+  /// Saves what one child's hero always wears and carries.
+  ///
+  /// Only these two travel: what the PC read from the photo is the PC's, and
+  /// the only way to move it is [rereadHeroSheetFromPhoto]. A blank value
+  /// clears that half of the wardrobe.
+  Future<BridgeHeroSheet?> saveHeroSheetWardrobe({
+    required String profileId,
+    required String outfit,
+    required String prop,
+  }) async {
+    final answer = await _send(
+      'PUT',
+      '/profiles/${Uri.encodeComponent(profileId)}/hero-sheet',
+      authenticated: true,
+      body: <String, Object>{'outfit': outfit, 'prop': prop},
+    );
+    return BridgeHeroSheet.optionalFromEnvelope(answer);
+  }
+
+  /// Asks the PC to read one child's reference photo again.
+  ///
+  /// Returns the sheet as it stands once the PC answers. The PC accepts the
+  /// request rather than promising it is finished — the re-read waits for the
+  /// one graphics card — so an answer that is still the old sheet means the PC
+  /// was busy, not that anything failed.
+  Future<BridgeHeroSheet?> rereadHeroSheetFromPhoto(String profileId) async {
+    final answer = await _send(
+      'POST',
+      '/profiles/${Uri.encodeComponent(profileId)}/hero-sheet/rederive',
+      authenticated: true,
+    );
+    return BridgeHeroSheet.optionalFromEnvelope(answer);
+  }
+
   /// Asks the PC to draw the page images of one master-library story.
   ///
   /// Pages the PC has already drawn are skipped there, so re-invoking this

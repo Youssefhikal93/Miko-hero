@@ -194,5 +194,24 @@ _Avoid_: climax, twist
 **Character sheet**:
 How one child's **drawn** hero looks, read from their photo once and kept: hair
 and colouring, one outfit, one prop. The same hero appears in every story that
-child gets.
+child gets. It has two halves with two owners — see _derived look_ and
+_wardrobe_ — and lives on the PC only; a device reads it when a parent opens
+that child's editor and keeps no copy.
 _Avoid_: profile, avatar, appearance (on its own), description of the photo
+
+**Derived look**:
+The half of a character sheet the PC read off the reference photo: hair, skin
+tone, eye colour. The parent sees it and cannot type it — the only honest way to
+change it is _reading the photo again_.
+_Avoid_: traits, features, scan
+
+**Wardrobe**:
+The half of a character sheet the parent owns: what the hero always wears and
+always carries. Never read from the photo, and never changed by a new one.
+_Avoid_: costume, clothes, accessories
+
+**Reading the photo again**:
+Asking the PC to look at the child's stored photo once more and rewrite the
+_derived look_, ignoring the cache that normally makes a sheet free. The
+_wardrobe_ is untouched.
+_Avoid_: refresh, regenerate, re-scan

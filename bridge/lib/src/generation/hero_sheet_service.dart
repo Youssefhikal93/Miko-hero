@@ -34,6 +34,11 @@ import 'package:iam_hero_bridge/src/library/profile_photo_store.dart';
 ///    the bridge was restarted, the GPU was busy, Ollama was down, the library
 ///    was restored from a backup — is derived here, once, and the story that
 ///    triggered it already has its sheet.
+/// 3. **When the parent asks**, through
+///    `POST /profiles/<id>/hero-sheet/rederive`. The only path that ignores the
+///    photo-hash cache, because "read the photo again" is exactly a request to
+///    stop trusting it, and the only one that neither defers to a busy card nor
+///    is allowed to fail the caller.
 ///
 /// Every failure is answered with whatever was already stored, down to `null`.
 /// A missing sheet is not an error: it means the outline pass invents the
@@ -93,13 +98,76 @@ class HeroSheetService {
   HeroCharacterSheet? storedSheet(String profileId) =>
       _store.findSheet(profileId);
 
+  /// Stores what [profileId]'s hero always wears and carries.
+  ///
+  /// The parent's half of the sheet, which no model is ever asked about. Kept
+  /// here rather than on the store so every reader and writer of a sheet goes
+  /// through the one service that owns the stamping clock.
+  HeroCharacterSheet saveWardrobe({
+    required String profileId,
+    required String outfit,
+    required String prop,
+  }) {
+    return _store.saveWardrobe(
+      profileId: profileId,
+      outfit: outfit,
+      prop: prop,
+      nowUtc: _clock().toUtc(),
+    );
+  }
+
   /// Derives the sheet of [profileId] if it is missing or out of date.
   ///
   /// Waits for the card when it has to. Call this **before** taking a turn at
   /// the gate, never inside one: the gate serializes turns, and a caller that
   /// held one while asking for another would be waiting for itself.
-  Future<HeroCharacterSheet?> ensureSheet(String profileId) =>
-      _ensureSheet(profileId, waitForGpu: true);
+  ///
+  /// A sheet holding only the wardrobe a parent typed answers `null`: there is
+  /// no drawn face in it, so the planner invents the appearance exactly as it
+  /// did before any of this existed.
+  Future<HeroCharacterSheet?> ensureSheet(String profileId) async {
+    final HeroCharacterSheet? sheet = await _ensureSheet(
+      profileId,
+      waitForGpu: true,
+    );
+    return sheet != null && sheet.isDerived ? sheet : null;
+  }
+
+  /// Reads [profileId]'s sheet from the stored photo again, cache or not.
+  ///
+  /// The parent asked for this from the app, so it ignores the photo-hash
+  /// cache — that is the whole point of the action — and it waits for the card
+  /// instead of stepping aside like the upload's best-effort nudge does. It is
+  /// serialized behind whatever refresh is already running, so one profile is
+  /// never described twice at the same moment.
+  ///
+  /// Answers whatever is stored when there is no photo, when the model cannot
+  /// see, or when the answer came back in the wrong shape — down to `null`.
+  /// Never throws: the caller is an HTTP handler and there is nothing here a
+  /// parent could act on.
+  Future<HeroCharacterSheet?> rereadFromPhoto(String profileId) {
+    final Future<void> previous = _background;
+    final Future<HeroCharacterSheet?> reread = () async {
+      await previous;
+      try {
+        return await _ensureSheet(
+          profileId,
+          waitForGpu: true,
+          ignoreCache: true,
+        );
+      } catch (_) {
+        // Every expected failure is already answered inside with whatever was
+        // stored, so reaching here means the library itself refused. The cause
+        // could name a file path, and there is nothing a parent could do about
+        // it either way.
+        return null;
+      }
+    }();
+    // The chain the next refresh queues behind, and the one an orderly
+    // shutdown waits on, exactly as a background refresh joins it.
+    _background = reread.then((_) {});
+    return reread;
+  }
 
   /// Starts a best-effort refresh of [profileId] and returns immediately.
   ///
@@ -133,6 +201,7 @@ class HeroSheetService {
     String profileId, {
     required bool waitForGpu,
     Uint8List? photoBytes,
+    bool ignoreCache = false,
   }) async {
     final HeroCharacterSheet? stored = _store.findSheet(profileId);
     final Uint8List? bytes = photoBytes ?? await _readStoredPhoto(profileId);
@@ -143,9 +212,10 @@ class HeroSheetService {
       return stored;
     }
     final String photoHash = sha256HexOfBytes(bytes);
-    if (stored != null && stored.photoHash == photoHash) {
+    if (!ignoreCache && stored != null && stored.photoHash == photoHash) {
       // The cache hit that makes this cheap: the same photo never costs a
-      // second model call, however many books the child gets.
+      // second model call, however many books the child gets. A parent who
+      // asked to read the photo again passes [ignoreCache] and pays for it.
       _log('hero sheet unchanged');
       return stored;
     }

@@ -1699,4 +1699,57 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get bridgeIllustrationNotReady => 'لم تُرسم هذه الصورة بعد.';
+
+  @override
+  String get heroSheetTitle => 'كيف يُرسم البطل';
+
+  @override
+  String get heroSheetIntro =>
+      'يقرأ الكمبيوتر صورة هذا الطفل مرة واحدة ثم يرسم البطل نفسه في كل قصة. وأنت تحدّد ما يرتديه البطل وما يحمله دائماً.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'مقروء من الصورة';
+
+  @override
+  String get heroSheetHair => 'الشعر';
+
+  @override
+  String get heroSheetSkinTone => 'لون البشرة';
+
+  @override
+  String get heroSheetEyeColor => 'العينان';
+
+  @override
+  String get heroSheetNotReadYet => 'لم يقرأ الكمبيوتر هذه الصورة بعد.';
+
+  @override
+  String get heroSheetOutfit => 'يرتدي دائماً';
+
+  @override
+  String get heroSheetProp => 'يحمل دائماً';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'عبارة قصيرة بالإنجليزية، لأن نموذج الرسم يقرأ الإنجليزية.';
+
+  @override
+  String get heroSheetReadAgain => 'اقرأ الصورة من جديد';
+
+  @override
+  String get heroSheetRereadDone => 'قرأ الكمبيوتر الصورة من جديد.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'الكمبيوتر مشغول، وسيقرأ الصورة من جديد بعد قليل.';
+
+  @override
+  String get heroSheetRereadFailed =>
+      'لم يتمكن الكمبيوتر من قراءة الصورة من جديد.';
+
+  @override
+  String get heroSheetSaveFailed => 'لم يُحفظ ما يرتديه البطل على الكمبيوتر.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'لم يردّ الكمبيوتر، لذلك لا يظهر شكل البطل.';
 }

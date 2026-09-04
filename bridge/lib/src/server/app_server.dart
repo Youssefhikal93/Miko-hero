@@ -30,6 +30,7 @@ import 'package:iam_hero_bridge/src/server/cors_middleware.dart';
 import 'package:iam_hero_bridge/src/server/devices_handler.dart';
 import 'package:iam_hero_bridge/src/server/generation_handlers.dart';
 import 'package:iam_hero_bridge/src/server/health_handler.dart';
+import 'package:iam_hero_bridge/src/server/hero_sheet_handlers.dart';
 import 'package:iam_hero_bridge/src/server/illustration_handlers.dart';
 import 'package:iam_hero_bridge/src/server/management_handlers.dart';
 import 'package:iam_hero_bridge/src/server/pairing_handlers.dart';
@@ -141,6 +142,12 @@ class AppServer {
       store: photoStore,
       heroSheets: _heroSheets,
     );
+    // The same photo store again, so "does this profile exist" has one answer
+    // for the photo endpoints and for the sheet endpoints beside them.
+    _heroSheetHandlers = HeroSheetHandlers(
+      sheets: _heroSheets,
+      profiles: photoStore,
+    );
     _syncHandlers = SyncHandlers(
       reader: syncReader,
       stateStore: SyncStateStore(library: library),
@@ -199,6 +206,7 @@ class AppServer {
   late final GenerationHandlers _generationHandlers;
   late final IllustrationHandlers _illustrationHandlers;
   late final ProfilePhotoHandlers _profilePhotoHandlers;
+  late final HeroSheetHandlers _heroSheetHandlers;
   late final ManagementHandlers _managementHandlers;
   late final SyncHandlers _syncHandlers;
   late final BackupHandlers _backupHandlers;
@@ -229,6 +237,10 @@ class AppServer {
           _illustrationHandlers.cancelJob,
       'PUT /profiles/<profileId>/photo': _profilePhotoHandlers.putPhoto,
       'DELETE /profiles/<profileId>/photo': _profilePhotoHandlers.deletePhoto,
+      'GET /profiles/<profileId>/hero-sheet': _heroSheetHandlers.readSheet,
+      'PUT /profiles/<profileId>/hero-sheet': _heroSheetHandlers.saveWardrobe,
+      'POST /profiles/<profileId>/hero-sheet/rederive':
+          _heroSheetHandlers.rederiveSheet,
       'POST /stories/<storyId>/delete': _syncHandlers.deleteStory,
       'GET /sync/manifest': _syncHandlers.readManifest,
       'GET /sync/stories/<storyId>': _syncHandlers.downloadStory,
@@ -334,8 +346,8 @@ class AppServer {
 
   /// The stored character sheet of [profileId], or `null`.
   ///
-  /// Read-only, and for tests: no endpoint returns a sheet. It describes one
-  /// particular child's hero and stays on the PC.
+  /// Read-only, and for tests. The three `/profiles/<id>/hero-sheet` endpoints
+  /// answer with the same row; this is the door that skips the HTTP layer.
   HeroCharacterSheet? heroSheet(String profileId) =>
       _heroSheets.storedSheet(profileId);
 

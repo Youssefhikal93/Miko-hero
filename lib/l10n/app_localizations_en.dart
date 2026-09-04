@@ -1715,4 +1715,57 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bridgeIllustrationNotReady =>
       'That picture has not been made yet.';
+
+  @override
+  String get heroSheetTitle => 'How the hero is drawn';
+
+  @override
+  String get heroSheetIntro =>
+      'The PC reads this child\'s photo once and draws the same hero in every story. You decide what that hero always wears and carries.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'Read from the photo';
+
+  @override
+  String get heroSheetHair => 'Hair';
+
+  @override
+  String get heroSheetSkinTone => 'Skin';
+
+  @override
+  String get heroSheetEyeColor => 'Eyes';
+
+  @override
+  String get heroSheetNotReadYet => 'The PC has not read this photo yet.';
+
+  @override
+  String get heroSheetOutfit => 'Always wears';
+
+  @override
+  String get heroSheetProp => 'Always carries';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'A short phrase in English, because the drawing model reads English.';
+
+  @override
+  String get heroSheetReadAgain => 'Read again from the photo';
+
+  @override
+  String get heroSheetRereadDone => 'The PC read the photo again.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'The PC is busy. It will read the photo again shortly.';
+
+  @override
+  String get heroSheetRereadFailed => 'The PC could not read the photo again.';
+
+  @override
+  String get heroSheetSaveFailed =>
+      'What the hero wears could not be saved on the PC.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'The PC did not answer, so the hero\'s look is not shown.';
 }

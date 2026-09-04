@@ -3089,6 +3089,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That picture has not been made yet.'**
   String get bridgeIllustrationNotReady;
+
+  /// No description provided for @heroSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the hero is drawn'**
+  String get heroSheetTitle;
+
+  /// No description provided for @heroSheetIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC reads this child\'s photo once and draws the same hero in every story. You decide what that hero always wears and carries.'**
+  String get heroSheetIntro;
+
+  /// No description provided for @heroSheetReadFromPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Read from the photo'**
+  String get heroSheetReadFromPhoto;
+
+  /// No description provided for @heroSheetHair.
+  ///
+  /// In en, this message translates to:
+  /// **'Hair'**
+  String get heroSheetHair;
+
+  /// No description provided for @heroSheetSkinTone.
+  ///
+  /// In en, this message translates to:
+  /// **'Skin'**
+  String get heroSheetSkinTone;
+
+  /// No description provided for @heroSheetEyeColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Eyes'**
+  String get heroSheetEyeColor;
+
+  /// No description provided for @heroSheetNotReadYet.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC has not read this photo yet.'**
+  String get heroSheetNotReadYet;
+
+  /// No description provided for @heroSheetOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Always wears'**
+  String get heroSheetOutfit;
+
+  /// No description provided for @heroSheetProp.
+  ///
+  /// In en, this message translates to:
+  /// **'Always carries'**
+  String get heroSheetProp;
+
+  /// No description provided for @heroSheetWardrobeHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'A short phrase in English, because the drawing model reads English.'**
+  String get heroSheetWardrobeHelper;
+
+  /// No description provided for @heroSheetReadAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Read again from the photo'**
+  String get heroSheetReadAgain;
+
+  /// No description provided for @heroSheetRereadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC read the photo again.'**
+  String get heroSheetRereadDone;
+
+  /// No description provided for @heroSheetRereadPending.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC is busy. It will read the photo again shortly.'**
+  String get heroSheetRereadPending;
+
+  /// No description provided for @heroSheetRereadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC could not read the photo again.'**
+  String get heroSheetRereadFailed;
+
+  /// No description provided for @heroSheetSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'What the hero wears could not be saved on the PC.'**
+  String get heroSheetSaveFailed;
+
+  /// No description provided for @heroSheetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC did not answer, so the hero\'s look is not shown.'**
+  String get heroSheetUnavailable;
 }
 
 class _AppLocalizationsDelegate

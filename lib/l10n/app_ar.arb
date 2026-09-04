@@ -520,5 +520,21 @@
   "bridgePhotoTooLarge": "هذه الصورة كبيرة جداً على الكمبيوتر.",
   "bridgeUnsupportedImage": "لا يقبل الكمبيوتر إلا صورة JPEG أو PNG.",
   "bridgeIllustrationNotFound": "لم تبقَ هذه الصورة على الكمبيوتر.",
-  "bridgeIllustrationNotReady": "لم تُرسم هذه الصورة بعد."
+  "bridgeIllustrationNotReady": "لم تُرسم هذه الصورة بعد.",
+  "heroSheetTitle": "كيف يُرسم البطل",
+  "heroSheetIntro": "يقرأ الكمبيوتر صورة هذا الطفل مرة واحدة ثم يرسم البطل نفسه في كل قصة. وأنت تحدّد ما يرتديه البطل وما يحمله دائماً.",
+  "heroSheetReadFromPhoto": "مقروء من الصورة",
+  "heroSheetHair": "الشعر",
+  "heroSheetSkinTone": "لون البشرة",
+  "heroSheetEyeColor": "العينان",
+  "heroSheetNotReadYet": "لم يقرأ الكمبيوتر هذه الصورة بعد.",
+  "heroSheetOutfit": "يرتدي دائماً",
+  "heroSheetProp": "يحمل دائماً",
+  "heroSheetWardrobeHelper": "عبارة قصيرة بالإنجليزية، لأن نموذج الرسم يقرأ الإنجليزية.",
+  "heroSheetReadAgain": "اقرأ الصورة من جديد",
+  "heroSheetRereadDone": "قرأ الكمبيوتر الصورة من جديد.",
+  "heroSheetRereadPending": "الكمبيوتر مشغول، وسيقرأ الصورة من جديد بعد قليل.",
+  "heroSheetRereadFailed": "لم يتمكن الكمبيوتر من قراءة الصورة من جديد.",
+  "heroSheetSaveFailed": "لم يُحفظ ما يرتديه البطل على الكمبيوتر.",
+  "heroSheetUnavailable": "لم يردّ الكمبيوتر، لذلك لا يظهر شكل البطل."
 }

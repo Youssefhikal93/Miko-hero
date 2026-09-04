@@ -94,6 +94,29 @@ List<int> _otherPngBytes() {
   );
 }
 
+/// Reads the sheet body of one profile through the endpoint.
+Future<(int, Map<String, Object?>)> getSheet(
+  TestServer testServer,
+  String? token, {
+  String profileId = 'profile-1',
+}) {
+  return callJson(
+    testServer.handler,
+    'GET',
+    '/profiles/$profileId/hero-sheet',
+    headers: token == null ? null : authHeaders(token),
+  );
+}
+
+/// The `sheet` object of one endpoint answer, failing when there is none.
+Map<String, Object?> sheetOf(Map<String, Object?> body) {
+  final sheet = body['sheet'];
+  if (sheet is! Map<String, Object?>) {
+    fail('Expected a sheet in the answer but got: $body');
+  }
+  return sheet;
+}
+
 void main() {
   group('the character sheet', () {
     test('is derived once from a photo and cached by its hash', () async {
@@ -231,6 +254,277 @@ void main() {
         <String>{for (var i = 0; i < 40; i++) pickHeroOutfit('child-$i')},
         hasLength(greaterThan(1)),
         reason: 'a wardrobe that always picks one coat is not a wardrobe',
+      );
+    });
+  });
+
+  group('the hero-sheet endpoints', () {
+    test(
+      'answer the parent with the sheet the PC read from the photo',
+      () async {
+        final printedCodes = <String>[];
+        final testServer = await createTestServer(
+          ollamaClient: sheetOllama(),
+          notifyCode: printedCodes.add,
+        );
+        addTearDown(testServer.close);
+        final token = await pairDevice(testServer, printedCodes);
+        seedStory(testServer.library, pageCount: 2);
+
+        // Before the photo there is nothing to show, and that is a state rather
+        // than a failure: the parent sees "not read yet", not an error.
+        final (emptyStatus, emptyBody) = await getSheet(testServer, token);
+        expect(emptyStatus, 200, reason: 'body was $emptyBody');
+        expect(emptyBody['sheet'], isNull);
+
+        await putPhoto(testServer, token, onePixelPngBytes());
+        final (status, body) = await getSheet(testServer, token);
+        expect(status, 200, reason: 'body was $body');
+        expect(body['profileId'], 'profile-1');
+        final stored = testServer.heroSheet('profile-1')!;
+        expect(sheetOf(body), <String, Object?>{
+          'hair': 'short curly black hair',
+          'skinTone': 'warm brown',
+          'eyeColor': 'dark brown',
+          'outfit': stored.outfit,
+          'prop': stored.prop,
+          'photoHash': stored.photoHash,
+          'updatedAtUtc': stored.updatedAtUtc.toIso8601String(),
+        });
+      },
+    );
+
+    test('are refused outright without a device token', () async {
+      final testServer = await createTestServer();
+      addTearDown(testServer.close);
+      seedStory(testServer.library, pageCount: 1);
+
+      for (final (String method, String path, Object? body)
+          in <(String, String, Object?)>[
+            ('GET', '/profiles/profile-1/hero-sheet', null),
+            (
+              'PUT',
+              '/profiles/profile-1/hero-sheet',
+              jsonEncode(<String, Object?>{'outfit': 'wearing a red cape'}),
+            ),
+            ('POST', '/profiles/profile-1/hero-sheet/rederive', null),
+          ]) {
+        final (status, answer) = await callJson(
+          testServer.handler,
+          method,
+          path,
+          body: body,
+        );
+        expect(status, 401, reason: '$method $path answered $answer');
+        expect(
+          (answer['error']! as Map<String, Object?>)['code'],
+          'unauthorized',
+        );
+      }
+    });
+
+    test('answer 404 for an id that names no child', () async {
+      final printedCodes = <String>[];
+      final testServer = await createTestServer(notifyCode: printedCodes.add);
+      addTearDown(testServer.close);
+      final token = await pairDevice(testServer, printedCodes);
+      seedStory(testServer.library, pageCount: 1);
+
+      for (final (String method, String path, Object? body)
+          in <(String, String, Object?)>[
+            ('GET', '/profiles/nobody/hero-sheet', null),
+            (
+              'PUT',
+              '/profiles/nobody/hero-sheet',
+              jsonEncode(<String, Object?>{'outfit': 'wearing a red cape'}),
+            ),
+            ('POST', '/profiles/nobody/hero-sheet/rederive', null),
+            // A malformed id names no child either, and answers the same thing.
+            ('GET', '/profiles/..%2Fescape/hero-sheet', null),
+          ]) {
+        final (status, answer) = await callJson(
+          testServer.handler,
+          method,
+          path,
+          headers: authHeaders(token),
+          body: body,
+        );
+        expect(status, 404, reason: '$method $path answered $answer');
+        expect(
+          (answer['error']! as Map<String, Object?>)['code'],
+          'profile_not_found',
+        );
+      }
+    });
+
+    test(
+      'take the wardrobe from the parent and the rest from the PC',
+      () async {
+        final printedCodes = <String>[];
+        final testServer = await createTestServer(
+          ollamaClient: sheetOllama(),
+          notifyCode: printedCodes.add,
+        );
+        addTearDown(testServer.close);
+        final token = await pairDevice(testServer, printedCodes);
+        seedStory(testServer.library, pageCount: 2);
+        await putPhoto(testServer, token, onePixelPngBytes());
+        final derived = testServer.heroSheet('profile-1')!;
+
+        final (status, body) = await callJson(
+          testServer.handler,
+          'PUT',
+          '/profiles/profile-1/hero-sheet',
+          headers: authHeaders(token),
+          body: jsonEncode(<String, Object?>{
+            'outfit': 'wearing a silver astronaut suit',
+            'prop': 'carrying a tiny star map',
+          }),
+        );
+        expect(status, 200, reason: 'body was $body');
+        expect(sheetOf(body)['outfit'], 'wearing a silver astronaut suit');
+        expect(sheetOf(body)['prop'], 'carrying a tiny star map');
+        expect(
+          sheetOf(body)['hair'],
+          derived.hair,
+          reason: 'the PC owns what was read from the photo',
+        );
+        expect(sheetOf(body)['photoHash'], derived.photoHash);
+
+        final saved = testServer.heroSheet('profile-1')!;
+        expect(saved.outfit, 'wearing a silver astronaut suit');
+        expect(saved.toPromptLine(), contains('carrying a tiny star map'));
+      },
+    );
+
+    test('refuse a costume longer than the line it is pasted into', () async {
+      final printedCodes = <String>[];
+      final testServer = await createTestServer(notifyCode: printedCodes.add);
+      addTearDown(testServer.close);
+      final token = await pairDevice(testServer, printedCodes);
+      seedStory(testServer.library, pageCount: 1);
+
+      for (final body in <Map<String, Object?>>[
+        <String, Object?>{
+          'outfit': 'a' * (maximumCharacterSheetFieldLength + 1),
+        },
+        <String, Object?>{'prop': 'b' * (maximumCharacterSheetFieldLength + 1)},
+        // A field nobody reads is a setting the parent believes is in effect.
+        <String, Object?>{'hair': 'long straight brown hair'},
+      ]) {
+        final (status, answer) = await callJson(
+          testServer.handler,
+          'PUT',
+          '/profiles/profile-1/hero-sheet',
+          headers: authHeaders(token),
+          body: jsonEncode(body),
+        );
+        expect(status, 400, reason: '$body answered $answer');
+        expect(
+          (answer['error']! as Map<String, Object?>)['code'],
+          'invalid_field',
+        );
+        expect(testServer.heroSheet('profile-1'), isNull);
+      }
+    });
+
+    test('keep a wardrobe typed before the photo was ever read', () async {
+      final printedCodes = <String>[];
+      final testServer = await createTestServer(
+        ollamaClient: sheetOllama(),
+        notifyCode: printedCodes.add,
+      );
+      addTearDown(testServer.close);
+      final token = await pairDevice(testServer, printedCodes);
+      seedStory(testServer.library, pageCount: 2);
+
+      final (status, body) = await callJson(
+        testServer.handler,
+        'PUT',
+        '/profiles/profile-1/hero-sheet',
+        headers: authHeaders(token),
+        body: jsonEncode(<String, Object?>{
+          'outfit': 'wearing a silver astronaut suit',
+          'prop': 'carrying a tiny star map',
+        }),
+      );
+      expect(status, 200, reason: 'body was $body');
+      final HeroCharacterSheet early = testServer.heroSheet('profile-1')!;
+      expect(early.outfit, 'wearing a silver astronaut suit');
+      expect(
+        early.isDerived,
+        isFalse,
+        reason: 'nobody has looked at the photo, so there is no drawn face yet',
+      );
+      expect(
+        early.toPromptLine(),
+        'wearing a silver astronaut suit, carrying a tiny star map',
+        reason: 'a missing part is left out, not written as an empty gap',
+      );
+
+      await putPhoto(testServer, token, onePixelPngBytes());
+      final HeroCharacterSheet full = testServer.heroSheet('profile-1')!;
+      expect(full.isDerived, isTrue);
+      expect(full.hair, 'short curly black hair');
+      expect(
+        full.outfit,
+        'wearing a silver astronaut suit',
+        reason: 'the parent dressed this hero; the photo does not undress them',
+      );
+      expect(full.prop, 'carrying a tiny star map');
+    });
+
+    test('read the photo again when the parent asks, cache or not', () async {
+      final printedCodes = <String>[];
+      final client = sheetOllama(
+        hairAnswers: <String>[
+          'short curly black hair',
+          'long straight brown hair',
+        ],
+      );
+      final testServer = await createTestServer(
+        ollamaClient: client,
+        notifyCode: printedCodes.add,
+      );
+      addTearDown(testServer.close);
+      final token = await pairDevice(testServer, printedCodes);
+      seedStory(testServer.library, pageCount: 2);
+      await putPhoto(testServer, token, onePixelPngBytes());
+      await callJson(
+        testServer.handler,
+        'PUT',
+        '/profiles/profile-1/hero-sheet',
+        headers: authHeaders(token),
+        body: jsonEncode(<String, Object?>{
+          'outfit': 'wearing a silver astronaut suit',
+        }),
+      );
+      expect(client.visionRequests, hasLength(1));
+
+      final (status, body) = await callJson(
+        testServer.handler,
+        'POST',
+        '/profiles/profile-1/hero-sheet/rederive',
+        headers: authHeaders(token),
+      );
+      await testServer.settleHeroSheets();
+
+      expect(status, 202, reason: 'body was $body');
+      expect(body['started'], isTrue);
+      expect(
+        client.visionRequests,
+        hasLength(2),
+        reason: 'the photo did not change; the parent asked anyway',
+      );
+      expect(sheetOf(body)['hair'], 'long straight brown hair');
+      expect(
+        sheetOf(body)['outfit'],
+        'wearing a silver astronaut suit',
+        reason: 'reading the photo again never re-dresses the hero',
+      );
+      expect(
+        testServer.heroSheet('profile-1')!.hair,
+        'long straight brown hair',
       );
     });
   });

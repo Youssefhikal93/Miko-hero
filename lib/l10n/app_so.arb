@@ -520,5 +520,21 @@
   "bridgePhotoTooLarge": "Sawirkaas aad buu u weyn yahay PC-ga.",
   "bridgeUnsupportedImage": "PC-gu wuxuu keliya isticmaali karaa sawir JPEG ama PNG ah.",
   "bridgeIllustrationNotFound": "PC-gu hadda ma haysto sawirkaas.",
-  "bridgeIllustrationNotReady": "Sawirkaas weli lama samayn."
+  "bridgeIllustrationNotReady": "Sawirkaas weli lama samayn.",
+  "heroSheetTitle": "Sida geesiga loo sawiro",
+  "heroSheetIntro": "PC-gu hal mar buu akhriyaa sawirka ilmahan, sheeko kastana wuxuu ku sawiraa geesi isku mid ah. Adigaa go'aaminaya waxa uu geesigu had iyo jeer xidho iyo waxa uu wato.",
+  "heroSheetReadFromPhoto": "Sawirka laga akhriyay",
+  "heroSheetHair": "Timaha",
+  "heroSheetSkinTone": "Midabka maqaarka",
+  "heroSheetEyeColor": "Indhaha",
+  "heroSheetNotReadYet": "PC-gu weli ma akhrin sawirkan.",
+  "heroSheetOutfit": "Had iyo jeer wuxuu xidhaa",
+  "heroSheetProp": "Had iyo jeer wuxuu wataa",
+  "heroSheetWardrobeHelper": "Weedh gaaban oo Ingiriisi ah, maxaa yeelay moodalka sawiridda wuxuu akhriyaa Ingiriisi.",
+  "heroSheetReadAgain": "Mar kale ka akhri sawirka",
+  "heroSheetRereadDone": "PC-gu mar kale ayuu akhriyay sawirka.",
+  "heroSheetRereadPending": "PC-gu waa mashquul. Wuxuu dhawaan mar kale akhrinayaa sawirka.",
+  "heroSheetRereadFailed": "PC-gu ma akhrin karin sawirka mar kale.",
+  "heroSheetSaveFailed": "Waxa geesigu xidho lagu kaydin waayay PC-ga.",
+  "heroSheetUnavailable": "PC-gu ma jawaabin, sidaas darteed muuqaalka geesiga lama tusayo."
 }

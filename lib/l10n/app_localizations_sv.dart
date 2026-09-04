@@ -1734,4 +1734,58 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get bridgeIllustrationNotReady => 'Den bilden är inte gjord än.';
+
+  @override
+  String get heroSheetTitle => 'Så ritas hjälten';
+
+  @override
+  String get heroSheetIntro =>
+      'Datorn läser barnets foto en gång och ritar sedan samma hjälte i varje saga. Du bestämmer vad hjälten alltid har på sig och bär med sig.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'Läst från fotot';
+
+  @override
+  String get heroSheetHair => 'Hår';
+
+  @override
+  String get heroSheetSkinTone => 'Hudton';
+
+  @override
+  String get heroSheetEyeColor => 'Ögon';
+
+  @override
+  String get heroSheetNotReadYet => 'Datorn har inte läst det här fotot än.';
+
+  @override
+  String get heroSheetOutfit => 'Har alltid på sig';
+
+  @override
+  String get heroSheetProp => 'Bär alltid med sig';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'En kort fras på engelska, eftersom ritmodellen läser engelska.';
+
+  @override
+  String get heroSheetReadAgain => 'Läs fotot en gång till';
+
+  @override
+  String get heroSheetRereadDone => 'Datorn läste fotot en gång till.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'Datorn är upptagen. Den läser fotot en gång till om en stund.';
+
+  @override
+  String get heroSheetRereadFailed =>
+      'Datorn kunde inte läsa fotot en gång till.';
+
+  @override
+  String get heroSheetSaveFailed =>
+      'Det hjälten har på sig kunde inte sparas på datorn.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'Datorn svarade inte, så hjältens utseende visas inte.';
 }

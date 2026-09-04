@@ -85,6 +85,23 @@ const List<BridgeRoute> bridgeRoutes = <BridgeRoute>[
     path: '/profiles/<profileId>/photo',
     requiresAuth: true,
   ),
+  // How one child's hero is drawn. Three segments where the photo routes have
+  // three too, but the last one differs, so neither can shadow the other.
+  BridgeRoute(
+    method: 'GET',
+    path: '/profiles/<profileId>/hero-sheet',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'PUT',
+    path: '/profiles/<profileId>/hero-sheet',
+    requiresAuth: true,
+  ),
+  BridgeRoute(
+    method: 'POST',
+    path: '/profiles/<profileId>/hero-sheet/rederive',
+    requiresAuth: true,
+  ),
   BridgeRoute(
     method: 'POST',
     path: '/stories/<storyId>/delete',

@@ -571,5 +571,21 @@
   "bridgePhotoTooLarge": "That photo is too large for the PC.",
   "bridgeUnsupportedImage": "The PC can only use a JPEG or a PNG photo.",
   "bridgeIllustrationNotFound": "The PC no longer has that picture.",
-  "bridgeIllustrationNotReady": "That picture has not been made yet."
+  "bridgeIllustrationNotReady": "That picture has not been made yet.",
+  "heroSheetTitle": "How the hero is drawn",
+  "heroSheetIntro": "The PC reads this child's photo once and draws the same hero in every story. You decide what that hero always wears and carries.",
+  "heroSheetReadFromPhoto": "Read from the photo",
+  "heroSheetHair": "Hair",
+  "heroSheetSkinTone": "Skin",
+  "heroSheetEyeColor": "Eyes",
+  "heroSheetNotReadYet": "The PC has not read this photo yet.",
+  "heroSheetOutfit": "Always wears",
+  "heroSheetProp": "Always carries",
+  "heroSheetWardrobeHelper": "A short phrase in English, because the drawing model reads English.",
+  "heroSheetReadAgain": "Read again from the photo",
+  "heroSheetRereadDone": "The PC read the photo again.",
+  "heroSheetRereadPending": "The PC is busy. It will read the photo again shortly.",
+  "heroSheetRereadFailed": "The PC could not read the photo again.",
+  "heroSheetSaveFailed": "What the hero wears could not be saved on the PC.",
+  "heroSheetUnavailable": "The PC did not answer, so the hero's look is not shown."
 }
