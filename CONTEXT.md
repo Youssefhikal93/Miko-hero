@@ -83,6 +83,12 @@ _Avoid_: thumbnail, gradient, illustration (reserved for drawn pictures)
 A picture drawn by the PC for one page, identified by the bridge.
 _Avoid_: image, artwork (see above)
 
+**Page spread**:
+One open page as the reader draws it: its picture and its prose, stacked on a
+phone and side by side on a wider screen. Everything a spread needs arrives as
+one value, so a page can be drawn without a reader around it.
+_Avoid_: page view, slide, layout
+
 ### The shelf and Home
 
 **Shelf**:

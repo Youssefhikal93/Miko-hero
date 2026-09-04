@@ -1,33 +1,31 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/app/app_controller.dart';
-import 'package:miko_hero/app/app_theme.dart';
-import 'package:miko_hero/core/ai_connection/bridge_story_provenance.dart';
-import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/narration/narration_options.dart';
-import 'package:miko_hero/core/narration/sentence_splitter.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/reader/narration_controller.dart';
+import 'package:miko_hero/features/reader/reader_controls.dart';
 import 'package:miko_hero/features/reader/reader_dialogs.dart';
+import 'package:miko_hero/features/reader/reader_spread.dart';
 import 'package:miko_hero/features/reader/story_export_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
-import 'package:miko_hero/shared/hero_face.dart';
 import 'package:miko_hero/shared/parent_gated_action.dart';
 import 'package:miko_hero/shared/reading_badge_view.dart';
-import 'package:miko_hero/shared/reading_text_style.dart';
-import 'package:miko_hero/shared/screen_layout.dart';
-import 'package:miko_hero/shared/story_artwork.dart';
 
 /// Full-screen illustrated reader with free device narration.
+///
+/// The page itself only orchestrates: it resolves the route's story, owns the
+/// narration session and the page position, answers the reader's three modal
+/// questions, and records a finished reading. What a page looks like lives in
+/// `reader_spread.dart`, and the chrome around it in `reader_controls.dart`.
 class StoryReaderPage extends ConsumerStatefulWidget {
   /// Creates a reader route for one locally persisted story identity.
   const StoryReaderPage({required this.storyId, super.key});
@@ -77,41 +75,37 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
 
   @override
   /// Resolves the route identity from local state without accepting book payloads.
+  ///
+  /// A deleted story and one a parent has not approved are the same answer
+  /// here: the reader opens neither and offers the shelf instead.
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
     return Scaffold(
       body: AppStateBoundary(
         state: state,
         builder: (snapshot) {
-          final story = _storyFrom(snapshot);
-          if (story == null) return const _MissingStory();
+          final story = snapshot.storyById(widget.storyId);
+          if (story == null ||
+              story.reviewStatus != StoryReviewStatus.approved) {
+            return const _MissingStory();
+          }
           return _reader(snapshot, story);
         },
       ),
     );
   }
 
-  /// Finds the requested book while treating a deleted identity as absent.
-  StoryBook? _storyFrom(AppState state) {
-    for (final story in state.stories) {
-      if (story.id == widget.storyId &&
-          story.reviewStatus == StoryReviewStatus.approved) {
-        return story;
-      }
-    }
-    return null;
-  }
-
   /// Composes page content and controls from one stable story snapshot.
   Widget _reader(AppState state, StoryBook story) {
     final pages = story.content.pages;
+    final lastPage = pages.length - 1;
     final profile = state.profileById(story.content.request.profileId);
     final readingSettings =
         profile?.readingSettings ?? const ChildReadingSettings();
     _scheduleFinishCheck(story);
     return Column(
       children: <Widget>[
-        _ReaderTopRow(
+        ReaderTopRow(
           profile: profile,
           bedtime: _bedtime,
           onClose: () => context.go('/library'),
@@ -123,28 +117,32 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
             itemCount: pages.length,
             onPageChanged: (index) => _changePage(index, story),
             itemBuilder: (context, index) {
-              return _ReaderPage(
-                story: story,
-                page: pages[index],
-                profile: profile,
-                readingSettings: readingSettings,
-                bedtime: _bedtime,
-                highlightedSentence: _narration.highlightedSentence(index),
+              return ReaderSpread(
+                pageContext: ReaderPageContext(
+                  story: story,
+                  page: pages[index],
+                  profile: profile,
+                  readingSettings: readingSettings,
+                  bedtime: _bedtime,
+                  highlightedSentence: _narration.highlightedSentence(index),
+                ),
               );
             },
           ),
         ),
-        _ReaderControls(
-          status: _ReaderStatus(
+        ReaderControls(
+          status: ReaderStatus(
             pageIndex: _pageIndex,
             pageCount: pages.length,
             playback: _narration.playback,
             exporting: _exporting,
           ),
-          actions: _ReaderActions(
-            navigation: _ReaderNavigation(
-              previous: _pageIndex == 0 ? null : _previousPage,
-              next: _pageIndex == pages.length - 1 ? null : _nextPage,
+          actions: ReaderActions(
+            navigation: ReaderNavigation(
+              previous: _pageIndex == 0 ? null : () => _turnTo(_pageIndex - 1),
+              next: _pageIndex == lastPage
+                  ? null
+                  : () => _turnTo(_pageIndex + 1),
             ),
             narration: () => _toggleNarration(story),
             stopNarration: () => unawaited(_narration.stop()),
@@ -221,28 +219,13 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
   }
 
   /// Follows the sentence queue into the next page of a rest-of-story reading.
-  void _followNarratedPage(int pageIndex) {
+  void _followNarratedPage(int pageIndex) => unawaited(_turnTo(pageIndex));
+
+  /// Turns the book to one page, the single animation every page turn uses.
+  Future<void> _turnTo(int pageIndex) async {
     if (!mounted || !_pageController.hasClients) return;
-    unawaited(
-      _pageController.animateToPage(
-        pageIndex,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOut,
-      ),
-    );
-  }
-
-  /// Moves one page backward using the reader's semantic page order.
-  Future<void> _previousPage() async {
-    await _pageController.previousPage(
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOut,
-    );
-  }
-
-  /// Moves one page forward using the reader's semantic page order.
-  Future<void> _nextPage() async {
-    await _pageController.nextPage(
+    await _pageController.animateToPage(
+      pageIndex,
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOut,
     );
@@ -286,36 +269,6 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     if (requeue) await _narration.stop();
   }
 
-  /// Opens the hero's saved prose size without closing the book.
-  ///
-  /// The choice is the same reading comfort My Kingdom edits, so a size picked
-  /// mid-story is the size this child keeps in every later book.
-  Future<void> _changeTextSize(ChildProfile profile) async {
-    final settings = profile.readingSettings;
-    final size = await showTextSizeDialog(context, current: settings.textSize);
-    if (size == null || size == settings.textSize || !mounted) return;
-    await _saveReadingSettings(profile.id, settings.withTextSize(size));
-  }
-
-  /// Persists one prose size through the same command My Kingdom already uses.
-  Future<void> _saveReadingSettings(
-    String profileId,
-    ChildReadingSettings settings,
-  ) async {
-    try {
-      await ref
-          .read(profileControllerProvider)
-          .setReadingSettings(profileId, settings);
-    } on Exception {
-      if (mounted) {
-        reportActionOutcome(
-          ScaffoldMessenger.of(context),
-          AppLocalizations.of(context).somethingWentWrong,
-        );
-      }
-    }
-  }
-
   /// Returns the current session choices as one immutable dialog value.
   NarrationSelection get _selection {
     return NarrationSelection(
@@ -324,6 +277,28 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
       sleepTimer: _narration.sleepTimer,
       remainingSleep: _narration.remainingSleep,
     );
+  }
+
+  /// Opens the hero's saved prose size without closing the book.
+  ///
+  /// The choice is the same reading comfort My Kingdom edits, so a size picked
+  /// mid-story is the size this child keeps in every later book.
+  Future<void> _changeTextSize(ChildProfile profile) async {
+    final settings = profile.readingSettings;
+    final size = await showTextSizeDialog(context, current: settings.textSize);
+    if (size == null || size == settings.textSize || !mounted) return;
+    try {
+      await ref
+          .read(profileControllerProvider)
+          .setReadingSettings(profile.id, settings.withTextSize(size));
+    } on Exception {
+      if (mounted) {
+        reportActionOutcome(
+          ScaffoldMessenger.of(context),
+          AppLocalizations.of(context).somethingWentWrong,
+        );
+      }
+    }
   }
 
   /// Requests parent access and the cover choice before writing a story file.
@@ -380,625 +355,6 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
       context,
     ).showSnackBar(SnackBar(content: Text(text.narrationUnavailable)));
   }
-}
-
-/// Story page with explicit direction independent of the application locale.
-class _ReaderPage extends StatelessWidget {
-  /// Creates one responsive page spread from local story and profile content.
-  const _ReaderPage({
-    required this.story,
-    required this.page,
-    required this.profile,
-    required this.readingSettings,
-    required this.bedtime,
-    required this.highlightedSentence,
-  });
-
-  final StoryBook story;
-  final StoryPage page;
-  final ChildProfile? profile;
-  final ChildReadingSettings readingSettings;
-  final bool bedtime;
-  final int? highlightedSentence;
-
-  @override
-  /// Switches between stacked phone content and a desktop two-column spread.
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final illustration = _PageIllustration(
-          story: story,
-          page: page,
-          profile: profile,
-          bedtime: bedtime,
-        );
-        final prose = _StoryProse(
-          story: story,
-          page: page,
-          readingSettings: readingSettings,
-          bedtime: bedtime,
-          highlightedSentence: highlightedSentence,
-        );
-        if (!isWideReaderWidth(constraints.maxWidth)) {
-          return Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              children: <Widget>[
-                Expanded(flex: 3, child: illustration),
-                const SizedBox(height: 16),
-                Expanded(flex: 2, child: prose),
-              ],
-            ),
-          );
-        }
-        return Padding(
-          padding: const EdgeInsets.all(28),
-          child: Row(
-            children: <Widget>[
-              Expanded(child: illustration),
-              const SizedBox(width: 24),
-              Expanded(child: prose),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// The page's drawn picture, or the honest placeholder while it has none.
-class _PageIllustration extends ConsumerWidget {
-  /// Creates page art from the cached picture, or from story styling.
-  const _PageIllustration({
-    required this.story,
-    required this.page,
-    required this.profile,
-    required this.bedtime,
-  });
-
-  final StoryBook story;
-  final StoryPage page;
-  final ChildProfile? profile;
-  final bool bedtime;
-
-  @override
-  /// Shows the PC's picture once this device has it, and the gradient until
-  /// then. No spinner ever appears over a child's page: a book that is waiting
-  /// for artwork simply looks like the book it already was. Demo stories keep
-  /// their DEMO chip, and the page number stays on top in both cases.
-  Widget build(BuildContext context, WidgetRef ref) {
-    final illustration = StoryArtwork.pageOf(ref, page);
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: StoryArtwork.gradientOf(story),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Stack(
-        // The drawn page fills the frame, so the stack has to take the space
-        // the layout gives it rather than shrink to its positioned children.
-        fit: StackFit.expand,
-        children: <Widget>[
-          if (illustration == null)
-            _placeholderFace()
-          else
-            _drawnPage(illustration),
-          if (!BridgeStoryProvenance.marksStory(story))
-            PositionedDirectional(
-              top: 18,
-              start: 18,
-              child: Chip(
-                avatar: const Icon(Icons.science_outlined, size: 16),
-                label: Text(AppLocalizations.of(context).demoBadge),
-              ),
-            ),
-          PositionedDirectional(
-            end: 18,
-            bottom: 18,
-            child: Text(
-              '${page.number}',
-              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900),
-            ),
-          ),
-          if (bedtime)
-            Positioned.fill(
-              key: const ValueKey<String>('bedtime-page-wash'),
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.bedtimeWash,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// Fills the page with the drawn picture inside the same rounded frame.
-  Widget _drawnPage(Uint8List bytes) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Image.memory(
-        bytes,
-        key: const ValueKey<String>('page-illustration'),
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-      ),
-    );
-  }
-
-  /// Centres the child's own photo, or a friendly face, over the gradient.
-  Widget _placeholderFace() {
-    return Center(
-      child: HeroFace(
-        key: const ValueKey<String>('page-placeholder-face'),
-        profile: profile,
-        size: 144,
-        background: Colors.white24,
-        fallbackIcon: Icons.face_rounded,
-        fallbackColor: Colors.white,
-      ),
-    );
-  }
-}
-
-/// Scrollable story prose with language-specific direction and alignment.
-class _StoryProse extends StatelessWidget {
-  /// Creates prose for one page without inheriting the interface direction.
-  const _StoryProse({
-    required this.story,
-    required this.page,
-    required this.readingSettings,
-    required this.bedtime,
-    required this.highlightedSentence,
-  });
-
-  final StoryBook story;
-  final StoryPage page;
-  final ChildReadingSettings readingSettings;
-  final bool bedtime;
-  final int? highlightedSentence;
-
-  @override
-  /// Applies right-to-left direction only when the story language is Arabic.
-  ///
-  /// The child's saved size and font, and the optional bedtime palette, both
-  /// travel through the single prose style so highlighting composes with them
-  /// in either text direction.
-  Widget build(BuildContext context) {
-    final language = story.content.request.presentation.language;
-    final direction = language == AppLanguage.arabic
-        ? TextDirection.rtl
-        : TextDirection.ltr;
-    return Directionality(
-      textDirection: direction,
-      child: Card(
-        color: bedtime ? AppTheme.bedtimeSurface : null,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Text(
-                story.content.title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: bedtime ? AppTheme.bedtimeProse : null,
-                ),
-              ),
-              const SizedBox(height: 22),
-              Text.rich(
-                _prose(context),
-                key: const ValueKey<String>('story-prose'),
-                style: _proseStyle(context, language),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Resolves the child's reading comfort plus the bedtime prose color.
-  TextStyle _proseStyle(BuildContext context, AppLanguage language) {
-    final style = readingProseStyle(
-      context,
-      settings: readingSettings,
-      language: language,
-    );
-    return bedtime ? style.copyWith(color: AppTheme.bedtimeProse) : style;
-  }
-
-  /// Tints the sentence being spoken without rewriting the child's story text.
-  ///
-  /// The narrated sentence is located by offset inside the original page text,
-  /// so the rendered prose stays character-for-character the same in both
-  /// left-to-right and Arabic right-to-left layouts.
-  InlineSpan _prose(BuildContext context) {
-    final sentences = locateNarrationSentences(page.text);
-    final index = highlightedSentence;
-    if (index == null || index >= sentences.length) {
-      return TextSpan(text: page.text);
-    }
-    final spoken = sentences[index];
-    return TextSpan(
-      children: <InlineSpan>[
-        TextSpan(text: page.text.substring(0, spoken.start)),
-        TextSpan(
-          text: page.text.substring(spoken.start, spoken.end),
-          style: TextStyle(
-            backgroundColor: _highlightColor(context).withValues(alpha: 0.3),
-            color: bedtime
-                ? AppTheme.bedtimeProse
-                : Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        TextSpan(text: page.text.substring(spoken.end)),
-      ],
-    );
-  }
-
-  /// Keeps the spoken-sentence tint warm while bedtime mode is on.
-  Color _highlightColor(BuildContext context) {
-    return bedtime ? AppTheme.candle : Theme.of(context).colorScheme.primary;
-  }
-}
-
-/// Hero, exit, and bedtime row printed above the open book.
-class _ReaderTopRow extends StatelessWidget {
-  /// Creates the top row for the child whose story is open.
-  const _ReaderTopRow({
-    required this.profile,
-    required this.bedtime,
-    required this.onClose,
-    required this.onBedtime,
-  });
-
-  final ChildProfile? profile;
-  final bool bedtime;
-  final VoidCallback onClose;
-  final VoidCallback onBedtime;
-
-  @override
-  /// Keeps the exit and the bedtime toggle clear of mobile system insets.
-  Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
-        child: Row(
-          children: <Widget>[
-            _HeroAvatar(profile: profile),
-            const Spacer(),
-            IconButton(
-              onPressed: onClose,
-              tooltip: text.close,
-              icon: const Icon(Icons.close_rounded),
-            ),
-            IconButton(
-              onPressed: onBedtime,
-              tooltip: bedtime ? text.turnOffBedtimeMode : text.bedtimeMode,
-              isSelected: bedtime,
-              icon: Icon(
-                bedtime ? Icons.bedtime_rounded : Icons.bedtime_outlined,
-                color: bedtime ? AppTheme.candle : null,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The hero's own face, ringed in their accent, drawn without a photo asset.
-class _HeroAvatar extends StatelessWidget {
-  /// Creates the avatar of the child this book belongs to.
-  const _HeroAvatar({required this.profile});
-
-  /// Face diameter that keeps the ringed circle at its 42 px reference.
-  static const _faceSize = 34.0;
-
-  final ChildProfile? profile;
-
-  @override
-  /// Falls back to the hero's initial when no reference photo is saved.
-  Widget build(BuildContext context) {
-    final hero = profile;
-    if (hero == null) return const SizedBox.shrink();
-    return Semantics(
-      label: hero.name,
-      child: HeroFace(
-        profile: hero,
-        size: _faceSize,
-        ring: true,
-        background: AppTheme.tile,
-      ),
-    );
-  }
-}
-
-/// Reader actions kept outside story direction so controls follow app locale.
-class _ReaderControls extends StatelessWidget {
-  /// Creates controls for the current reader position and narration state.
-  const _ReaderControls({required this.status, required this.actions});
-
-  final _ReaderStatus status;
-  final _ReaderActions actions;
-
-  @override
-  /// Stacks the page turns, the position, and the tools above system insets.
-  ///
-  /// Three short rows rather than one long one, so the narrowest supported
-  /// phone keeps every control at a full touch target without wrapping.
-  Widget build(BuildContext context) {
-    final text = AppLocalizations.of(context);
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-        decoration: const BoxDecoration(
-          color: AppTheme.sunken,
-          border: Border(top: BorderSide(color: AppTheme.hairline)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            _narrationRow(text),
-            const SizedBox(height: 12),
-            _progressRow(context, text),
-            const SizedBox(height: 4),
-            _toolRow(text),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Page turns around the one control that reads the story aloud.
-  ///
-  /// The row follows the interface direction, so an Arabic reader turns pages
-  /// with previous and next mirrored.
-  Widget _narrationRow(AppLocalizations text) {
-    return Row(
-      children: <Widget>[
-        _pageTurnButton(
-          tooltip: text.previousPage,
-          icon: Icons.arrow_back_rounded,
-          onPressed: actions.navigation.previous,
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: _readToMeButton(text)),
-        if (status.playback != NarrationPlayback.idle) ...<Widget>[
-          const SizedBox(width: 12),
-          _pageTurnButton(
-            tooltip: text.stopNarration,
-            icon: Icons.stop_rounded,
-            onPressed: actions.stopNarration,
-          ),
-        ],
-        const SizedBox(width: 12),
-        _pageTurnButton(
-          tooltip: text.nextPage,
-          icon: Icons.arrow_forward_rounded,
-          onPressed: actions.navigation.next,
-        ),
-      ],
-    );
-  }
-
-  /// The wide candle control that starts, pauses, and resumes narration.
-  Widget _readToMeButton(AppLocalizations text) {
-    return Tooltip(
-      message: _narrationTooltip(text),
-      child: FilledButton.icon(
-        onPressed: actions.narration,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppTheme.candle,
-          foregroundColor: AppTheme.onCandle,
-          minimumSize: const Size.fromHeight(56),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-          ),
-        ),
-        icon: Icon(_narrationIcon()),
-        label: Text(_narrationLabel(text), overflow: TextOverflow.ellipsis),
-      ),
-    );
-  }
-
-  /// One outlined circular control beside the read-aloud button.
-  Widget _pageTurnButton({
-    required String tooltip,
-    required IconData icon,
-    required VoidCallback? onPressed,
-  }) {
-    return IconButton(
-      onPressed: onPressed,
-      tooltip: tooltip,
-      icon: Icon(icon),
-      style: IconButton.styleFrom(
-        side: const BorderSide(color: AppTheme.hairline),
-        minimumSize: const Size.square(46),
-      ),
-    );
-  }
-
-  /// Where the child is in the book, in words and in dots.
-  Widget _progressRow(BuildContext context, AppLocalizations text) {
-    return Row(
-      children: <Widget>[
-        Text(
-          text.pageProgress(status.pageIndex + 1, status.pageCount),
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.mutedDeep),
-        ),
-        const Spacer(),
-        _PageDots(pageIndex: status.pageIndex, pageCount: status.pageCount),
-      ],
-    );
-  }
-
-  /// Pace, bedtime limit, prose size, and the PDF the parent can save.
-  Widget _toolRow(AppLocalizations text) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: <Widget>[
-        IconButton(
-          onPressed: actions.narrationSettings,
-          tooltip: text.narrationSpeed,
-          icon: const Icon(Icons.speed_rounded),
-        ),
-        IconButton(
-          onPressed: actions.narrationSettings,
-          tooltip: text.sleepTimer,
-          icon: const Icon(Icons.timer_outlined),
-        ),
-        IconButton(
-          onPressed: actions.textSize,
-          tooltip: text.readerTextSize,
-          icon: const Icon(Icons.text_fields_rounded),
-        ),
-        IconButton(
-          onPressed: status.exporting ? null : actions.export,
-          tooltip: status.exporting ? text.exportingPdf : text.exportPdf,
-          icon: status.exporting
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.picture_as_pdf_rounded),
-        ),
-      ],
-    );
-  }
-
-  /// Localizes the play, pause, or resume meaning of the main narration button.
-  String _narrationTooltip(AppLocalizations text) {
-    return switch (status.playback) {
-      NarrationPlayback.playing => text.pauseNarration,
-      NarrationPlayback.paused => text.resumeNarration,
-      NarrationPlayback.idle => text.playNarration,
-    };
-  }
-
-  /// Names the invitation to listen, and what the control does once it runs.
-  String _narrationLabel(AppLocalizations text) {
-    return switch (status.playback) {
-      NarrationPlayback.playing => text.pauseNarration,
-      NarrationPlayback.paused => text.resumeNarration,
-      NarrationPlayback.idle => text.readToMe,
-    };
-  }
-
-  /// Mirrors the narration state so the control never lies about what it does.
-  IconData _narrationIcon() {
-    return switch (status.playback) {
-      NarrationPlayback.playing => Icons.pause_rounded,
-      NarrationPlayback.paused => Icons.play_arrow_rounded,
-      NarrationPlayback.idle => Icons.play_arrow_rounded,
-    };
-  }
-}
-
-/// The book's pages as dots, with the open one marked in candle.
-class _PageDots extends StatelessWidget {
-  /// Creates one dot per page of the open book.
-  const _PageDots({required this.pageIndex, required this.pageCount});
-
-  final int pageIndex;
-  final int pageCount;
-
-  @override
-  /// Names only the current dot, the way the bottom bar names its active one.
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (var index = 0; index < pageCount; index++)
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 5),
-            child: index == pageIndex
-                ? _PageDot(key: ValueKey<String>('page-dot-$index'), open: true)
-                : const _PageDot(open: false),
-          ),
-      ],
-    );
-  }
-}
-
-/// One page mark, wider and warmer while its page is the one being read.
-class _PageDot extends StatelessWidget {
-  /// Creates a dot for a page that is either open or still waiting.
-  const _PageDot({required this.open, super.key});
-
-  final bool open;
-
-  @override
-  /// Keeps every dot on one baseline so only width and colour change.
-  Widget build(BuildContext context) {
-    return Container(
-      width: open ? 22 : 14,
-      height: 3,
-      decoration: BoxDecoration(
-        color: open ? AppTheme.candle : AppTheme.hairline,
-        borderRadius: const BorderRadius.all(Radius.circular(999)),
-      ),
-    );
-  }
-}
-
-/// Immutable values needed to render the reader control bar.
-class _ReaderStatus {
-  /// Groups page progress and narration state into one control input.
-  const _ReaderStatus({
-    required this.pageIndex,
-    required this.pageCount,
-    required this.playback,
-    required this.exporting,
-  });
-
-  final int pageIndex;
-  final int pageCount;
-  final NarrationPlayback playback;
-  final bool exporting;
-}
-
-/// User commands exposed by the reader control bar.
-class _ReaderActions {
-  /// Groups navigation and narration commands without boolean action flags.
-  const _ReaderActions({
-    required this.navigation,
-    required this.narration,
-    required this.stopNarration,
-    required this.narrationSettings,
-    required this.textSize,
-    required this.export,
-  });
-
-  final _ReaderNavigation navigation;
-  final VoidCallback narration;
-  final VoidCallback stopNarration;
-  final VoidCallback narrationSettings;
-
-  /// Absent while the story's hero no longer has a local profile to save to.
-  final VoidCallback? textSize;
-
-  final VoidCallback export;
-}
-
-/// Optional page movement commands grouped for the reader control bar.
-class _ReaderNavigation {
-  /// Creates movement callbacks disabled at the beginning and end.
-  const _ReaderNavigation({required this.previous, required this.next});
-
-  final VoidCallback? previous;
-  final VoidCallback? next;
 }
 
 /// Safe destination when a deep link targets a deleted local story.
