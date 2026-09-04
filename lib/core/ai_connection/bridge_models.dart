@@ -54,6 +54,79 @@ bool _available(Object? encodedStatus) {
   return available;
 }
 
+/// One device the PC currently trusts, exactly as `GET /devices` lists it.
+///
+/// No token or token hash is part of this shape and none ever crosses the
+/// boundary: the PC lists names and moments only.
+class BridgePairedDevice {
+  /// Creates one validated entry of the paired-device list.
+  const BridgePairedDevice({
+    required this.id,
+    required this.name,
+    required this.pairedAtUtc,
+    this.lastSeenAtUtc,
+    this.isCaller = false,
+  });
+
+  /// Identity used to remove this device from the PC.
+  final String id;
+
+  /// Name the parent typed when this device was paired.
+  final String name;
+
+  /// When the PC registered the device.
+  final DateTime pairedAtUtc;
+
+  /// When the device last called the PC, absent until it has called once.
+  final DateTime? lastSeenAtUtc;
+
+  /// Whether this row is the device asking, as the PC itself decided.
+  ///
+  /// The phone never stores its own device id, so the PC marks its caller's
+  /// row instead: that is what lets this device show "this device" and hide a
+  /// remove control that the PC would refuse anyway.
+  final bool isCaller;
+
+  /// Validates one listed device, tolerating fields an older PC omits.
+  factory BridgePairedDevice.fromJson(Map<String, Object?> json) {
+    final id = json['id'];
+    final name = json['name'];
+    final createdAtUtc = json['createdAtUtc'];
+    final isCaller = json['isCaller'];
+    if (id is! String ||
+        id.isEmpty ||
+        name is! String ||
+        name.trim().isEmpty ||
+        createdAtUtc is! String ||
+        (isCaller != null && isCaller is! bool)) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return BridgePairedDevice(
+      id: id,
+      name: name.trim(),
+      pairedAtUtc: parseBridgeTimestamp(createdAtUtc),
+      lastSeenAtUtc: _optionalTimestamp(json['lastSeenAtUtc']),
+      isCaller: isCaller as bool? ?? false,
+    );
+  }
+
+  /// Validates the whole `{"devices": [...]}` answer, in the PC's own order.
+  static List<BridgePairedDevice> listFromJson(Map<String, Object?> json) {
+    final devices = json['devices'];
+    if (devices is! List) {
+      throw const BridgeException(BridgeFailure.invalidResponse);
+    }
+    return List<BridgePairedDevice>.unmodifiable(
+      devices.map((encoded) {
+        if (encoded is! Map<String, Object?>) {
+          throw const BridgeException(BridgeFailure.invalidResponse);
+        }
+        return BridgePairedDevice.fromJson(encoded);
+      }),
+    );
+  }
+}
+
 /// Lifecycle of one generation job as the bridge reports it.
 enum BridgeJobStatus {
   /// Accepted and waiting for the single worker; reports a queue position.

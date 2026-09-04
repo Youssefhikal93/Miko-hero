@@ -39,6 +39,12 @@ abstract final class ApiErrorCode {
   /// A required body field is missing or malformed.
   static const String invalidField = 'invalid_field';
 
+  /// No active paired device with this id exists on the PC.
+  static const String deviceNotFound = 'device_not_found';
+
+  /// A device tried to remove its own pairing from the PC device list.
+  static const String cannotRemoveSelf = 'cannot_remove_self';
+
   /// No generation job with this id belongs to the calling device.
   static const String jobNotFound = 'job_not_found';
 

@@ -1407,6 +1407,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairedDeviceForgotten => 'Pairing removed from this device';
 
   @override
+  String get pairedDevicesTitle => 'Devices paired with the PC';
+
+  @override
+  String get pairedDevicesBody =>
+      'Everything listed here can reach the PC. Remove one and it has to pair again.';
+
+  @override
+  String get pairedDevicesEmpty => 'The PC lists no paired devices.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · this device';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'Paired $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'Last seen $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'Not used since pairing';
+
+  @override
+  String get removePairedDevice => 'Remove';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'That device loses access to the PC at once. It can pair again with a new code.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return '$name can no longer reach the PC';
+  }
+
+  @override
   String get openAiConnectionSettings => 'Open AI connection settings';
 
   @override
@@ -1466,6 +1511,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bridgeInvalidRequest => 'The PC refused this story request.';
+
+  @override
+  String get bridgeDeviceNotFound => 'The PC no longer lists that device.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'Use “Forget this device” to unpair this device.';
 
   @override
   String get bridgeJobNotFound => 'The PC no longer knows this story request.';

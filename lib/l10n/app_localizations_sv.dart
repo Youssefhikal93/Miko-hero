@@ -1419,6 +1419,51 @@ class AppLocalizationsSv extends AppLocalizations {
       'Kopplingen borttagen från den här enheten';
 
   @override
+  String get pairedDevicesTitle => 'Enheter kopplade till datorn';
+
+  @override
+  String get pairedDevicesBody =>
+      'Allt som står här når datorn. Tar du bort en enhet måste den kopplas igen.';
+
+  @override
+  String get pairedDevicesEmpty => 'Datorn listar inga kopplade enheter.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · den här enheten';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'Kopplad $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'Senast sedd $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'Inte använd sedan kopplingen';
+
+  @override
+  String get removePairedDevice => 'Ta bort';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'Ta bort $name?';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'Enheten förlorar åtkomsten till datorn direkt. Den kan kopplas igen med en ny kod.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return '$name når inte datorn längre';
+  }
+
+  @override
   String get openAiConnectionSettings => 'Öppna AI-anslutningen';
 
   @override
@@ -1479,6 +1524,14 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get bridgeInvalidRequest =>
       'Datorn nekade den här berättelseförfrågan.';
+
+  @override
+  String get bridgeDeviceNotFound =>
+      'Datorn känner inte längre till den enheten.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'Använd ”Glöm den här enheten” för att koppla bort den här enheten.';
 
   @override
   String get bridgeJobNotFound =>

@@ -67,6 +67,26 @@ http.Response bridgeErrorResponse(String code, int statusCode) {
   }, statusCode: statusCode);
 }
 
+/// Builds one entry of the `GET /devices` list exactly as the bridge sends it.
+///
+/// [lastSeenAtUtc] stays absent for a device that paired but has not called
+/// since, which is what a bridge older than the last-seen column also sends.
+Map<String, Object?> bridgeDevicePayload({
+  required String id,
+  required String name,
+  String createdAtUtc = '2026-08-22T09:00:00.000Z',
+  String? lastSeenAtUtc,
+  bool isCaller = false,
+}) {
+  return <String, Object?>{
+    'id': id,
+    'name': name,
+    'createdAtUtc': createdAtUtc,
+    'lastSeenAtUtc': lastSeenAtUtc,
+    'isCaller': isCaller,
+  };
+}
+
 /// Builds one completed story payload with [pageCount] validated pages.
 ///
 /// The same shape answers a finished generation job and a synchronization

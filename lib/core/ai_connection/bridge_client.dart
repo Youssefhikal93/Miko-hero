@@ -124,6 +124,28 @@ class BridgeClient {
     return token;
   }
 
+  /// Lists every device the PC still trusts, oldest pairing first.
+  ///
+  /// The PC marks the calling device's own row, so no device id has to be
+  /// stored on this device for it to recognize itself in the list.
+  Future<List<BridgePairedDevice>> listDevices() async {
+    final answer = await _send('GET', '/devices', authenticated: true);
+    return BridgePairedDevice.listFromJson(answer);
+  }
+
+  /// Removes one other device's pairing on the PC.
+  ///
+  /// That device's next call is refused; this device is refused outright with
+  /// [BridgeFailure.cannotRemoveThisDevice], because forgetting this device is
+  /// a local decision made on the device itself.
+  Future<void> revokeDevice(String deviceId) async {
+    await _send(
+      'DELETE',
+      '/devices/${Uri.encodeComponent(deviceId)}',
+      authenticated: true,
+    );
+  }
+
   /// Queues one story generation job and returns its identity and position.
   Future<BridgeJobSubmission> submitStory(BridgeStoryRequest request) async {
     final answer = await _send(
@@ -434,6 +456,8 @@ class BridgeClient {
       'pairing_expired' => BridgeFailure.pairingExpired,
       'invalid_pairing_code' => BridgeFailure.invalidPairingCode,
       'invalid_field' || 'invalid_request' => BridgeFailure.invalidRequest,
+      'device_not_found' => BridgeFailure.deviceNotFound,
+      'cannot_remove_self' => BridgeFailure.cannotRemoveThisDevice,
       'job_not_found' => BridgeFailure.jobNotFound,
       'story_not_found' => BridgeFailure.storyNotFound,
       'profile_not_found' => BridgeFailure.profileNotFound,

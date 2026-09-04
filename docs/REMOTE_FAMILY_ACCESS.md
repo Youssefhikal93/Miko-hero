@@ -187,9 +187,12 @@ origin. In `bridge_config.json`:
 - Stop public exposure: `tailscale funnel --bg off` (or `tailscale funnel
   reset`). The bridge instantly returns to localhost-only.
 - Remove the web origin from `allowedWebOrigins` and restart the bridge.
-- Remote devices can be unpaired from the bridge's device list; their cached
-  stories remain readable on their devices (remove offline copies from the
-  app if desired).
+- **Remove a family member's device**: on any other paired device, open AI
+  connection settings → *Devices paired with the PC*, find it by name (the
+  list shows when it was paired and when the PC last heard from it) and tap
+  remove — its very next call is refused and their app says to pair again.
+  Their cached stories stay readable on their device (remove offline copies
+  from the app if desired).
 
 ## Security notes and limits (owner is aware)
 

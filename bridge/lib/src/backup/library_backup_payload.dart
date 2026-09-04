@@ -116,6 +116,7 @@ const List<BackupTableSpec> backupTableSpecs = <BackupTableSpec>[
     columns: <String>[
       'id',
       'device_name',
+      'last_seen_at_utc',
       'revoked_at_utc',
       'created_at_utc',
       'updated_at_utc',

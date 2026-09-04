@@ -17,6 +17,11 @@ const String authenticatedDeviceContextKey = 'iam_hero.authenticated_device';
 /// device token hash in constant time; revoked devices are rejected. On any
 /// failure a typed `401` error is returned without revealing why the token
 /// was rejected.
+///
+/// Every accepted call stamps the device's `last_seen_at_utc`, which is what
+/// lets the parent see in the app which paired devices still reach the PC.
+/// The stamp is one single-row `UPDATE` and records only the moment: never
+/// the endpoint, the address, or anything about the request itself.
 Middleware requireDeviceAuth({required DeviceStore deviceStore}) {
   return (Handler innerHandler) {
     return (Request request) async {
@@ -29,6 +34,7 @@ Middleware requireDeviceAuth({required DeviceStore deviceStore}) {
           'A valid device bearer token is required.',
         );
       }
+      deviceStore.markSeen(device.id);
       final Request authenticated = request.change(
         context: <String, Object?>{
           ...request.context,

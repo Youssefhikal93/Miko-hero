@@ -237,15 +237,53 @@ code stops working and a fresh request is needed.
 
 ### `GET /devices` — requires auth
 
-Requires `Authorization: Bearer <deviceToken>`. Lists paired devices
-(name + created date only — never tokens):
+Requires `Authorization: Bearer <deviceToken>`. Lists the devices that can
+still authenticate (names and moments only — never tokens or token hashes):
 
 ```json
-{ "devices": [ { "id": "...", "name": "Family tablet", "createdAtUtc": "2026-08-22T10:00:00Z" } ] }
+{
+  "devices": [
+    {
+      "id": "...",
+      "name": "Family tablet",
+      "createdAtUtc": "2026-08-22T10:00:00Z",
+      "lastSeenAtUtc": "2026-09-01T18:30:00Z",
+      "isCaller": true
+    }
+  ]
+}
 ```
+
+`lastSeenAtUtc` is when that device last presented a valid token; it is
+`null` for a device that paired and has not called since. Every
+authenticated request stamps it, so it moves on the caller's own row before
+this answer is built. `isCaller` marks the row belonging to the device
+asking, which is how the app shows "this device" and hides a removal it
+would be refused anyway — a device never has to store its own id.
+
+Revoked devices are not listed.
 
 Every endpoint except `/health`, `/pair/request`, and `/pair/confirm`
 requires a valid bearer token; anything else gets `401 unauthorized`.
+
+### `DELETE /devices/<deviceId>` — requires auth
+
+Removes another device's pairing. The token row is kept but marked revoked,
+so the removed device's **very next call fails with `401 unauthorized`** and
+the PC still remembers the device once existed.
+
+```json
+{ "id": "...", "removed": true }
+```
+
+Failure modes:
+
+- `409 cannot_remove_self` — a device may not remove its own pairing.
+  Unpairing the device you are holding is a local decision made on that
+  device (the app's *Forget this device*), and a self-removal would leave the
+  parent looking at a list they can no longer refresh.
+- `404 device_not_found` — no device is paired under that id, including one
+  already removed.
 
 ### `POST /stories/generate` — requires auth
 
@@ -669,7 +707,8 @@ backup, which is why the two features arrived together.
 One authenticated file with everything the library is:
 
 - every database row — profiles, stories, pages, illustrations, deletion
-  records, sync state, and devices **as names only**,
+  records, sync state, and devices **as names only** (name, paired and
+  last-seen moments, revocation),
 - every file under `photos/` and `illustrations/`, base64 inside the payload.
 
 **Device token hashes are never in a backup.** A backup that could
@@ -1081,6 +1120,12 @@ prompts, file paths and image bytes never reach the console or a log.
 Codes expire after 2 minutes, live only in memory (a restart clears them),
 and wrong attempts are capped at five.
 
+To undo a pairing later, the parent opens the app's AI connection settings on
+any *other* paired device, finds the device by name in **Devices paired with
+the PC** — with when it was paired and when the PC last heard from it — and
+removes it, which is `DELETE /devices/<deviceId>`. The removed device's next
+call is refused and the app there tells its holder to pair again.
+
 ## Security model
 
 - **Loopback by default.** Binds to `127.0.0.1`; LAN exposure requires an
@@ -1091,6 +1136,10 @@ and wrong attempts are capped at five.
 - **Pairing codes** are 6 digits, expire in 2 minutes, exist only in
   memory as hashes, are compared in constant time, and invalidate after
   five wrong entries. Request rate limit: 5 per minute.
+- **Revocation is immediate.** `DELETE /devices/<deviceId>` marks the token
+  row revoked, and the next call carrying that token fails authentication.
+  A device cannot revoke itself. Each accepted call records only the moment
+  it happened, in `devices.last_seen_at_utc` — never what was asked for.
 - **Bounded requests**: bodies larger than 25 MB are rejected with `413`;
   slow handlers time out with a typed error instead of hanging.
 - **Privacy by design**: request bodies, photo bytes, story content, scene

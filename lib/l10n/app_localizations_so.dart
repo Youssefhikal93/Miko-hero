@@ -1420,6 +1420,51 @@ class AppLocalizationsSo extends AppLocalizations {
   String get pairedDeviceForgotten => 'Xiriirinta waa laga saaray qalabkan';
 
   @override
+  String get pairedDevicesTitle => 'Qalabka lagu xiray PC-ga';
+
+  @override
+  String get pairedDevicesBody =>
+      'Wax kasta oo halkan ku qoran wuu gaari karaa PC-ga. Haddii aad mid ka saarto waa inuu mar kale xirmo.';
+
+  @override
+  String get pairedDevicesEmpty => 'PC-gu ma liisgareeyo qalab xiran.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · qalabkan';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'Waa la xiray $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'Markii ugu dambeysay $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'Lama isticmaalin tan iyo xiriirintii';
+
+  @override
+  String get removePairedDevice => 'Ka saar';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'Ma ka saaraysaa $name?';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'Qalabkaasi isla markiiba wuu waayayaa gelitaanka PC-ga. Wuxuu mar kale ku xiran karaa lambar cusub.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return '$name mar dambe ma gaari karo PC-ga';
+  }
+
+  @override
   String get openAiConnectionSettings => 'Fur goobaha xiriirka AI-ga';
 
   @override
@@ -1481,6 +1526,13 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get bridgeInvalidRequest => 'PC-gu wuu diiday codsigan sheeko.';
+
+  @override
+  String get bridgeDeviceNotFound => 'PC-gu mar dambe ma yaqaano qalabkaas.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'Isticmaal “Iloow qalabkan” si aad xiriirinta uga jarto qalabkan.';
 
   @override
   String get bridgeJobNotFound => 'PC-gu hadda ma garanayo codsigan sheeko.';

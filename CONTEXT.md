@@ -139,6 +139,12 @@ _Avoid_: client, session
 The ceremony that turns a six-digit code shown on the PC into a device token.
 _Avoid_: login, registration
 
+**Removing a device**:
+Ending another paired device's access from the app, so its next call to the
+bridge is refused. Distinct from _forgetting this device_, which deletes only
+the token this device holds and leaves the PC's list alone.
+_Avoid_: revoking, unpairing, deleting a device
+
 **Sync**:
 One device taking what is new in the master library, and only then reporting
 back what it took.

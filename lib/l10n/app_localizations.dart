@@ -2586,6 +2586,72 @@ abstract class AppLocalizations {
   /// **'Pairing removed from this device'**
   String get pairedDeviceForgotten;
 
+  /// No description provided for @pairedDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices paired with the PC'**
+  String get pairedDevicesTitle;
+
+  /// No description provided for @pairedDevicesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything listed here can reach the PC. Remove one and it has to pair again.'**
+  String get pairedDevicesBody;
+
+  /// No description provided for @pairedDevicesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC lists no paired devices.'**
+  String get pairedDevicesEmpty;
+
+  /// No description provided for @pairedDeviceThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · this device'**
+  String pairedDeviceThisDevice(String name);
+
+  /// No description provided for @pairedDeviceSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired {date}'**
+  String pairedDeviceSince(String date);
+
+  /// No description provided for @pairedDeviceLastSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen {date}'**
+  String pairedDeviceLastSeen(String date);
+
+  /// No description provided for @pairedDeviceNeverSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used since pairing'**
+  String get pairedDeviceNeverSeen;
+
+  /// No description provided for @removePairedDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removePairedDevice;
+
+  /// No description provided for @removePairedDeviceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String removePairedDeviceTitle(String name);
+
+  /// No description provided for @removePairedDeviceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'That device loses access to the PC at once. It can pair again with a new code.'**
+  String get removePairedDeviceBody;
+
+  /// No description provided for @pairedDeviceRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} can no longer reach the PC'**
+  String pairedDeviceRemoved(String name);
+
   /// No description provided for @openAiConnectionSettings.
   ///
   /// In en, this message translates to:
@@ -2687,6 +2753,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The PC refused this story request.'**
   String get bridgeInvalidRequest;
+
+  /// No description provided for @bridgeDeviceNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC no longer lists that device.'**
+  String get bridgeDeviceNotFound;
+
+  /// No description provided for @bridgeCannotRemoveThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Use “Forget this device” to unpair this device.'**
+  String get bridgeCannotRemoveThisDevice;
 
   /// No description provided for @bridgeJobNotFound.
   ///

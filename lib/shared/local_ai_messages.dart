@@ -23,6 +23,8 @@ String localAiFailureMessage(AppLocalizations text, Object error) {
     BridgeFailure.pairingExpired => text.bridgePairingExpired,
     BridgeFailure.invalidPairingCode => text.bridgeInvalidPairingCode,
     BridgeFailure.invalidRequest => text.bridgeInvalidRequest,
+    BridgeFailure.deviceNotFound => text.bridgeDeviceNotFound,
+    BridgeFailure.cannotRemoveThisDevice => text.bridgeCannotRemoveThisDevice,
     BridgeFailure.jobNotFound => text.bridgeJobNotFound,
     BridgeFailure.storyNotFound => text.bridgeStoryNotFound,
     BridgeFailure.profileNotFound => text.bridgeProfileNotFound,

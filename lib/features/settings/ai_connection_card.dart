@@ -9,6 +9,7 @@ import 'package:miko_hero/core/ai_connection/bridge_credential.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/settings/library_sync_section.dart';
+import 'package:miko_hero/features/settings/paired_devices_section.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 
@@ -116,6 +117,12 @@ class _LoadedAiConnectionCardState
             ],
             const Divider(height: 32),
             _pairingSection(text),
+            // Only a paired device may ask the PC who else is paired, so an
+            // unpaired one is not shown an empty list it cannot fill.
+            if (widget.connection.isPaired) ...<Widget>[
+              const Divider(height: 32),
+              const PairedDevicesSection(),
+            ],
             const Divider(height: 32),
             const LibrarySyncSection(),
           ],

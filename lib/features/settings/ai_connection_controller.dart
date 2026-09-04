@@ -132,6 +132,19 @@ class AiConnectionController extends AsyncNotifier<AiConnectionState> {
     );
   }
 
+  /// Lists the devices the PC currently trusts, this one marked by the PC.
+  Future<List<BridgePairedDevice>> readPairedDevices() {
+    return _client().listDevices();
+  }
+
+  /// Removes one other device's pairing on the PC.
+  ///
+  /// Nothing local changes: the record removed lives on the PC, and the PC
+  /// refuses an attempt to remove this device, which [forgetDevice] does.
+  Future<void> removePairedDevice(String deviceId) {
+    return _client().revokeDevice(deviceId);
+  }
+
   /// Deletes the stored token so this device stops using the PC.
   ///
   /// Local only: the PC keeps its own list of paired devices, which the

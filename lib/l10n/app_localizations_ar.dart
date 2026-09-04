@@ -1391,6 +1391,51 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pairedDeviceForgotten => 'تمت إزالة الاقتران من هذا الجهاز';
 
   @override
+  String get pairedDevicesTitle => 'الأجهزة المقترنة بالكمبيوتر';
+
+  @override
+  String get pairedDevicesBody =>
+      'كل جهاز مذكور هنا يصل إلى الكمبيوتر. إن أزلت جهازاً فعليه الاقتران من جديد.';
+
+  @override
+  String get pairedDevicesEmpty => 'لا يعرض الكمبيوتر أي جهاز مقترن.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · هذا الجهاز';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'اقترن في $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'آخر ظهور $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'لم يُستخدم منذ الاقتران';
+
+  @override
+  String get removePairedDevice => 'إزالة';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'هل تزيل $name؟';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'سيفقد ذلك الجهاز الوصول إلى الكمبيوتر فوراً. يمكنه الاقتران من جديد برمز جديد.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return 'لم يعد $name قادراً على الوصول إلى الكمبيوتر';
+  }
+
+  @override
   String get openAiConnectionSettings => 'فتح إعدادات اتصال الذكاء الاصطناعي';
 
   @override
@@ -1450,6 +1495,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get bridgeInvalidRequest => 'رفض الكمبيوتر طلب القصة هذا.';
+
+  @override
+  String get bridgeDeviceNotFound => 'لم يعد الكمبيوتر يعرف ذلك الجهاز.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'استخدم «نسيان هذا الجهاز» لإلغاء اقتران هذا الجهاز.';
 
   @override
   String get bridgeJobNotFound => 'لم يعد الكمبيوتر يعرف طلب القصة هذا.';

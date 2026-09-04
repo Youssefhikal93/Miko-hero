@@ -36,6 +36,11 @@ const List<BridgeRoute> bridgeRoutes = <BridgeRoute>[
   BridgeRoute(method: 'POST', path: '/pair/request', requiresAuth: false),
   BridgeRoute(method: 'POST', path: '/pair/confirm', requiresAuth: false),
   BridgeRoute(method: 'GET', path: '/devices', requiresAuth: true),
+  BridgeRoute(
+    method: 'DELETE',
+    path: '/devices/<deviceId>',
+    requiresAuth: true,
+  ),
   BridgeRoute(method: 'POST', path: '/stories/generate', requiresAuth: true),
   BridgeRoute(method: 'GET', path: '/stories/jobs/<jobId>', requiresAuth: true),
   BridgeRoute(

@@ -304,6 +304,7 @@ void main() {
       expect(values.keys, <String>[
         'baseUrl',
         'deviceToken',
+        'deviceId',
         'profileId',
         'storyId',
         'jobId',

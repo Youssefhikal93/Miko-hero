@@ -177,6 +177,7 @@ class AppServer {
       'POST /pair/request': _pairingHandlers.requestPairing,
       'POST /pair/confirm': _pairingHandlers.confirmPairing,
       'GET /devices': _devicesHandler.listDevices,
+      'DELETE /devices/<deviceId>': _devicesHandler.removeDevice,
       'POST /stories/generate': _generationHandlers.createJob,
       'GET /stories/jobs/<jobId>': _generationHandlers.readJob,
       'POST /stories/jobs/<jobId>/cancel': _generationHandlers.cancelJob,

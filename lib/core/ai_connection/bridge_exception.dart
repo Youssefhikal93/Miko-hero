@@ -40,6 +40,15 @@ enum BridgeFailure {
   /// The bridge rejected a field of the story request before queueing it.
   invalidRequest,
 
+  /// The PC no longer lists a paired device under the identity that was sent.
+  deviceNotFound,
+
+  /// The PC refuses to remove the calling device from its own device list.
+  ///
+  /// Unpairing this device is a local decision: the stored token is deleted
+  /// here, which is what "Forget this device" does.
+  cannotRemoveThisDevice,
+
   /// The bridge no longer knows the polled job.
   jobNotFound,
 

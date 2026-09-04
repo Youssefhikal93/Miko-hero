@@ -36,7 +36,7 @@ class MasterLibrary {
   MasterLibrary({required this.rootPath});
 
   /// Schema version implemented by this build of the bridge.
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
 
   /// Absolute or relative root folder of this library.
   final String rootPath;
@@ -149,6 +149,7 @@ class MasterLibrary {
 const Map<int, List<String>> schemaSteps = <int, List<String>>{
   1: schemaV1Statements,
   2: schemaV2Statements,
+  3: schemaV3Statements,
 };
 
 /// Ordered DDL statements that build schema version 1.
@@ -234,5 +235,19 @@ const List<String> schemaV2Statements = <String>[
   '''
   ALTER TABLE story_pages
     ADD COLUMN scene_description TEXT NOT NULL DEFAULT ''
+  ''',
+];
+
+/// Ordered DDL statements that upgrade schema version 2 to version 3.
+///
+/// Version 3 records when a paired device last authenticated, so the parent
+/// can see in the app which devices still reach the PC and remove the ones
+/// that should not. Nullable and undefaulted: a device that has not called
+/// since the upgrade truthfully has no last-seen moment, which is different
+/// from claiming it was seen at migration time.
+const List<String> schemaV3Statements = <String>[
+  '''
+  ALTER TABLE devices
+    ADD COLUMN last_seen_at_utc TEXT
   ''',
 ];
