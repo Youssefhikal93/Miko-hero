@@ -72,6 +72,12 @@ abstract final class AppIcons {
   /// A hint that a card can be tapped.
   static const IconData tapHint = Icons.touch_app_rounded;
 
+  /// How stories are read on this device: prose size, letters, reading aloud.
+  static const IconData reading = Icons.chrome_reader_mode_rounded;
+
+  /// Everything this device has stored for the family, as one thing to manage.
+  static const IconData storedData = Icons.inventory_2_rounded;
+
   // --- The family ---
 
   /// A hero, where no photo of the child could be drawn.

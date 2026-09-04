@@ -30,13 +30,25 @@ void main() {
     }
   });
 
-  test('Home, the shelf, Create and the Reader are the self-headed set', () {
+  test('Home, the shelf, Create, Settings and the Reader head themselves', () {
     final selfHeaded = appRoutes
         .where((route) => route.paintsOwnHeader)
         .map((route) => route.path)
         .toList();
 
-    expect(selfHeaded, <String>['/', '/create', '/library', '/story/:storyId']);
+    expect(selfHeaded, <String>[
+      '/',
+      '/create',
+      '/library',
+      '/settings',
+      '/settings/family',
+      '/settings/reading',
+      '/settings/pc',
+      '/settings/safety',
+      '/settings/data',
+      '/settings/about',
+      '/story/:storyId',
+    ]);
   });
 
   testWidgets('a desktop window carries no shell header on any route', (

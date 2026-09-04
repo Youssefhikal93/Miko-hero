@@ -1752,4 +1752,105 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get heroSheetUnavailable =>
       'لم يردّ الكمبيوتر، لذلك لا يظهر شكل البطل.';
+
+  @override
+  String get settingsSubtitle => 'كل ما يقرره أحد الوالدين لهذا الجهاز.';
+
+  @override
+  String get settingsFamilyTitle => 'العائلة';
+
+  @override
+  String get settingsFamilyBody => 'الأبطال على هذا الجهاز، ولغة التطبيق.';
+
+  @override
+  String get settingsReadingTitle => 'القراءة';
+
+  @override
+  String get settingsReadingBody =>
+      'شكل صفحات القصة، وطريقة قراءتها بصوت عالٍ.';
+
+  @override
+  String get settingsPcTitle => 'الكمبيوتر';
+
+  @override
+  String get settingsPcBody =>
+      'مكان كتابة القصص، والأجهزة التي يثق بها الكمبيوتر، والمكتبة دون اتصال.';
+
+  @override
+  String get settingsSafetyTitle => 'الأمان';
+
+  @override
+  String get settingsSafetyBody =>
+      'رمز PIN للوالدين والمواضيع التي تتجنبها القصص.';
+
+  @override
+  String get settingsSafetyTopicsBody => 'تُختار لكل طفل في مملكتي.';
+
+  @override
+  String get settingsDataTitle => 'بياناتك';
+
+  @override
+  String get settingsDataBody =>
+      'النسخ الاحتياطية، وما يبقى على هذا الجهاز، وحذفه كله.';
+
+  @override
+  String get settingsAboutSummary => 'ما هذا التطبيق ومن يكتب قصصه';
+
+  @override
+  String get settingsNoHeroes => 'لا توجد ملفات أبطال على هذا الجهاز بعد';
+
+  @override
+  String settingsReadingTextSizeValue(String size) {
+    return 'حجم النص: $size';
+  }
+
+  @override
+  String get settingsReadingMixed => 'مختلط';
+
+  @override
+  String get settingsReadingEasyOn => 'خط القراءة السهلة مفعّل';
+
+  @override
+  String get settingsReadingEasyOff => 'خط القراءة السهلة متوقف';
+
+  @override
+  String get settingsReadingEasySome => 'خط القراءة السهلة لبعض الأبطال';
+
+  @override
+  String get settingsPcDemo => 'قصص تجريبية';
+
+  @override
+  String get settingsPcNotPaired => 'الكمبيوتر · غير مقترن بعد';
+
+  @override
+  String get settingsPcPaired => 'مقترن بالكمبيوتر';
+
+  @override
+  String get settingsPcNeverSynced => 'لم تتم المزامنة بعد';
+
+  @override
+  String settingsPcSyncedAt(String moment) {
+    return 'تمت المزامنة $moment';
+  }
+
+  @override
+  String get settingsSafetyPinOn => 'رمز PIN للوالدين مفعّل';
+
+  @override
+  String get settingsSafetyPinOff => 'لا يوجد رمز PIN للوالدين';
+
+  @override
+  String settingsDataSummary(int count) {
+    return 'القصص على هذا الجهاز: $count';
+  }
+
+  @override
+  String get settingsNarrationTitle => 'القراءة بصوت عالٍ';
+
+  @override
+  String get settingsNarrationBody =>
+      'تُختار سرعة القراءة ومقدارها ومؤقّت النوم داخل القارئ في كل مرة تُقرأ فيها قصة بصوت عالٍ. لا يُحفظ أي من ذلك على هذا الجهاز.';
+
+  @override
+  String get settingsDangerZone => 'لا يمكن التراجع';
 }

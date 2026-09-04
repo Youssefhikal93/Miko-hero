@@ -50,8 +50,8 @@ void main() {
     expect(find.text('The moon garden'), findsNothing);
     expect(bridge.callsTo('/stories/story-1/delete'), 0);
 
-    // The parent-gated settings card now offers those stories back.
-    appRouter.go('/settings');
+    // The parent-gated The PC page now offers those stories back.
+    appRouter.go('/settings/pc');
     await tester.pumpAndSettle();
     expect(find.text('Stories removed from this device'), findsOneWidget);
     final redownload = find.byKey(

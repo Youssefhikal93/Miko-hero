@@ -1785,4 +1785,111 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get heroSheetUnavailable =>
       'PC-gu ma jawaabin, sidaas darteed muuqaalka geesiga lama tusayo.';
+
+  @override
+  String get settingsSubtitle =>
+      'Wax kasta oo waalidku uu ka go\'aamiyo qalabkan.';
+
+  @override
+  String get settingsFamilyTitle => 'Qoyska';
+
+  @override
+  String get settingsFamilyBody =>
+      'Halyeeyada qalabkan iyo luqadda uu appku ku hadlo.';
+
+  @override
+  String get settingsReadingTitle => 'Akhriska';
+
+  @override
+  String get settingsReadingBody =>
+      'Sida boggagga sheekada u muuqdaan iyo sida kor loogu akhriyo.';
+
+  @override
+  String get settingsPcTitle => 'PC-ga';
+
+  @override
+  String get settingsPcBody =>
+      'Meesha sheekooyinka lagu qoro, qalabka PC-gu aamino, iyo maktabadda offline-ka.';
+
+  @override
+  String get settingsSafetyTitle => 'Badbaadada';
+
+  @override
+  String get settingsSafetyBody =>
+      'PIN-ka waalidka iyo mawduucyada sheekooyinku ka fogaadaan.';
+
+  @override
+  String get settingsSafetyTopicsBody =>
+      'Ilmo kasta waxaa loogu doortaa Boqortooyadayda.';
+
+  @override
+  String get settingsDataTitle => 'Xogtaada';
+
+  @override
+  String get settingsDataBody =>
+      'Kaydka, waxa qalabkan ku haray, iyo tirtiridda dhammaan.';
+
+  @override
+  String get settingsAboutSummary =>
+      'Waxa uu appkani yahay iyo waxa sheekooyinka qora';
+
+  @override
+  String get settingsNoHeroes =>
+      'Weli ma jiraan bogag halyeey oo qalabkan ku jira';
+
+  @override
+  String settingsReadingTextSizeValue(String size) {
+    return 'Cabbirka qoraalka: $size';
+  }
+
+  @override
+  String get settingsReadingMixed => 'Isku dhafan';
+
+  @override
+  String get settingsReadingEasyOn => 'farta akhriska fudud waa shidan';
+
+  @override
+  String get settingsReadingEasyOff => 'farta akhriska fudud waa damisan';
+
+  @override
+  String get settingsReadingEasySome =>
+      'farta akhriska fudud oo qaar halyeey ah';
+
+  @override
+  String get settingsPcDemo => 'Sheekooyin tijaabo ah';
+
+  @override
+  String get settingsPcNotPaired => 'PC-ga · weli lama xidhin';
+
+  @override
+  String get settingsPcPaired => 'Lagu xiray PC-ga';
+
+  @override
+  String get settingsPcNeverSynced => 'weli lama isku habayn';
+
+  @override
+  String settingsPcSyncedAt(String moment) {
+    return 'la isku habeeyay $moment';
+  }
+
+  @override
+  String get settingsSafetyPinOn => 'PIN-ka waalidka waa shidan';
+
+  @override
+  String get settingsSafetyPinOff => 'PIN waalid ma jiro';
+
+  @override
+  String settingsDataSummary(int count) {
+    return 'Sheekooyinka qalabkan ku jira: $count';
+  }
+
+  @override
+  String get settingsNarrationTitle => 'Kor u akhrinta';
+
+  @override
+  String get settingsNarrationBody =>
+      'Xawaaraha akhriska, inta la akhriyo, iyo saacadda hurdada waxaa lagu doortaa akhristaha mar kasta oo sheeko kor loo akhriyo. Midna qalabkan lagama kaydiyo.';
+
+  @override
+  String get settingsDangerZone => 'Lama celin karo';
 }

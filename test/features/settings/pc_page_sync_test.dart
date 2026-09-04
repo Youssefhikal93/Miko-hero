@@ -7,9 +7,10 @@ import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import '../../support/fake_bridge_http_client.dart';
 import '../../support/seeded_device.dart';
 
-/// Verifies what the parent-gated AI connection card says about syncing.
+/// Verifies what the parent-gated The PC page says about syncing.
 ///
-/// The section lives inside the settings route, so nothing here is reachable
+/// The section lives inside the AI connection card on `/settings/pc`, behind
+/// the same parent gate as the rest of Settings, so nothing here is reachable
 /// from a child-facing screen.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -72,14 +73,14 @@ void main() {
   });
 }
 
-/// Opens the parent-gated settings route over one scripted PC boundary.
+/// Opens the parent-gated The PC page over one scripted PC boundary.
 Future<void> _pumpSettings(
   WidgetTester tester,
   FakeBridgeHttpClient httpClient,
 ) {
   return pumpApp(
     tester,
-    route: '/settings',
+    route: '/settings/pc',
     overrides: [bridgeHttpClientProvider.overrideWithValue(httpClient)],
   );
 }

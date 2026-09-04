@@ -1768,4 +1768,107 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get heroSheetUnavailable =>
       'The PC did not answer, so the hero\'s look is not shown.';
+
+  @override
+  String get settingsSubtitle => 'Everything a parent decides for this device.';
+
+  @override
+  String get settingsFamilyTitle => 'Family';
+
+  @override
+  String get settingsFamilyBody =>
+      'The heroes on this device, and the language the app speaks.';
+
+  @override
+  String get settingsReadingTitle => 'Reading';
+
+  @override
+  String get settingsReadingBody =>
+      'How story pages look, and how they are read aloud.';
+
+  @override
+  String get settingsPcTitle => 'The PC';
+
+  @override
+  String get settingsPcBody =>
+      'Where stories are written, which devices the PC trusts, and the offline library.';
+
+  @override
+  String get settingsSafetyTitle => 'Safety';
+
+  @override
+  String get settingsSafetyBody =>
+      'The parent PIN and the topics stories stay away from.';
+
+  @override
+  String get settingsSafetyTopicsBody => 'Chosen for each child in My Kingdom.';
+
+  @override
+  String get settingsDataTitle => 'Your data';
+
+  @override
+  String get settingsDataBody =>
+      'Backups, what stays on this device, and deleting all of it.';
+
+  @override
+  String get settingsAboutSummary =>
+      'What this app is and what writes its stories';
+
+  @override
+  String get settingsNoHeroes => 'No hero profiles on this device yet';
+
+  @override
+  String settingsReadingTextSizeValue(String size) {
+    return 'Text size: $size';
+  }
+
+  @override
+  String get settingsReadingMixed => 'Mixed';
+
+  @override
+  String get settingsReadingEasyOn => 'easy-reading font on';
+
+  @override
+  String get settingsReadingEasyOff => 'easy-reading font off';
+
+  @override
+  String get settingsReadingEasySome => 'easy-reading font for some heroes';
+
+  @override
+  String get settingsPcDemo => 'Demo stories';
+
+  @override
+  String get settingsPcNotPaired => 'The PC · not paired yet';
+
+  @override
+  String get settingsPcPaired => 'Paired with the PC';
+
+  @override
+  String get settingsPcNeverSynced => 'not synced yet';
+
+  @override
+  String settingsPcSyncedAt(String moment) {
+    return 'synced $moment';
+  }
+
+  @override
+  String get settingsSafetyPinOn => 'Parent PIN on';
+
+  @override
+  String get settingsSafetyPinOff => 'No parent PIN';
+
+  @override
+  String settingsDataSummary(int count) {
+    return 'Stories on this device: $count';
+  }
+
+  @override
+  String get settingsNarrationTitle => 'Reading aloud';
+
+  @override
+  String get settingsNarrationBody =>
+      'Reading speed, how much is read, and the sleep timer are chosen in the reader each time a story is read aloud. None of it is stored on this device.';
+
+  @override
+  String get settingsDangerZone => 'Cannot be undone';
 }

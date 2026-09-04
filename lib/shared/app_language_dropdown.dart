@@ -4,6 +4,20 @@ import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 
+/// Names one supported language in the interface locale currently in use.
+///
+/// Lives beside the selector because both places a language is *shown* — the
+/// menu itself and the settings row that summarizes the saved choice — must
+/// spell it the same way.
+String appLanguageName(AppLocalizations text, AppLanguage language) {
+  return switch (language) {
+    AppLanguage.english => text.english,
+    AppLanguage.arabic => text.arabic,
+    AppLanguage.swedish => text.swedish,
+    AppLanguage.somali => text.somali,
+  };
+}
+
 /// Four-language selector shared by app and story settings.
 class AppLanguageDropdown extends StatelessWidget {
   /// Creates a full-width selector using localized language names.
@@ -96,7 +110,7 @@ class AppLanguageDropdown extends StatelessWidget {
         .map((language) {
           return DropdownMenuEntry<AppLanguage>(
             value: language,
-            label: _languageName(text, language),
+            label: appLanguageName(text, language),
             leadingIcon: _LanguageBadge(language: language),
             trailingIcon: language == selectedLanguage
                 ? Icon(AppIcons.selectedLanguage, color: primary)
@@ -105,16 +119,6 @@ class AppLanguageDropdown extends StatelessWidget {
           );
         })
         .toList(growable: false);
-  }
-
-  /// Uses the current interface locale for every language display name.
-  String _languageName(AppLocalizations text, AppLanguage language) {
-    return switch (language) {
-      AppLanguage.english => text.english,
-      AppLanguage.arabic => text.arabic,
-      AppLanguage.swedish => text.swedish,
-      AppLanguage.somali => text.somali,
-    };
   }
 
   /// Ignores framework null events and reports only complete selections.

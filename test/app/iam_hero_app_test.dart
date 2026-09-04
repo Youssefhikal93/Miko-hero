@@ -47,7 +47,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
-    appRouter.go('/settings');
+    appRouter.go('/settings/family');
     await tester.pumpAndSettle();
 
     final languageSelector = find.byKey(
@@ -58,7 +58,7 @@ void main() {
     await tester.tap(find.text('Somali').last);
     await tester.pumpAndSettle();
 
-    final somaliTitle = find.text('Dejinta iyo gaar ahaanshaha');
+    final somaliTitle = find.text('Qoyska');
     expect(somaliTitle, findsOneWidget);
     expect(MaterialLocalizations.of(tester.element(somaliTitle)), isNotNull);
     expect(tester.takeException(), isNull);

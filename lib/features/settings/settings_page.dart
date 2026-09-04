@@ -5,186 +5,169 @@ import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/app_state.dart';
-import 'package:miko_hero/features/settings/ai_connection_card.dart';
-import 'package:miko_hero/features/settings/backup_settings_card.dart';
-import 'package:miko_hero/features/settings/parent_security_settings_card.dart';
-import 'package:miko_hero/features/settings/settings_controller.dart';
+import 'package:miko_hero/features/settings/ai_connection_controller.dart';
+import 'package:miko_hero/features/settings/library_sync_controller.dart';
+import 'package:miko_hero/features/settings/parent_access_controller.dart';
+import 'package:miko_hero/features/settings/settings_summaries.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
-import 'package:miko_hero/shared/app_language_dropdown.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
-/// Language, profile, privacy, and destructive local-data controls.
+/// The Settings root: six groups, each saying what is currently true.
+///
+/// Nothing is edited here. Every control a parent can change lives on the page
+/// of the group that owns it, so the root stays a short list a phone shows in
+/// one screen instead of seven expanded forms stacked on each other.
 class SettingsPage extends ConsumerWidget {
   /// Creates the routed settings destination.
   const SettingsPage({super.key});
 
   @override
-  /// Rebuilds translated controls immediately after locale changes.
+  /// Rebuilds translated rows immediately after locale changes.
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appControllerProvider);
     return AppStateBoundary(
       state: state,
-      builder: (snapshot) => _SettingsContent(state: snapshot),
+      builder: (snapshot) => _SettingsGroups(state: snapshot),
     );
   }
 }
 
-/// Loaded settings content with explicit persistence commands.
-class _SettingsContent extends ConsumerWidget {
-  /// Creates settings from one immutable state snapshot.
-  const _SettingsContent({required this.state});
+/// The grouped rows, each over the one line its own stored state says.
+class _SettingsGroups extends ConsumerWidget {
+  /// Creates the root list from one immutable state snapshot.
+  const _SettingsGroups({required this.state});
 
   final AppState state;
 
   @override
-  /// Renders privacy facts and actions without any cloud-account controls.
+  /// Reads every summary from stored state, never from the PC.
   Widget build(BuildContext context, WidgetRef ref) {
     final text = AppLocalizations.of(context);
+    final connection = ref.watch(aiConnectionControllerProvider).value;
+    final sync = ref.watch(librarySyncControllerProvider).value;
+    final access = ref.watch(parentAccessControllerProvider).value;
+    final language = AppLanguage.fromCode(state.locale.languageCode);
     return ScreenLayout(
       maxWidth: 820,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SectionHeading(title: text.settingsTitle),
+          SectionHeading(
+            title: text.settingsTitle,
+            subtitle: text.settingsSubtitle,
+          ),
           const SizedBox(height: 22),
-          _languageCard(context, ref, text),
-          const SizedBox(height: 16),
-          _profileCard(context, text),
-          const SizedBox(height: 16),
-          const ParentSecuritySettingsCard(),
-          const SizedBox(height: 16),
-          const AiConnectionCard(),
-          const SizedBox(height: 16),
-          const BackupSettingsCard(),
-          const SizedBox(height: 16),
-          _privacyCard(context, text),
-          const SizedBox(height: 16),
-          _aboutCard(context, text),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _confirmDeleteAll(context, ref),
-              icon: const Icon(AppIcons.deleteEverything),
-              label: Text(text.deleteAllData),
-              style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
+          _SettingsGroupRow(
+            group: 'family',
+            icon: AppIcons.heroFamily,
+            title: text.settingsFamilyTitle,
+            summary: familySummary(text, state.profiles, language),
+            route: '/settings/family',
+          ),
+          _SettingsGroupRow(
+            group: 'reading',
+            icon: AppIcons.reading,
+            title: text.settingsReadingTitle,
+            summary: readingSummary(text, state.profiles),
+            route: '/settings/reading',
+          ),
+          _SettingsGroupRow(
+            group: 'pc',
+            icon: AppIcons.bridge,
+            title: text.settingsPcTitle,
+            summary: pcSummary(
+              text,
+              connection: connection,
+              sync: sync,
+              localeName: Localizations.localeOf(context).toString(),
             ),
+            route: '/settings/pc',
+          ),
+          _SettingsGroupRow(
+            group: 'safety',
+            icon: AppIcons.parentSecurity,
+            title: text.settingsSafetyTitle,
+            summary: safetySummary(
+              text,
+              access: access,
+              profiles: state.profiles,
+            ),
+            route: '/settings/safety',
+          ),
+          _SettingsGroupRow(
+            group: 'data',
+            icon: AppIcons.storedData,
+            title: text.settingsDataTitle,
+            summary: dataSummary(text, state.stories.length),
+            route: '/settings/data',
+          ),
+          _SettingsGroupRow(
+            group: 'about',
+            icon: AppIcons.stories,
+            title: text.aboutTitle,
+            summary: text.settingsAboutSummary,
+            route: '/settings/about',
           ),
         ],
       ),
     );
   }
+}
 
-  /// Builds the four-language interface selector backed by local persistence.
-  Widget _languageCard(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations text,
-  ) {
-    final selectedLanguage = AppLanguage.fromCode(state.locale.languageCode);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: AppLanguageDropdown(
-          key: ValueKey<String>('app-language-${selectedLanguage.code}'),
-          selectedLanguage: selectedLanguage,
-          label: text.appLanguage,
-          onSelected: (language) {
-            ref.read(settingsControllerProvider).setLocale(language.locale);
-          },
-        ),
-      ),
-    );
-  }
+/// One group of settings, named over the line saying what it currently holds.
+class _SettingsGroupRow extends StatelessWidget {
+  /// Creates the row that opens [route].
+  const _SettingsGroupRow({
+    required this.group,
+    required this.icon,
+    required this.title,
+    required this.summary,
+    required this.route,
+  });
 
-  /// Provides one route for adding or editing private child profiles.
-  Widget _profileCard(BuildContext context, AppLocalizations text) {
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: const Icon(AppIcons.heroFamily),
-        title: Text(text.manageProfiles),
-        subtitle: Text(text.profileCount(state.profiles.length)),
-        trailing: const Icon(AppIcons.forward),
-        onTap: () => context.go('/profiles'),
-      ),
-    );
-  }
+  /// Stable name of the group, used only to key the row and its summary.
+  final String group;
 
-  /// States the actual local storage behavior instead of making broad claims.
-  Widget _privacyCard(BuildContext context, AppLocalizations text) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(
-              AppIcons.privacy,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    text.privacyTitle,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(text.privacyBody),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  /// Glyph naming what the group decides.
+  final IconData icon;
 
-  /// Describes only integrations represented by current source code and plans.
-  Widget _aboutCard(BuildContext context, AppLocalizations text) {
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(20),
-        leading: const Icon(AppIcons.stories),
-        title: Text(text.aboutTitle),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(text.aboutBody),
-        ),
-      ),
-    );
-  }
+  /// Name of the group in the interface language.
+  final String title;
 
-  /// Requires confirmation before deleting every profile, photo, and story.
-  Future<void> _confirmDeleteAll(BuildContext context, WidgetRef ref) async {
-    final text = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(text.deleteAllTitle),
-        content: Text(text.deleteAllBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => context.pop(false),
-            child: Text(text.cancel),
+  /// One line about what this group currently holds.
+  final String summary;
+
+  /// Page the row opens.
+  final String route;
+
+  @override
+  /// Prints the summary under the name and opens the group on a tap.
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        child: ListTile(
+          key: ValueKey<String>('settings-group-$group'),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 10,
           ),
-          FilledButton(
-            onPressed: () => context.pop(true),
-            child: Text(text.confirmDelete),
+          leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          title: Text(title),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              summary,
+              key: ValueKey<String>('settings-summary-$group'),
+              style: AppTheme.caption,
+            ),
           ),
-        ],
+          trailing: const Icon(AppIcons.forward),
+          onTap: () => context.go(route),
+        ),
       ),
     );
-    if (confirmed != true || !context.mounted) return;
-    await ref.read(settingsControllerProvider).clearFamilyData();
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(text.allDataDeleted)));
   }
 }

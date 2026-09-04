@@ -7,9 +7,9 @@ import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import '../../support/fake_bridge_http_client.dart';
 import '../../support/seeded_device.dart';
 
-/// Verifies the paired-device list the parent manages inside the AI card.
+/// Verifies the paired-device list the parent manages on The PC page.
 ///
-/// The list lives on the parent-gated settings route, so nothing here is
+/// The list lives on the parent-gated `/settings/pc` route, so nothing here is
 /// reachable from a child-facing screen.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -135,19 +135,19 @@ void main() {
   });
 }
 
-/// Opens the parent-gated settings route over one scripted PC boundary.
+/// Opens the parent-gated The PC page over one scripted PC boundary.
 Future<void> _pumpSettings(
   WidgetTester tester,
   FakeBridgeHttpClient httpClient,
 ) {
   return pumpApp(
     tester,
-    route: '/settings',
+    route: '/settings/pc',
     overrides: [bridgeHttpClientProvider.overrideWithValue(httpClient)],
   );
 }
 
-/// Scrolls [target] into the long settings page and taps it.
+/// Scrolls [target] into the long PC page and taps it.
 Future<void> _tap(WidgetTester tester, Finder target) async {
   await tester.ensureVisible(target);
   await tester.pumpAndSettle();

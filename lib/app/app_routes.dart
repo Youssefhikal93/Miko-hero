@@ -6,6 +6,12 @@ import 'package:miko_hero/features/library/story_library_page.dart';
 import 'package:miko_hero/features/profile/profile_page.dart';
 import 'package:miko_hero/features/reader/story_reader_page.dart';
 import 'package:miko_hero/features/review/story_review_page.dart';
+import 'package:miko_hero/features/settings/about_settings_page.dart';
+import 'package:miko_hero/features/settings/data_settings_page.dart';
+import 'package:miko_hero/features/settings/family_settings_page.dart';
+import 'package:miko_hero/features/settings/pc_settings_page.dart';
+import 'package:miko_hero/features/settings/reading_settings_page.dart';
+import 'package:miko_hero/features/settings/safety_settings_page.dart';
 import 'package:miko_hero/features/settings/settings_page.dart';
 import 'package:miko_hero/features/story_creation/generation_center_page.dart';
 import 'package:miko_hero/features/story_creation/story_creation_page.dart';
@@ -47,9 +53,10 @@ class AppRoute {
 
   /// Whether the page opens with its own title row, leaving the shell none.
   ///
-  /// True on the screens the redesign gave a header of their own: a shell bar
-  /// above one of those would be a second header on a phone. False everywhere
-  /// else, which keeps the shell bar and the menu button it carries.
+  /// True on the screens the redesign gave a header of their own — Home, the
+  /// shelf, Create, the reader, and every Settings page: a shell bar above one
+  /// of those would be a second header on a phone. False everywhere else, which
+  /// keeps the shell bar and the menu button it carries.
   final bool paintsOwnHeader;
 
   /// Hands this declaration to go_router unchanged.
@@ -108,10 +115,57 @@ final List<AppRoute> appRoutes = <AppRoute>[
       );
     },
   ),
+  // Settings is one root list of groups over one page per group. Every one of
+  // them opens with its own title row, and all of them sit behind the same
+  // parent gate: a group page is reachable by URL, so the gate has to be on
+  // each of them rather than only on the list that links to them.
   AppRoute(
     path: '/settings',
+    paintsOwnHeader: true,
     builder: (context, state) {
       return const ParentAccessGate(child: SettingsPage());
+    },
+  ),
+  AppRoute(
+    path: '/settings/family',
+    paintsOwnHeader: true,
+    builder: (context, state) {
+      return const ParentAccessGate(child: FamilySettingsPage());
+    },
+  ),
+  AppRoute(
+    path: '/settings/reading',
+    paintsOwnHeader: true,
+    builder: (context, state) {
+      return const ParentAccessGate(child: ReadingSettingsPage());
+    },
+  ),
+  AppRoute(
+    path: '/settings/pc',
+    paintsOwnHeader: true,
+    builder: (context, state) {
+      return const ParentAccessGate(child: PcSettingsPage());
+    },
+  ),
+  AppRoute(
+    path: '/settings/safety',
+    paintsOwnHeader: true,
+    builder: (context, state) {
+      return const ParentAccessGate(child: SafetySettingsPage());
+    },
+  ),
+  AppRoute(
+    path: '/settings/data',
+    paintsOwnHeader: true,
+    builder: (context, state) {
+      return const ParentAccessGate(child: DataSettingsPage());
+    },
+  ),
+  AppRoute(
+    path: '/settings/about',
+    paintsOwnHeader: true,
+    builder: (context, state) {
+      return const ParentAccessGate(child: AboutSettingsPage());
     },
   ),
   AppRoute(

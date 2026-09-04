@@ -116,12 +116,13 @@ class _MobileShell extends StatelessWidget {
   ///
   /// The answer is the route's own declaration, read back from [appRoutes];
   /// the shell keeps no list of paths of its own. Home, the shelf, the creation
-  /// form and the reader each open with their own title row in the redesign,
-  /// and a shell bar above one of those would be a second header on a phone.
+  /// form, the reader and every Settings page each open with their own title
+  /// row in the redesign, and a shell bar above one of those would be a second
+  /// header on a phone.
   bool get _paintsOwnHeader => appRouteFor(location)?.paintsOwnHeader ?? false;
 
   @override
-  /// Keeps the menu button visible inside profile editors and settings.
+  /// Keeps the menu button visible inside profile editors and the review queue.
   ///
   /// The app bar carries no exit of its own: the reader prints its own close
   /// beside the hero, so a second one here would be the same command twice.

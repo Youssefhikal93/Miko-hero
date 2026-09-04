@@ -3185,6 +3185,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The PC did not answer, so the hero\'s look is not shown.'**
   String get heroSheetUnavailable;
+
+  /// No description provided for @settingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything a parent decides for this device.'**
+  String get settingsSubtitle;
+
+  /// No description provided for @settingsFamilyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get settingsFamilyTitle;
+
+  /// No description provided for @settingsFamilyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The heroes on this device, and the language the app speaks.'**
+  String get settingsFamilyBody;
+
+  /// No description provided for @settingsReadingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get settingsReadingTitle;
+
+  /// No description provided for @settingsReadingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'How story pages look, and how they are read aloud.'**
+  String get settingsReadingBody;
+
+  /// No description provided for @settingsPcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC'**
+  String get settingsPcTitle;
+
+  /// No description provided for @settingsPcBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Where stories are written, which devices the PC trusts, and the offline library.'**
+  String get settingsPcBody;
+
+  /// No description provided for @settingsSafetyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get settingsSafetyTitle;
+
+  /// No description provided for @settingsSafetyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The parent PIN and the topics stories stay away from.'**
+  String get settingsSafetyBody;
+
+  /// No description provided for @settingsSafetyTopicsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Chosen for each child in My Kingdom.'**
+  String get settingsSafetyTopicsBody;
+
+  /// No description provided for @settingsDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data'**
+  String get settingsDataTitle;
+
+  /// No description provided for @settingsDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups, what stays on this device, and deleting all of it.'**
+  String get settingsDataBody;
+
+  /// No description provided for @settingsAboutSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'What this app is and what writes its stories'**
+  String get settingsAboutSummary;
+
+  /// No description provided for @settingsNoHeroes.
+  ///
+  /// In en, this message translates to:
+  /// **'No hero profiles on this device yet'**
+  String get settingsNoHeroes;
+
+  /// No description provided for @settingsReadingTextSizeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size: {size}'**
+  String settingsReadingTextSizeValue(String size);
+
+  /// No description provided for @settingsReadingMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get settingsReadingMixed;
+
+  /// No description provided for @settingsReadingEasyOn.
+  ///
+  /// In en, this message translates to:
+  /// **'easy-reading font on'**
+  String get settingsReadingEasyOn;
+
+  /// No description provided for @settingsReadingEasyOff.
+  ///
+  /// In en, this message translates to:
+  /// **'easy-reading font off'**
+  String get settingsReadingEasyOff;
+
+  /// No description provided for @settingsReadingEasySome.
+  ///
+  /// In en, this message translates to:
+  /// **'easy-reading font for some heroes'**
+  String get settingsReadingEasySome;
+
+  /// No description provided for @settingsPcDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo stories'**
+  String get settingsPcDemo;
+
+  /// No description provided for @settingsPcNotPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC · not paired yet'**
+  String get settingsPcNotPaired;
+
+  /// No description provided for @settingsPcPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired with the PC'**
+  String get settingsPcPaired;
+
+  /// No description provided for @settingsPcNeverSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'not synced yet'**
+  String get settingsPcNeverSynced;
+
+  /// No description provided for @settingsPcSyncedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'synced {moment}'**
+  String settingsPcSyncedAt(String moment);
+
+  /// No description provided for @settingsSafetyPinOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent PIN on'**
+  String get settingsSafetyPinOn;
+
+  /// No description provided for @settingsSafetyPinOff.
+  ///
+  /// In en, this message translates to:
+  /// **'No parent PIN'**
+  String get settingsSafetyPinOff;
+
+  /// No description provided for @settingsDataSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories on this device: {count}'**
+  String settingsDataSummary(int count);
+
+  /// No description provided for @settingsNarrationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading aloud'**
+  String get settingsNarrationTitle;
+
+  /// No description provided for @settingsNarrationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading speed, how much is read, and the sleep timer are chosen in the reader each time a story is read aloud. None of it is stored on this device.'**
+  String get settingsNarrationBody;
+
+  /// No description provided for @settingsDangerZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot be undone'**
+  String get settingsDangerZone;
 }
 
 class _AppLocalizationsDelegate
