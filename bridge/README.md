@@ -1407,6 +1407,9 @@ Two things now come from the **child**, not the book:
    ends up appended to every page's scene description exactly as an invented
    line used to be.
 
+Run `dart run tool/likeness_check.dart` from `bridge/` to place two Stories for
+one Child profile side by side and judge this promise by eye.
+
 **How the sheet is derived.** One Ollama `/api/generate` call with an `images`
 array and a three-string schema, on `visionModel`. The prompt asks for a
 **drawn cartoon character** and nothing else: it forbids mentioning a photo, a

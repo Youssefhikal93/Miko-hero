@@ -71,9 +71,10 @@ as it did before. If the PC's `ollamaModel` has been upgraded to a text-only
 writer, leave `visionModel` at `gemma3:4b` (or point it at another vision tag
 that is already pulled).
 
-**Still to do with the owner, by eye:** render two books for one test profile
-and confirm the hero is recognizably the same child in both; then decide
-whether the derived colours and the chosen outfit look right, and whether
+**With the owner, by eye:** run
+[`bridge/tool/likeness_check.dart`](../bridge/tool/README.md) for one test
+profile and confirm the hero is recognizably the same child in both books; then
+decide whether the derived colours and the chosen outfit look right, and whether
 `referenceDenoise` needs re-tuning now that the face no longer changes between
 books. That comparison is Step 5 territory and is not something a test can
 answer.
@@ -142,9 +143,10 @@ refused at startup with a clear message — fix and restart.
    cartoon face image) first.
 3. Confirm: pages come out in the chosen style, files are ~1024×1024, the
    hero looks consistent across pages, nothing frightening or deformed.
-3a. Generate a **second** story for the same test profile and confirm the hero
-   is the same drawn child in both books — same face, same coat, same prop.
-   That is what issue #62 added; see the section above.
+3a. Run [`bridge/tool/likeness_check.dart`](../bridge/tool/README.md) for the
+   same test profile and confirm the hero is the same drawn child in both books
+   — same face, same coat, same prop. That is what issue #62 added; see the
+   section above.
 4. Optional side-by-side: temporarily set `checkpoint` back to
    `v1-5-pruned-emaonly-fp16.safetensors`, render the same story again
    (seeds are deterministic), and compare with the owner.
