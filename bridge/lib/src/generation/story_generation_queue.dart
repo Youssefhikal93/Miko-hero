@@ -17,6 +17,12 @@ import 'package:iam_hero_bridge/src/generation/story_outline.dart';
 import 'package:iam_hero_bridge/src/generation/story_prompt.dart';
 import 'package:uuid/uuid.dart';
 
+/// Sampling temperature for both story passes.
+///
+/// Ollama's default 0.8 is where fluent-looking wrong words come from; prose
+/// for a six-year-old needs less randomness than the default, not more.
+const double storyGenerationTemperature = 0.6;
+
 /// Runs story generation jobs strictly one at a time.
 ///
 /// The line itself — admission, positions, cancellation, retention, the
@@ -323,7 +329,11 @@ class StoryGenerationQueue
     required String prompt,
     required Map<String, Object?> format,
   }) async {
-    final call = _config.ollama.generateRequest(prompt: prompt, format: format);
+    final call = _config.ollama.generateRequest(
+      prompt: prompt,
+      format: format,
+      temperature: storyGenerationTemperature,
+    );
     final OllamaGenerateResponse response;
     try {
       response = await _client.generate(call, cancellation: token);

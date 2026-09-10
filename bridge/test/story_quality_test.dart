@@ -12,6 +12,7 @@ import 'package:test/test.dart';
 /// without going through the HTTP handler.
 StoryGenerationRequest request({
   StoryLanguage language = StoryLanguage.english,
+  StoryGenderContext gender = StoryGenderContext.girl,
   int ageYears = 6,
   int pageCount = 6,
   String heroNameSpelling = '',
@@ -23,7 +24,7 @@ StoryGenerationRequest request({
     heroName: 'Nour',
     heroNameSpelling: heroNameSpelling,
     ageYears: ageYears,
-    gender: StoryGenderContext.girl,
+    gender: gender,
     language: language,
     theme: 'A lantern festival by the sea',
     moral: 'Sharing a small light makes it bigger',
@@ -661,6 +662,63 @@ void main() {
         expect(prompt, contains('فصحى مبسطة'));
         expect(prompt, contains('Do NOT mix in any spoken dialect'));
         expect(prompt, contains('Do NOT use any Latin'));
+      }
+    });
+
+    test('Arabic girl prompts require feminine morphology in both passes', () {
+      final arabic = request(language: StoryLanguage.arabic);
+
+      for (final prompt in <String>[
+        buildStoryOutlinePrompt(arabic),
+        buildStoryPagesPrompt(arabic, outline()),
+      ]) {
+        expect(prompt, contains('اكتب «جلست»'));
+        expect(prompt, contains('feminine Arabic agreement'));
+      }
+    });
+
+    test('Arabic boy prompts require masculine morphology in both passes', () {
+      final arabic = request(
+        language: StoryLanguage.arabic,
+        gender: StoryGenderContext.boy,
+      );
+
+      for (final prompt in <String>[
+        buildStoryOutlinePrompt(arabic),
+        buildStoryPagesPrompt(arabic, outline()),
+      ]) {
+        expect(prompt, contains('اكتب «جلس»'));
+        expect(prompt, contains('masculine Arabic agreement'));
+      }
+    });
+
+    test(
+      'Latin-script languages keep English pronouns without Arabic morphology',
+      () {
+        for (final language in <StoryLanguage>[
+          StoryLanguage.english,
+          StoryLanguage.swedish,
+          StoryLanguage.somali,
+        ]) {
+          for (final prompt in <String>[
+            buildStoryOutlinePrompt(request(language: language)),
+            buildStoryPagesPrompt(request(language: language), outline()),
+          ]) {
+            expect(prompt, isNot(contains('جنس البطلة النحوي')));
+            expect(prompt, contains('"she" and "her" wording'));
+          }
+        }
+      },
+    );
+
+    test('Arabic prompts forbid invented words before both passes answer', () {
+      final arabic = request(language: StoryLanguage.arabic);
+
+      for (final prompt in <String>[
+        buildStoryOutlinePrompt(arabic),
+        buildStoryPagesPrompt(arabic, outline()),
+      ]) {
+        expect(prompt, contains('لا تخترع كلمات'));
       }
     });
 

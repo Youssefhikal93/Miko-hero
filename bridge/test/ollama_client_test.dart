@@ -74,6 +74,7 @@ OllamaGenerateRequest _request(
   String baseUrl, {
   String prompt = 'Write a story.',
   Duration timeout = const Duration(seconds: 10),
+  double? temperature,
 }) {
   return OllamaGenerateRequest(
     baseUrl: BaseUrl.parse(baseUrl),
@@ -81,6 +82,7 @@ OllamaGenerateRequest _request(
     prompt: prompt,
     format: <String, Object?>{'type': 'object'},
     timeout: timeout,
+    temperature: temperature,
   );
 }
 
@@ -115,6 +117,13 @@ void main() {
     );
     expect(decoded['model'], 'gemma3:4b');
     expect(decoded.containsKey('keep_alive'), isFalse);
+    expect(decoded.containsKey('options'), isFalse);
+  });
+
+  test('a temperature is sent inside Ollama options', () {
+    final body = _request('http://127.0.0.1:11434', temperature: 0.6).toJson();
+
+    expect(body['options'], <String, Object?>{'temperature': 0.6});
   });
 
   test('unloading sends only the model and zero keep-alive', () async {

@@ -75,21 +75,29 @@ handled and what is genuinely the model's job.
    never lecture and never address the reader, but one character — a parent, a
    friend — may say the lesson out loud once, in ordinary dialogue, never on
    the last page. A real child's book does that; the old rule forbade it.
-3. **Arabic rules in the prompt.** For `ar` the prompt explicitly requires
-   simple Modern Standard Arabic (فصحى مبسطة), forbids dialect mixing, and
-   forbids Latin letters anywhere in the story text. Every other language gets
-   the matching "this language only" rule.
-4. **Language-purity validation.** After the model answers, the bridge checks
+3. **Arabic morphology and word rules in the prompt.** For `ar` both passes
+   state whether the hero is grammatically feminine or masculine, require every
+   verb, adjective, participle and pronoun about the hero to agree on every
+   page, and say that a name used for both girls and boys does not change that.
+   They also require simple Modern Standard Arabic (فصحى مبسطة), forbid dialect
+   mixing and Latin letters, require real common words a child knows, and tell
+   the model to re-read for invented words and agreement mistakes before it
+   answers. Every other language keeps the matching "this language only" rule.
+4. **Lower story sampling temperature.** Both the outline and page call send
+   Ollama `temperature: 0.6`. Its default `0.8` produces fluent-looking wrong
+   words; prose for a six-year-old needs less randomness, not more. The
+   name-spelling and character-sheet calls keep Ollama's default body.
+5. **Language-purity validation.** After the model answers, the bridge checks
    the script of the title and pages. Arabic that is mostly Latin letters, or
    English with Arabic words dropped in, is rejected as invalid output and
    retried. This catches gross failures; it cannot catch bad grammar.
-5. **A consistent hero.** The outline's appearance line is appended to every
+6. **A consistent hero.** The outline's appearance line is appended to every
    page's scene description, so ComfyUI draws the same child in the same
    clothes on every page. The line has to be English: the first Arabic book
    on `qwen3.5:9b` wrote it in Arabic, the image model read it as noise, and
    the pages lost their foggy-night mood. An appearance line in another script
    is now refused and the outline retried.
-6. **Everything is configurable.** The model is one line in
+7. **Everything is configurable.** The model is one line in
    `bridge_config.json`. Nothing about the model is hardcoded.
 
 ## Non-negotiables

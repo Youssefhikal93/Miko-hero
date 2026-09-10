@@ -140,6 +140,26 @@ Future<Map<String, Object?>> readJob(
 }
 
 void main() {
+  test('both story passes use the less-random story temperature', () async {
+    final printedCodes = <String>[];
+    final client = FakeOllamaStoryClient.writing(
+      story: storyPayload(pageCount: 6),
+      pageCount: 6,
+    );
+    final testServer = await createTestServer(
+      ollamaClient: client,
+      notifyCode: printedCodes.add,
+    );
+    addTearDown(testServer.close);
+    final token = await pairDevice(testServer, printedCodes);
+
+    final jobId = await startJob(testServer, token);
+    await testServer.server.awaitStoryJob(jobId);
+
+    expect(client.outlineRequests.single.temperature, 0.6);
+    expect(client.pageRequests.single.temperature, 0.6);
+  });
+
   for (final pageCount in <int>[6, 8, 10]) {
     test(
       'a $pageCount-page story is stored with pending illustrations',

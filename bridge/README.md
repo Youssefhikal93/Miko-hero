@@ -1109,6 +1109,14 @@ moral announced on the last page.
 2. **Page pass.** The approved outline is embedded verbatim in the prompt, so
    the pages tell that plan rather than a new story. Beat N becomes page N.
 
+For Arabic, both calls state the hero's Arabic grammatical gender and require
+every verb, adjective, participle and pronoun about the hero to agree with it
+on every page, even when the name is used for both girls and boys. They also
+require real, common Modern Standard Arabic words and a sentence-by-sentence
+re-read for invented words and gender mistakes. Both story calls send Ollama a
+temperature of `0.6`, below its default `0.8`, because young children's prose
+needs less randomness and the default produces fluent-looking wrong words.
+
 The appearance sheet is appended to every page's `illustrationScene` (em-dash
 separated, inside the existing 2000-character cap), which is what makes the
 hero wear the same clothes on page one and page ten when ComfyUI draws them.
@@ -1200,6 +1208,11 @@ or goes idle. The gate owns that rule for both queues; a queue never unloads
 on its own.
 
 ### Language purity
+
+For Arabic, the prompts also require common real words rather than invented
+ones and tell the model to re-read for gender agreement before it answers. This
+is prompting, not validation: the purity check remains script-level and cannot
+recognize a fluent-looking wrong Arabic word.
 
 Both passes are checked against the script the story was requested in, and a
 violation is reported as `invalid_model_output` — so it costs a retry exactly

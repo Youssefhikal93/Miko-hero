@@ -233,16 +233,49 @@ String _heroAppearanceRule(String? heroSheet) {
 String _heroBlock(StoryGenerationRequest request) {
   final name = request.storyHeroName;
   final language = request.language.englishName;
+  final genderRule = request.language == StoryLanguage.arabic
+      ? _arabicGenderRule(request)
+      : '''- The hero is a ${request.gender.wireName}; refer to $name with
+  "${request.gender.subjectPronoun}" and "${request.gender.pronoun}" wording
+  that is natural in $language.''';
   return '''
 - Name: $name
 - Write the hero's name EXACTLY as "$name", letter for letter, every single
   time it appears. This is the family's own spelling of it in $language: never
   transliterate it, translate it, shorten it, add to it, or write it in any
   other spelling or script anywhere in this answer.
-- The hero is a ${request.gender.wireName}; refer to $name with
-  "${request.gender.subjectPronoun}" and "${request.gender.pronoun}" wording
-  that is natural in $language.
+$genderRule
 - Age of the child who will read it: ${request.ageYears} years old.''';
+}
+
+/// The Arabic grammatical-gender rule shared by both story passes.
+///
+/// A name such as نور is used for girls and boys, so English pronouns cannot
+/// anchor the Arabic forms the model must write on every page.
+String _arabicGenderRule(StoryGenerationRequest request) {
+  final name = request.storyHeroName;
+  return switch (request.gender) {
+    StoryGenderContext.girl =>
+      '''- The hero is a girl (مؤنث). On every page,
+  EVERY verb, adjective, participle and pronoun referring to $name must use
+  feminine Arabic agreement. Use "جلست", "دخلت" and "سمعت", NEVER "جلس",
+  "دخل" or "سمع". A name used for both boys and girls does not change this
+  rule.
+- بالعربية، جنس البطلة النحوي مؤنث. في كل صفحة، يجب أن يطابق كل فعل وصفة
+  واسم فاعل واسم مفعول وضمير يعود على $name صيغة التأنيث. اكتب «جلست» و«دخلت» و«سمعت»،
+  ولا تكتب «جلس» أو «دخل» أو «سمع». الاسم الذي يُستعمل للبنين والبنات لا
+  يغيّر هذه القاعدة.''',
+    StoryGenderContext.boy =>
+      '''- The hero is a boy (مذكر). On every page,
+  EVERY verb, adjective, participle and pronoun referring to $name must use
+  masculine Arabic agreement. Use "جلس", "دخل" and "سمع", NEVER "جلست",
+  "دخلت" or "سمعت". A name used for both boys and girls does not change this
+  rule.
+- بالعربية، جنس البطل النحوي مذكر. في كل صفحة، يجب أن يطابق كل فعل وصفة
+  واسم فاعل واسم مفعول وضمير يعود على $name صيغة التذكير. اكتب «جلس» و«دخل» و«سمع»،
+  ولا تكتب «جلست» أو «دخلت» أو «سمعت». الاسم الذي يُستعمل للبنين والبنات لا
+  يغيّر هذه القاعدة.''',
+  };
 }
 
 /// The parent's idea, lesson and saved preferences, shared by both passes.
@@ -302,7 +335,16 @@ String _languageRule(StoryGenerationRequest request) {
           'letters or Latin-script words anywhere in the title or the pages, '
           'and do not transliterate. Every letter of the story text must be '
           'Arabic script. Diacritics are optional; use them only where a word '
-          'would otherwise be ambiguous for a child.',
+          'would otherwise be ambiguous for a child.'
+          ' Use only real, common Modern Standard Arabic words a child knows. Do '
+          'not coin words or change one letter inside a word: write "سمعت", '
+          'not "سمنت". Before answering, re-read every sentence and correct '
+          'any verb or adjective that does not agree with the hero\'s gender '
+          'and any word that is not a real word. استعمل كلمات عربية فصحى '
+          'حقيقية وشائعة يعرفها الطفل فقط. لا تخترع كلمات ولا تبدّل حرفًا داخل '
+          'الكلمة: اكتب «سمعت» لا «سمنت». قبل الإجابة، أعد قراءة كل جملة وصحح '
+          'كل فعل أو صفة لا يطابق جنس البطل أو البطلة، وكل كلمة ليست كلمة '
+          'حقيقية.',
     StoryLanguage.english =>
       'Write in English only. Do not use words, names or letters from any '
           'other language or script anywhere in the title or the pages.',

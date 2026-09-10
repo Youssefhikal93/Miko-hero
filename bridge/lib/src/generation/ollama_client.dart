@@ -75,6 +75,7 @@ class OllamaTarget {
     required String prompt,
     required Map<String, Object?> format,
     List<String> images = const <String>[],
+    double? temperature,
   }) {
     return OllamaGenerateRequest(
       baseUrl: baseUrl,
@@ -83,6 +84,7 @@ class OllamaTarget {
       format: format,
       timeout: callTimeout,
       images: images,
+      temperature: temperature,
     );
   }
 
@@ -106,6 +108,7 @@ class OllamaGenerateRequest {
     required this.format,
     required this.timeout,
     this.images = const <String>[],
+    this.temperature,
   });
 
   /// Base URL of the local Ollama API, e.g. `http://127.0.0.1:11434`.
@@ -132,6 +135,12 @@ class OllamaGenerateRequest {
   /// logged and never echoed.
   final List<String> images;
 
+  /// Sampling temperature for this call, when the caller needs one.
+  ///
+  /// Omitted calls keep Ollama's existing defaults, which keeps the
+  /// name-spelling and character-sheet request bodies unchanged.
+  final double? temperature;
+
   /// The `/api/generate` endpoint derived from [baseUrl].
   Uri get endpoint => baseUrl.resolve(ollamaGeneratePath);
 
@@ -148,6 +157,10 @@ class OllamaGenerateRequest {
   /// `images` is written only when there is one: a text-only model handed an
   /// empty `images` array can refuse the whole call, and every story request
   /// must keep the body it has always sent.
+  ///
+  /// `options` is written only for a caller that deliberately chooses a
+  /// sampling temperature. The other generation passes rely on Ollama's
+  /// defaults and must keep their existing body shape.
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'model': model,
@@ -156,6 +169,8 @@ class OllamaGenerateRequest {
       'think': false,
       'format': format,
       if (images.isNotEmpty) 'images': images,
+      if (temperature != null)
+        'options': <String, Object?>{'temperature': temperature},
     };
   }
 
