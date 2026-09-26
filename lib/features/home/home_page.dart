@@ -8,6 +8,7 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/features/home/home_hero_switcher.dart';
 import 'package:miko_hero/features/home/home_tiles.dart';
 import 'package:miko_hero/features/home/home_view.dart';
+import 'package:miko_hero/features/home/storybook_scene.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_state_boundary.dart';
@@ -46,7 +47,9 @@ class _HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
     if (state.profiles.isEmpty) {
-      return ScreenLayout(child: _ProfileSetupPrompt(text: text));
+      return ScreenLayout(
+        child: StorybookScene(child: _ProfileSetupPrompt(text: text)),
+      );
     }
     final view = HomeView.of(state, now: DateTime.now());
     return ScreenLayout(
@@ -58,7 +61,7 @@ class _HomeContent extends StatelessWidget {
             activeProfile: view.activeProfile,
           ),
           const SizedBox(height: 20),
-          _Greeting(view: view),
+          StorybookScene(child: _Greeting(view: view)),
           const SizedBox(height: 18),
           MosaicGrid(tiles: _tiles(view)),
           ..._shelf(text, view),

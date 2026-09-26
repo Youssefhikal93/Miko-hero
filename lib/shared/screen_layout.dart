@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:miko_hero/app/app_theme.dart';
+import 'package:miko_hero/shared/story_motion.dart';
 
 /// Constrains feature content while retaining comfortable phone padding.
 class ScreenLayout extends StatelessWidget {
@@ -37,7 +38,7 @@ class ScreenLayout extends StatelessWidget {
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
-              child: child,
+              child: StoryEntrance(child: child),
             ),
           ),
         ),

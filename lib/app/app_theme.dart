@@ -56,6 +56,129 @@ String interfaceFontFamilyFor(AppLanguage language) {
 /// is the narration highlight, which uses [candle] while bedtime is on because
 /// a cold accent would fight warm prose.
 abstract final class AppTheme {
+  /// Vignette Clear in the decorative Home castle.
+  static const castleVignetteClear = Color(0x00050D14);
+
+  /// Scrim Clear in the decorative Home castle.
+  static const castleScrimClear = Color(0x000B141B);
+
+  /// Tower Clear in the decorative Home castle.
+  static const castleTowerClear = Color(0x003E5260);
+
+  /// Mist Clear in the decorative Home castle.
+  static const castleMistClear = Color(0x006E9097);
+
+  /// Moon Halo Clear in the decorative Home castle.
+  static const castleMoonHaloClear = Color(0x007FA4AD);
+
+  /// Stone Highlight in the decorative Home castle.
+  static const castleStoneHighlight = Color(0x125F747A);
+
+  /// Moon Crater in the decorative Home castle.
+  static const castleMoonCrater = Color(0x12708587);
+
+  /// Mist in the decorative Home castle.
+  static const castleMist = Color(0x226E9097);
+
+  /// Bridge Joint in the decorative Home castle.
+  static const castleBridgeJoint = Color(0x445D7074);
+
+  /// Moon Halo in the decorative Home castle.
+  static const castleMoonHalo = Color(0x557FA4AD);
+
+  /// Mortar in the decorative Home castle.
+  static const castleMortar = Color(0x70303B40);
+
+  /// Tower Shade in the decorative Home castle.
+  static const castleTowerShade = Color(0x99081722);
+
+  /// Vignette in the decorative Home castle.
+  static const castleVignette = Color(0xAA050D14);
+
+  /// Tower Shadow in the decorative Home castle.
+  static const castleTowerShadow = Color(0xBB071620);
+
+  /// Scrim Soft in the decorative Home castle.
+  static const castleScrimSoft = Color(0xD90B141B);
+
+  /// Scrim Dense in the decorative Home castle.
+  static const castleScrimDense = Color(0xF20B141B);
+
+  /// Torch Stand in the decorative Home castle.
+  static const castleTorchStand = Color(0xFF070F16);
+
+  /// Window Shadow in the decorative Home castle.
+  static const castleWindowShadow = Color(0xFF07121A);
+
+  /// Gate Dark in the decorative Home castle.
+  static const castleGateDark = Color(0xFF08131B);
+
+  /// Sky Top in the decorative Home castle.
+  static const castleSkyTop = Color(0xFF09131E);
+
+  /// Sky Bottom in the decorative Home castle.
+  static const castleSkyBottom = Color(0xFF0A171D);
+
+  /// Arch Shadow in the decorative Home castle.
+  static const castleArchShadow = Color(0xFF0B141A);
+
+  /// Portcullis in the decorative Home castle.
+  static const castlePortcullis = Color(0xFF111B20);
+
+  /// Bridge Near in the decorative Home castle.
+  static const castleBridgeNear = Color(0xFF14232B);
+
+  /// Mountain in the decorative Home castle.
+  static const castleMountain = Color(0xFF172C35);
+
+  /// Horizon in the decorative Home castle.
+  static const castleHorizon = Color(0xFF203945);
+
+  /// Stone Left in the decorative Home castle.
+  static const castleStoneLeft = Color(0xFF233844);
+
+  /// Stone Right in the decorative Home castle.
+  static const castleStoneRight = Color(0xFF25343E);
+
+  /// Gate Warm in the decorative Home castle.
+  static const castleGateWarm = Color(0xFF342B23);
+
+  /// Battlement in the decorative Home castle.
+  static const castleBattlement = Color(0xFF394B57);
+
+  /// Stone Face in the decorative Home castle.
+  static const castleStoneFace = Color(0xFF42525B);
+
+  /// Tower Ledge in the decorative Home castle.
+  static const castleTowerLedge = Color(0xFF44525A);
+
+  /// Bridge Far in the decorative Home castle.
+  static const castleBridgeFar = Color(0xFF4C4C40);
+
+  /// Bridge Rail in the decorative Home castle.
+  static const castleBridgeRail = Color(0xFF506068);
+
+  /// Parapet in the decorative Home castle.
+  static const castleParapet = Color(0xFF53616A);
+
+  /// Parapet Highlight in the decorative Home castle.
+  static const castleParapetHighlight = Color(0xFF6C7B7C);
+
+  /// Arch Rim in the decorative Home castle.
+  static const castleArchRim = Color(0xFF798078);
+
+  /// Moon in the decorative Home castle.
+  static const castleMoon = Color(0xFFC8D5CE);
+
+  /// Star in the decorative Home castle.
+  static const castleStar = Color(0xFFC9DAD9);
+
+  /// Flame in the decorative Home castle.
+  static const castleFlame = Color(0xFFFFD79A);
+
+  /// Window Light in the decorative Home castle.
+  static const castleWindowLight = Color(0xFFFFE4B3);
+
   /// Deep background the whole application sits on.
   static const night = Color(0xFF0A0D18);
 

@@ -150,7 +150,8 @@ class _NameSpellingsSectionState extends ConsumerState<NameSpellingsSection> {
               ),
               const SizedBox(height: 12),
             ],
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 FilledButton.tonalIcon(
                   key: const ValueKey<String>('suggest-name-spellings'),
@@ -165,15 +166,13 @@ class _NameSpellingsSectionState extends ConsumerState<NameSpellingsSection> {
                       : const Icon(AppIcons.suggest),
                   label: Text(text.suggestNameSpellings),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(height: 12),
                 if (_asking || !paired)
-                  Expanded(
-                    child: Text(
-                      _asking
-                          ? text.nameSpellingsSuggesting
-                          : text.nameSpellingsNeedPc,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                  Text(
+                    _asking
+                        ? text.nameSpellingsSuggesting
+                        : text.nameSpellingsNeedPc,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
               ],
             ),

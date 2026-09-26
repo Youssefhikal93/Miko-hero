@@ -271,6 +271,7 @@ void main() {
         ),
       ],
     );
+    await tester.ensureVisible(find.text('New story'));
     await tester.tap(find.text('New story'));
     await tester.pumpAndSettle();
 

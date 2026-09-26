@@ -59,6 +59,9 @@ void main() {
     await _storeFamily(profiles: <ChildProfile>[_miko()]);
     await _pumpHome(tester, service);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('home-new-story')),
+    );
     await tester.tap(find.byKey(const ValueKey<String>('home-new-story')));
     await tester.pumpAndSettle();
 
@@ -83,6 +86,9 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('home-keep-reading')),
+    );
     await tester.tap(find.byKey(const ValueKey<String>('home-keep-reading')));
     await tester.pumpAndSettle();
 
@@ -164,6 +170,9 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('home-drafts-waiting')),
+    );
     await tester.tap(find.byKey(const ValueKey<String>('home-drafts-waiting')));
     await tester.pumpAndSettle();
 
@@ -178,6 +187,9 @@ void main() {
     await _configurePin(service, parentPin);
     await _pumpHome(tester, service);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('home-drafts-waiting')),
+    );
     await tester.tap(find.byKey(const ValueKey<String>('home-drafts-waiting')));
     await tester.pumpAndSettle();
 

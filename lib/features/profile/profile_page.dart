@@ -625,13 +625,15 @@ class _BirthDateField extends StatelessWidget {
                         ).formatFullDate(selected),
                 ),
               ),
-              TextButton.icon(
-                onPressed: enabled ? onPick : null,
-                icon: const Icon(AppIcons.birthDate),
-                label: Text(
-                  selected == null
-                      ? text.chooseBirthDate
-                      : text.changeBirthDate,
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: enabled ? onPick : null,
+                  icon: const Icon(AppIcons.birthDate),
+                  label: Text(
+                    selected == null
+                        ? text.chooseBirthDate
+                        : text.changeBirthDate,
+                  ),
                 ),
               ),
             ],

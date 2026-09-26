@@ -9,6 +9,7 @@ import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/story_artwork.dart';
+import 'package:miko_hero/shared/story_motion.dart';
 
 /// Shape one story takes inside the shared mosaic.
 enum StoryCardVariant {
@@ -60,11 +61,13 @@ class StoryCard extends StatelessWidget {
   /// Renders the requested shape without changing what the story can do.
   Widget build(BuildContext context) {
     final text = AppLocalizations.of(context);
-    return switch (variant) {
-      StoryCardVariant.large => _large(context, text),
-      StoryCardVariant.small => _small(context),
-      StoryCardVariant.wide => _wide(context, text),
-    };
+    return StoryHover(
+      child: switch (variant) {
+        StoryCardVariant.large => _large(context, text),
+        StoryCardVariant.small => _small(context),
+        StoryCardVariant.wide => _wide(context, text),
+      },
+    );
   }
 
   /// Builds the cover tile that carries the full story identity.
