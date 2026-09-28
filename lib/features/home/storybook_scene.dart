@@ -401,7 +401,7 @@ class _CastlePainter extends CustomPainter {
           radius: 1.3,
           colors: [
             accent.withValues(alpha: 0.9),
-            AppTheme.castleGateWarm,
+            Color.lerp(AppTheme.castleGateDark, accent, 0.2)!,
             AppTheme.castleGateDark,
           ],
         ).createShader(const Rect.fromLTWH(-50, -118, 100, 166)),
@@ -432,7 +432,7 @@ class _CastlePainter extends CustomPainter {
     );
     canvas.drawRect(
       (origin + const Offset(3, 3)) & const Size(6, 30),
-      Paint()..color = Color.lerp(accent, AppTheme.castleWindowLight, 0.45)!,
+      Paint()..color = Color.lerp(accent, AppTheme.light, 0.25)!,
     );
   }
 
@@ -478,7 +478,10 @@ class _CastlePainter extends CustomPainter {
           position.dy,
         )
         ..close();
-      canvas.drawPath(flame, Paint()..color = AppTheme.castleFlame);
+      canvas.drawPath(
+        flame,
+        Paint()..color = Color.lerp(accent, AppTheme.light, 0.35)!,
+      );
     }
   }
 

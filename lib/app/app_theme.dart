@@ -43,18 +43,10 @@ String interfaceFontFamilyFor(AppLanguage language) {
 /// happened to draw. The two meta styles differ in nothing else: [caption] and
 /// [coverCaption] are the same size and carry only that one difference.
 ///
-/// **[candle] as the accent, or the bedtime palette?** They never compete.
-/// [candle] is the *default* accent: the primary a family is lit by until a
-/// child saves a colour, plus the fixed warm emphasis the design prints
-/// regardless of who is reading (the favourite heart, the drafts notice, the
-/// new-story tile). Once a child has saved a colour, that colour is the accent
-/// and [candle] speaks only in those fixed warm places. The `bedtime` tokens
-/// are not an accent at all: they are a whole page palette the reader swaps in
-/// for the duration of bedtime mode — [bedtimeProse] for the prose,
-/// [bedtimeSurface] for the page, [bedtimeWash] over the illustration — and
-/// they replace, rather than tint, what they cover. The one place the two meet
-/// is the narration highlight, which uses [candle] while bedtime is on because
-/// a cold accent would fight warm prose.
+/// [candle] is the default accent until a child saves a colour. All interface
+/// emphasis follows that saved accent, including links, tiles and reader
+/// controls. Bedtime mode changes the page and prose palette while retaining
+/// the active accent for controls and narration highlights.
 abstract final class AppTheme {
   /// Vignette Clear in the decorative Home castle.
   static const castleVignetteClear = Color(0x00050D14);
@@ -188,12 +180,7 @@ abstract final class AppTheme {
   /// Recessed surface used by fields, icon buttons, and navigation chrome.
   static const sunken = Color(0xFF141930);
 
-  /// Warm candle used for primary emphasis and the default hero accent.
-  ///
-  /// The accent only until a child saves a colour of their own; after that it
-  /// stays exactly where the design prints warmth for everybody — the
-  /// favourite heart, the parent drafts notice, the new-story tile, and the
-  /// narration highlight while bedtime mode is on.
+  /// Default accent before a profile supplies its saved colour.
   static const candle = Color(goldenProfileThemeColorValue);
 
   /// Lighter candle used for warm inline emphasis such as link-style actions.
@@ -440,7 +427,7 @@ abstract final class AppTheme {
       inputDecorationTheme: _inputTheme(accent, language),
       dialogTheme: _dialogTheme(language),
       filledButtonTheme: _buttonTheme(accent, scheme.onPrimary, language),
-      textButtonTheme: _textButtonTheme(language),
+      textButtonTheme: _textButtonTheme(accent, language),
       outlinedButtonTheme: _outlinedButtonTheme(language),
       navigationBarTheme: _navigationBarTheme(accent, language),
       navigationRailTheme: _navigationRailTheme(accent, language),
@@ -654,11 +641,14 @@ abstract final class AppTheme {
     );
   }
 
-  /// Sets link-style actions in warm candle rather than in the child's accent.
-  static TextButtonThemeData _textButtonTheme(AppLanguage language) {
+  /// Aligns link-style actions with the active profile accent.
+  static TextButtonThemeData _textButtonTheme(
+    Color accent,
+    AppLanguage language,
+  ) {
     return TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: candleLight,
+        foregroundColor: accent,
         textStyle: _face(language, fontSize: 15, fontWeight: FontWeight.w600),
       ),
     );

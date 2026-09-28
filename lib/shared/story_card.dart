@@ -460,7 +460,11 @@ class _FavoriteHeart extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsetsDirectional.only(start: 4),
-      child: Icon(AppIcons.favourite, size: size, color: AppTheme.candle),
+      child: Icon(
+        AppIcons.favourite,
+        size: size,
+        color: Theme.of(context).colorScheme.primary,
+      ),
     );
   }
 }
