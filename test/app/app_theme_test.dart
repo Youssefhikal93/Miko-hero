@@ -134,7 +134,7 @@ void main() {
       theme.textButtonTheme.style?.foregroundColor?.resolve(
         const <WidgetState>{},
       ),
-      AppTheme.candleLight,
+      AppTheme.candle,
     );
     expect(
       theme.outlinedButtonTheme.style?.side

@@ -281,10 +281,8 @@ class _StoryProse extends StatelessWidget {
     );
   }
 
-  /// Keeps the spoken-sentence tint warm while bedtime mode is on.
+  /// Keeps narration aligned with the active profile accent.
   Color _highlightColor(BuildContext context) {
-    return pageContext.bedtime
-        ? AppTheme.candle
-        : Theme.of(context).colorScheme.primary;
+    return Theme.of(context).colorScheme.primary;
   }
 }

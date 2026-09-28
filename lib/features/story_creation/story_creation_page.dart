@@ -527,7 +527,9 @@ class _GeneratorPill extends StatelessWidget {
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: AppTheme.candle.withValues(alpha: 0.12),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -536,13 +538,13 @@ class _GeneratorPill extends StatelessWidget {
               Icon(
                 localAi ? AppIcons.localAi : AppIcons.demo,
                 size: 16,
-                color: AppTheme.candle,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 6),
               Text(
                 localAi ? text.localAiGeneratorLabel : text.demoGeneratorLabel,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppTheme.candleLight,
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),

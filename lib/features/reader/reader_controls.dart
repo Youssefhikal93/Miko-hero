@@ -125,7 +125,7 @@ class ReaderTopRow extends StatelessWidget {
               isSelected: bedtime,
               icon: Icon(
                 AppIcons.bedtime,
-                color: bedtime ? AppTheme.candle : null,
+                color: bedtime ? Theme.of(context).colorScheme.primary : null,
               ),
             ),
           ],
@@ -238,15 +238,13 @@ class ReaderControls extends StatelessWidget {
     );
   }
 
-  /// The wide candle control that starts, pauses, and resumes narration.
+  /// The wide primary control that starts, pauses, and resumes narration.
   Widget _readToMeButton(AppLocalizations text) {
     return Tooltip(
       message: _narrationTooltip(text),
       child: FilledButton.icon(
         onPressed: actions.narration,
         style: FilledButton.styleFrom(
-          backgroundColor: AppTheme.candle,
-          foregroundColor: AppTheme.onCandle,
           minimumSize: const Size.fromHeight(56),
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(20)),
@@ -353,7 +351,7 @@ class ReaderControls extends StatelessWidget {
   }
 }
 
-/// The book's pages as dots, with the open one marked in candle.
+/// The book's pages as dots, with the open one marked in the profile accent.
 class _PageDots extends StatelessWidget {
   /// Creates one dot per page of the open book.
   const _PageDots({required this.pageIndex, required this.pageCount});
@@ -393,7 +391,7 @@ class _PageDot extends StatelessWidget {
       width: open ? 22 : 14,
       height: 3,
       decoration: BoxDecoration(
-        color: open ? AppTheme.candle : AppTheme.hairline,
+        color: open ? Theme.of(context).colorScheme.primary : AppTheme.hairline,
         borderRadius: const BorderRadius.all(Radius.circular(999)),
       ),
     );

@@ -45,7 +45,9 @@ class HomeKeepReadingTile extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     text.keepReading.toUpperCase(),
-                    style: AppTheme.overlineTile,
+                    style: AppTheme.overlineTile.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -62,7 +64,7 @@ class HomeKeepReadingTile extends StatelessWidget {
   }
 }
 
-/// The one-tap path to a new story, in the shared candle emphasis.
+/// The one-tap path to a new story, in the active profile accent.
 class HomeNewStoryTile extends StatelessWidget {
   /// Creates the create-story tile.
   const HomeNewStoryTile({super.key});
@@ -77,7 +79,7 @@ class HomeNewStoryTile extends StatelessWidget {
     return HomeTileSurface(
       key: const ValueKey<String>('home-new-story'),
       height: height,
-      color: AppTheme.candle,
+      color: Theme.of(context).colorScheme.primary,
       onTap: () => context.go('/create'),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -85,16 +87,20 @@ class HomeNewStoryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            const Icon(AppIcons.sparkle, size: 26, color: AppTheme.onCandle),
+            Icon(
+              AppIcons.sparkle,
+              size: 26,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
             Text(
               text.newStory,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 height: 1.2,
-                color: AppTheme.onCandle,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
           ],
@@ -133,7 +139,11 @@ class HomeReadingBadgesTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            const Icon(AppIcons.readingBadge, size: 26, color: AppTheme.candle),
+            Icon(
+              AppIcons.readingBadge,
+              size: 26,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -178,7 +188,9 @@ class HomeDraftsRow extends StatelessWidget {
     return HomeTileSurface(
       key: const ValueKey<String>('home-drafts-waiting'),
       height: height,
-      borderColor: AppTheme.hairlineWarm,
+      borderColor: Theme.of(
+        context,
+      ).colorScheme.primary.withValues(alpha: 0.24),
       bordered: true,
       onTap: () => context.go('/review'),
       child: Padding(
@@ -189,13 +201,15 @@ class HomeDraftsRow extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppTheme.candle.withValues(alpha: 0.14),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 AppIcons.factCheck,
                 size: 20,
-                color: AppTheme.candle,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(width: 14),
