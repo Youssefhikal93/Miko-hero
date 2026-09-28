@@ -327,29 +327,45 @@ class _DesktopShell extends StatelessWidget {
   }
 }
 
-/// Compact brand lockup rendered without external image assets.
+/// Compact mascot lockup shared by the drawer and desktop rail.
 class _Brand extends StatelessWidget {
   /// Creates the shared drawer and rail header.
   const _Brand();
 
   @override
-  /// Uses the current child's palette while keeping the app name stable.
+  /// Keeps the launch mascot and app name recognizable in navigation.
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 16, 12),
       child: Row(
         children: <Widget>[
           Container(
-            width: 42,
-            height: 42,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: <Color>[colors.primary, colors.secondary],
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.12),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.3),
               ),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
+                  blurRadius: 14,
+                ),
+              ],
             ),
-            child: const Icon(AppIcons.stories, color: Colors.black),
+            padding: const EdgeInsets.all(3),
+            child: Image.asset(
+              'assets/brand/generated/brand_logo.png',
+              excludeFromSemantics: true,
+            ),
           ),
           const SizedBox(width: 12),
           const Expanded(

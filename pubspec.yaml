@@ -67,14 +67,9 @@ dev_dependencies:
   # prove every resulting glyph exists in the bundled display face.
   bidi: ^2.0.13
 
-  # Build-time only, all three. They rasterize and cut up the brand mark in
-  # assets/brand/ and are never imported by the app, so nothing here reaches a
-  # release binary: flutter_svg is used by tool/render_brand_assets.dart to turn
-  # the SVG into the PNG masters, and the two generators cut those masters into
-  # per-platform icons and splash screens.
+  # Build-time generators slice the mascot masters into platform launch assets.
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.8
-  flutter_svg: ^2.3.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -92,6 +87,7 @@ flutter:
   generate: true
 
   assets:
+    - assets/brand/generated/brand_logo.png
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoNaskhArabic-Regular.ttf
     # Storybook display faces used only by the offline PDF export: Baloo 2 for
@@ -161,14 +157,10 @@ flutter:
 # ---------------------------------------------------------------------------
 # Brand mark: app icons and splash screens
 #
-# One drawing, assets/brand/iam_hero_mark.svg, becomes every launcher icon and
-# every splash screen. The PNG masters under assets/brand/generated/ are cut
-# from it by tool/render_brand_assets.dart; the two blocks below only slice
-# those masters per platform. Nothing here is a runtime dependency.
-#
-# To change a colour: edit it in the SVG and in the palette below (the YAML
-# anchors are aliased by both generators), then re-run the commands in the
-# "App icons and splash screens" section of docs/CODEBASE.md.
+# The transparent 3D mascot in assets/brand/hero_mascot.png supplies every
+# launch surface. tool/render_brand_assets.dart produces platform-safe PNG
+# masters, and the generators below produce each platform's required sizes.
+# Regeneration steps and maskable-icon copying live in docs/CODEBASE.md.
 # ---------------------------------------------------------------------------
 
 # Read by no tool directly; it exists so the redesign palette is written once
@@ -189,7 +181,7 @@ flutter_launcher_icons:
   # night background layer, so the launcher may crop it to any shape.
   adaptive_icon_background: *night
   adaptive_icon_foreground: assets/brand/generated/app_icon_foreground.png
-  # Android 13+ themed icon: the same silhouette without its halo, tinted by
+  # Android 13+ themed icon: the mascot silhouette, tinted by
   # the system.
   adaptive_icon_monochrome: assets/brand/generated/app_icon_monochrome.png
 
