@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/ai_connection/ai_connection_settings.dart';
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
@@ -155,6 +156,105 @@ void main() {
     expect(await repository.readBridgeCredential(), isNull);
   });
 
+  test('the device list is read with this device marked by the PC', () async {
+    final container = _container(
+      _pairedBridge((request) async {
+        return bridgeJsonResponse(<String, Object?>{
+          'devices': <Map<String, Object?>>[
+            bridgeDevicePayload(
+              id: 'device-a',
+              name: 'Family tablet',
+              lastSeenAtUtc: '2026-09-01T18:30:00.000Z',
+              isCaller: true,
+            ),
+            // No lastSeenAtUtc at all: a bridge older than the column, and a
+            // device that paired but never called, both send exactly this.
+            <String, Object?>{
+              'id': 'device-b',
+              'name': "Dad's phone",
+              'createdAtUtc': '2026-08-25T10:00:00.000Z',
+            },
+          ],
+        });
+      }),
+    );
+    final controller = await _pairedController(container);
+
+    final devices = await controller.readPairedDevices();
+
+    expect(devices, hasLength(2));
+    expect(devices.first.name, 'Family tablet');
+    expect(devices.first.isCaller, isTrue);
+    expect(devices.first.lastSeenAtUtc, DateTime.utc(2026, 9, 1, 18, 30));
+    expect(devices.first.pairedAtUtc.isUtc, isTrue);
+    expect(devices.last.isCaller, isFalse, reason: 'absent means not caller');
+    expect(devices.last.lastSeenAtUtc, isNull);
+  });
+
+  test('a device list this build cannot read is a typed failure', () async {
+    final container = _container(
+      _pairedBridge((request) async {
+        return bridgeJsonResponse(<String, Object?>{
+          'devices': <Map<String, Object?>>[
+            <String, Object?>{'id': 'device-a'},
+          ],
+        });
+      }),
+    );
+    final controller = await _pairedController(container);
+
+    await expectLater(
+      controller.readPairedDevices(),
+      throwsA(
+        isA<BridgeException>().having(
+          (error) => error.failure,
+          'failure',
+          BridgeFailure.invalidResponse,
+        ),
+      ),
+    );
+  });
+
+  test('the PC refusing a self-removal is a typed failure', () async {
+    final container = _container(
+      _pairedBridge((request) async {
+        return bridgeErrorResponse('cannot_remove_self', 409);
+      }),
+    );
+    final controller = await _pairedController(container);
+
+    await expectLater(
+      controller.removePairedDevice('device-a'),
+      throwsA(
+        isA<BridgeException>().having(
+          (error) => error.failure,
+          'failure',
+          BridgeFailure.cannotRemoveThisDevice,
+        ),
+      ),
+    );
+  });
+
+  test('removing a device the PC forgot is a typed failure', () async {
+    final container = _container(
+      _pairedBridge((request) async {
+        return bridgeErrorResponse('device_not_found', 404);
+      }),
+    );
+    final controller = await _pairedController(container);
+
+    await expectLater(
+      controller.removePairedDevice('device-gone'),
+      throwsA(
+        isA<BridgeException>().having(
+          (error) => error.failure,
+          'failure',
+          BridgeFailure.deviceNotFound,
+        ),
+      ),
+    );
+  });
+
   test('an unusable address is refused and the stored one is kept', () async {
     final container = _container(_pairingBridge());
     await container.read(aiConnectionControllerProvider.future);
@@ -213,6 +313,40 @@ ProviderContainer _container(FakeBridgeHttpClient httpClient) {
   );
   addTearDown(container.dispose);
   return container;
+}
+
+/// Answers the two pairing endpoints, then defers everything else to [handler].
+///
+/// The device list and device removal both need a token, so a suite exercising
+/// them has to pair first exactly as a parent does.
+FakeBridgeHttpClient _pairedBridge(
+  Future<http.Response> Function(http.Request request) handler,
+) {
+  return FakeBridgeHttpClient((request) async {
+    return switch (request.url.path) {
+      '/pair/request' => bridgeJsonResponse(<String, Object>{
+        'pairingId': 'pairing-1',
+      }),
+      '/pair/confirm' => bridgeJsonResponse(<String, Object>{
+        'deviceToken': 'issued-token',
+      }),
+      _ => handler(request),
+    };
+  });
+}
+
+/// Loads the controller and pairs this device with the scripted PC.
+Future<AiConnectionController> _pairedController(
+  ProviderContainer container,
+) async {
+  await container.read(aiConnectionControllerProvider.future);
+  final controller = container.read(aiConnectionControllerProvider.notifier);
+  await controller.confirmPairing(
+    pairingId: await controller.startPairing(),
+    code: '123456',
+    deviceName: 'Family tablet',
+  );
+  return controller;
 }
 
 /// Answers the two pairing endpoints the way a running bridge does.

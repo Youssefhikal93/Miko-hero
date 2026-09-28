@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:miko_hero/core/security/parent_security.dart';
 import 'package:miko_hero/features/settings/parent_access_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/parent_access_gate.dart';
 
 /// Optional local parent-PIN status and management controls.
@@ -49,7 +50,7 @@ class _LoadedSecurityCard extends ConsumerWidget {
           children: <Widget>[
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.admin_panel_settings_rounded),
+              leading: const Icon(AppIcons.parentSecurity),
               title: Text(text.parentSecurityTitle),
               subtitle: Text(text.parentSecurityBody),
             ),
@@ -72,7 +73,7 @@ class _LoadedSecurityCard extends ConsumerWidget {
                   : <Widget>[
                       FilledButton.icon(
                         onPressed: () => _setPin(context, ref),
-                        icon: const Icon(Icons.pin_rounded),
+                        icon: const Icon(AppIcons.parentPin),
                         label: Text(text.setParentPin),
                       ),
                     ],
@@ -92,19 +93,19 @@ class _LoadedSecurityCard extends ConsumerWidget {
     return <Widget>[
       FilledButton.tonalIcon(
         onPressed: () => _changePin(context, ref),
-        icon: const Icon(Icons.password_rounded),
+        icon: const Icon(AppIcons.changePin),
         label: Text(text.changeParentPin),
       ),
       OutlinedButton.icon(
         onPressed: () {
           ref.read(parentAccessControllerProvider.notifier).lock();
         },
-        icon: const Icon(Icons.lock_rounded),
+        icon: const Icon(AppIcons.lock),
         label: Text(text.lockParentArea),
       ),
       TextButton.icon(
         onPressed: () => _removePin(context, ref),
-        icon: const Icon(Icons.lock_open_rounded),
+        icon: const Icon(AppIcons.unlock),
         label: Text(text.removeParentPin),
       ),
     ];
@@ -449,7 +450,7 @@ class _SecurityErrorCard extends StatelessWidget {
     final text = AppLocalizations.of(context);
     return Card(
       child: ListTile(
-        leading: const Icon(Icons.error_outline_rounded),
+        leading: const Icon(AppIcons.error),
         title: Text(text.somethingWentWrong),
         trailing: TextButton(onPressed: onRetry, child: Text(text.retry)),
       ),

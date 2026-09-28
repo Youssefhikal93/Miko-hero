@@ -8,6 +8,7 @@ import 'package:miko_hero/core/illustrations/illustration_providers.dart';
 import 'package:miko_hero/core/models/app_state.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
+import 'package:miko_hero/core/storage/library_transaction.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
@@ -146,7 +147,7 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
   /// the next sync does not simply download it again.
   Future<void> removeFromThisDevice(String storyId) async {
     final current = await future;
-    final story = _requireStory(storyId);
+    final story = _currentState.requireStoryById(storyId);
     final bridgeId = BridgeStoryProvenance.storyIdOf(story);
     if (bridgeId == null) throw const UnknownEntityException('bridge story');
     await ref.read(storyControllerProvider).deleteStory(storyId);
@@ -162,7 +163,7 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
   /// succeeds — the PC's deletion record reaches every device.
   Future<BridgeStoryDeletion> deleteEverywhere(String storyId) async {
     final current = await future;
-    final story = _requireStory(storyId);
+    final story = _currentState.requireStoryById(storyId);
     final bridgeId = BridgeStoryProvenance.storyIdOf(story);
     if (bridgeId == null) throw const UnknownEntityException('bridge story');
     final connection = await ref.read(aiConnectionControllerProvider.future);
@@ -213,21 +214,29 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
   }
 
   /// Persists one synchronization outcome as a single library transaction.
+  ///
+  /// The stories land first and the synchronization record second, so a record
+  /// that fails to persist costs the next run a re-download of books this
+  /// device already holds — the merge is by bridge identity and idempotent —
+  /// rather than advancing a watermark past stories that were never stored.
   Future<void> _applyOutcome(LibrarySyncOutcome outcome) async {
     final current = _currentState;
     final removedStoryIds = outcome.removedStoryIds.toSet();
-    final savedStories = mergeSyncedLibrary(
-      localStories: current.stories,
-      downloadedStories: outcome.downloadedStories,
-      removedStoryIds: removedStoryIds,
-      localProfileIds: current.profiles.map((profile) => profile.id).toSet(),
-    );
+    final localProfileIds = current.profiles
+        .map((profile) => profile.id)
+        .toSet();
+    await ref
+        .read(libraryTransactionProvider)
+        .mutateStories(
+          (stories) => mergeSyncedLibrary(
+            localStories: stories,
+            downloadedStories: outcome.downloadedStories,
+            removedStoryIds: removedStoryIds,
+            localProfileIds: localProfileIds,
+          ),
+        );
     final repository = await ref.read(localRepositoryProvider.future);
-    await repository.saveStories(savedStories);
     await repository.saveLibrarySyncState(outcome.syncState);
-    ref
-        .read(appControllerProvider.notifier)
-        .commit(current.withStories(savedStories));
     for (final storyId in outcome.removedStoryIds) {
       await ref.read(profileControllerProvider).forgetFinishedStory(storyId);
     }
@@ -266,13 +275,5 @@ class LibrarySyncController extends AsyncNotifier<LibrarySyncSnapshot> {
   /// Reads the loaded snapshot or preserves the provider's loading error.
   AppState get _currentState {
     return ref.read(appControllerProvider).requireValue;
-  }
-
-  /// Rejects a deletion command for a story another screen already removed.
-  StoryBook _requireStory(String storyId) {
-    for (final story in _currentState.stories) {
-      if (story.id == storyId) return story;
-    }
-    throw const UnknownEntityException('story');
   }
 }

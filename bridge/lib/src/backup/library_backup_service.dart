@@ -308,6 +308,11 @@ class LibraryBackupService {
   void _replaceRows(LibraryBackupPayload payload) {
     final db = library.database;
     runInDatabaseTransaction(db, () {
+      // Derived rows first: they reference profiles, foreign keys are on,
+      // and the profile delete below would fail on them.
+      for (final table in derivedTablesClearedOnRestore) {
+        db.execute('DELETE FROM $table');
+      }
       for (final spec in backupTableSpecs.reversed) {
         db.execute('DELETE FROM ${spec.name}');
       }

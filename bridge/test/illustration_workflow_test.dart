@@ -41,14 +41,16 @@ Map<String, Object?> _build({
 }
 
 Map<String, Object?> _stylize({
-  String storyId = 'story-1',
+  String profileId = 'profile-1',
+  String photoHash = 'photo-hash-a',
   String photoImageName = 'profile-1.jpg',
   StoryIllustrationStyle style = StoryIllustrationStyle.pictureBook,
   StoryGenderContext? gender = StoryGenderContext.girl,
   IllustrationSettings settings = IllustrationSettings.defaults,
 }) {
   return buildReferenceStylizeWorkflow(
-    storyId: storyId,
+    profileId: profileId,
+    photoHash: photoHash,
     photoImageName: photoImageName,
     style: style,
     gender: gender,
@@ -386,33 +388,50 @@ void main() {
       }
     });
 
-    test('the seed is stable per story and never a page seed', () {
-      final seed = _inputs(
-        _stylize(storyId: 'story-a'),
-        referenceSamplerNodeId,
-      )['seed'];
+    test('the seed follows the child and the photo, never the story', () {
+      final seed = _inputs(_stylize(), referenceSamplerNodeId)['seed'];
       expect(
         seed,
         _inputs(
-          _stylize(
-            storyId: 'story-a',
-            style: StoryIllustrationStyle.watercolor,
-          ),
+          _stylize(style: StoryIllustrationStyle.watercolor),
           referenceSamplerNodeId,
         )['seed'],
         reason: 'a re-run must reproduce the same portrait',
       );
-      expect(seed, illustrationReferenceSeed('story-a'));
       expect(
         seed,
-        isNot(
-          _inputs(_stylize(storyId: 'story-b'), referenceSamplerNodeId)['seed'],
+        illustrationReferenceSeed(
+          profileId: 'profile-1',
+          photoHash: 'photo-hash-a',
         ),
       );
       expect(
-        illustrationReferenceSeed('story-a'),
-        isNot(illustrationSeed('story-a')),
-        reason: 'the portrait and a page of the same id are different rolls',
+        seed,
+        isNot(
+          _inputs(
+            _stylize(profileId: 'profile-2'),
+            referenceSamplerNodeId,
+          )['seed'],
+        ),
+        reason: 'two children are two different heroes',
+      );
+      expect(
+        seed,
+        isNot(
+          _inputs(
+            _stylize(photoHash: 'photo-hash-b'),
+            referenceSamplerNodeId,
+          )['seed'],
+        ),
+        reason: 'a new photo is meant to redraw the face',
+      );
+      expect(
+        illustrationReferenceSeed(
+          profileId: 'profile-1',
+          photoHash: 'photo-hash-a',
+        ),
+        isNot(illustrationSeed('profile-1')),
+        reason: 'the portrait and a page are different rolls',
       );
       expect(seed! as int, isNonNegative);
     });

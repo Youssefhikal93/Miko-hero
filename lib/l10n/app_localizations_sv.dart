@@ -1419,6 +1419,51 @@ class AppLocalizationsSv extends AppLocalizations {
       'Kopplingen borttagen från den här enheten';
 
   @override
+  String get pairedDevicesTitle => 'Enheter kopplade till datorn';
+
+  @override
+  String get pairedDevicesBody =>
+      'Allt som står här når datorn. Tar du bort en enhet måste den kopplas igen.';
+
+  @override
+  String get pairedDevicesEmpty => 'Datorn listar inga kopplade enheter.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · den här enheten';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'Kopplad $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'Senast sedd $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'Inte använd sedan kopplingen';
+
+  @override
+  String get removePairedDevice => 'Ta bort';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'Ta bort $name?';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'Enheten förlorar åtkomsten till datorn direkt. Den kan kopplas igen med en ny kod.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return '$name når inte datorn längre';
+  }
+
+  @override
   String get openAiConnectionSettings => 'Öppna AI-anslutningen';
 
   @override
@@ -1445,6 +1490,10 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get bridgeUnreachable =>
       'Datorn svarade inte. Kontrollera att bryggan körs och att adressen stämmer.';
+
+  @override
+  String get bridgeBlockedByBrowser =>
+      'Webbläsaren lät inte den här sidan kontakta datorn. På datorn själv, eller på en enhet som kör Tailscale, öppna webbläsarens webbplatsinställningar för sidan, sätt \"Åtkomst till lokalt nätverk\" till Tillåt och ladda om. Om det fortfarande inte fungerar, kontrollera att bryggan körs och att adressen stämmer.';
 
   @override
   String get bridgeTimedOut => 'Datorn tog för lång tid på sig att svara.';
@@ -1475,6 +1524,14 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get bridgeInvalidRequest =>
       'Datorn nekade den här berättelseförfrågan.';
+
+  @override
+  String get bridgeDeviceNotFound =>
+      'Datorn känner inte längre till den enheten.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'Använd ”Glöm den här enheten” för att koppla bort den här enheten.';
 
   @override
   String get bridgeJobNotFound =>
@@ -1677,4 +1734,198 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get bridgeIllustrationNotReady => 'Den bilden är inte gjord än.';
+
+  @override
+  String get heroSheetTitle => 'Så ritas hjälten';
+
+  @override
+  String get heroSheetIntro =>
+      'Datorn läser barnets foto en gång och ritar sedan samma hjälte i varje saga. Du bestämmer vad hjälten alltid har på sig och bär med sig.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'Läst från fotot';
+
+  @override
+  String get heroSheetHair => 'Hår';
+
+  @override
+  String get heroSheetSkinTone => 'Hudton';
+
+  @override
+  String get heroSheetEyeColor => 'Ögon';
+
+  @override
+  String get heroSheetNotReadYet => 'Datorn har inte läst det här fotot än.';
+
+  @override
+  String get heroSheetOutfit => 'Har alltid på sig';
+
+  @override
+  String get heroSheetProp => 'Bär alltid med sig';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'En kort fras på engelska, eftersom ritmodellen läser engelska.';
+
+  @override
+  String get heroSheetReadAgain => 'Läs fotot en gång till';
+
+  @override
+  String get heroSheetRereadDone => 'Datorn läste fotot en gång till.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'Datorn är upptagen. Den läser fotot en gång till om en stund.';
+
+  @override
+  String get heroSheetRereadFailed =>
+      'Datorn kunde inte läsa fotot en gång till.';
+
+  @override
+  String get heroSheetSaveFailed =>
+      'Det hjälten har på sig kunde inte sparas på datorn.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'Datorn svarade inte, så hjältens utseende visas inte.';
+
+  @override
+  String get settingsSubtitle =>
+      'Allt en förälder bestämmer för den här enheten.';
+
+  @override
+  String get settingsFamilyTitle => 'Familj';
+
+  @override
+  String get settingsFamilyBody =>
+      'Hjältarna på den här enheten och språket appen talar.';
+
+  @override
+  String get settingsReadingTitle => 'Läsning';
+
+  @override
+  String get settingsReadingBody =>
+      'Hur sagosidorna ser ut och hur de läses högt.';
+
+  @override
+  String get settingsPcTitle => 'Datorn';
+
+  @override
+  String get settingsPcBody =>
+      'Var berättelser skrivs, vilka enheter datorn litar på och biblioteket offline.';
+
+  @override
+  String get settingsSafetyTitle => 'Säkerhet';
+
+  @override
+  String get settingsSafetyBody =>
+      'Föräldra-PIN och ämnena berättelserna håller sig borta från.';
+
+  @override
+  String get settingsSafetyTopicsBody =>
+      'Väljs för varje barn i Mitt kungarike.';
+
+  @override
+  String get settingsDataTitle => 'Dina data';
+
+  @override
+  String get settingsDataBody =>
+      'Säkerhetskopior, vad som stannar på enheten och att radera allt.';
+
+  @override
+  String get settingsAboutSummary =>
+      'Vad appen är och vad som skriver berättelserna';
+
+  @override
+  String get settingsNoHeroes => 'Inga hjälteprofiler på den här enheten än';
+
+  @override
+  String settingsReadingTextSizeValue(String size) {
+    return 'Textstorlek: $size';
+  }
+
+  @override
+  String get settingsReadingMixed => 'Blandat';
+
+  @override
+  String get settingsReadingEasyOn => 'lättläst typsnitt på';
+
+  @override
+  String get settingsReadingEasyOff => 'lättläst typsnitt av';
+
+  @override
+  String get settingsReadingEasySome => 'lättläst typsnitt för vissa hjältar';
+
+  @override
+  String get settingsPcDemo => 'Demoberättelser';
+
+  @override
+  String get settingsPcNotPaired => 'Datorn · inte kopplad än';
+
+  @override
+  String get settingsPcPaired => 'Kopplad till datorn';
+
+  @override
+  String get settingsPcNeverSynced => 'inte synkad än';
+
+  @override
+  String settingsPcSyncedAt(String moment) {
+    return 'synkad $moment';
+  }
+
+  @override
+  String get settingsSafetyPinOn => 'Föräldra-PIN på';
+
+  @override
+  String get settingsSafetyPinOff => 'Ingen föräldra-PIN';
+
+  @override
+  String settingsDataSummary(int count) {
+    return 'Berättelser på enheten: $count';
+  }
+
+  @override
+  String get settingsNarrationTitle => 'Läsa högt';
+
+  @override
+  String get settingsNarrationBody =>
+      'Läshastighet, hur mycket som läses och insomningstimern väljs i läsaren varje gång en berättelse läses högt. Inget av det sparas på enheten.';
+
+  @override
+  String get settingsDangerZone => 'Kan inte ångras';
+
+  @override
+  String get nameSpellingsTitle => 'Namnet på varje språk';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'Hur ${name}s namn skrivs på varje berättelsespråk. Lämna en ruta tom så används namnet precis som du skrev det.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'Samma namn, det språkets bokstäver';
+
+  @override
+  String get suggestNameSpellings => 'Fråga datorn';
+
+  @override
+  String get nameSpellingsSuggesting => 'Frågar datorn hur namnet skrivs…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'Datorn fyllde i dessa. Kontrollera dem innan du sparar.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'Datorn kunde inte föreslå stavningar. Du kan skriva dem själv.';
+
+  @override
+  String get nameSpellingsNeedName => 'Skriv namnet först.';
+
+  @override
+  String get nameSpellingsNeedPc =>
+      'Anslut familjens dator så fylls de i åt dig.';
+
+  @override
+  String get nameSpellingTooLong => 'Det är för långt för ett namn.';
 }

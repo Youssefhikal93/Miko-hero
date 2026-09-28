@@ -5,6 +5,9 @@ import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 /// Not 1.0 on purpose: a proper name, a made-up creature's name, or a single
 /// borrowed word is not a language failure. A model that answered in the wrong
 /// language, or mixed two languages sentence by sentence, lands far below this.
+///
+/// This is the tolerance for a story whose hero's name is **not** pinned to the
+/// story's own script; see [checkLanguagePurity]'s `heroNameIsSpelled`.
 const double minimumScriptPurity = 0.95;
 
 /// Verdict of one language-purity check.
@@ -57,9 +60,18 @@ class LanguagePurityVerdict {
 /// For Arabic the letters must be at least [minimumScriptPurity] Arabic. For
 /// English, Swedish and Somali no Arabic-script letter is accepted at all and
 /// the remaining letters must be at least [minimumScriptPurity] Latin.
+///
+/// [heroNameIsSpelled] says the request carried a confirmed spelling of the
+/// hero's name in [language]'s own script, and tightens the check to every
+/// letter. The tolerance above exists for a name the model had no way to
+/// write — which is exactly what a spelling removes: with `مليكة` in the
+/// request there is no longer any reason for a Latin letter to appear in
+/// Arabic prose, and the prompt has already said so. Nothing else is
+/// tightened: a story with no spelling is checked exactly as it always was.
 LanguagePurityVerdict checkLanguagePurity({
   required StoryLanguage language,
   required Iterable<String> texts,
+  bool heroNameIsSpelled = false,
 }) {
   var arabic = 0;
   var latin = 0;
@@ -103,6 +115,18 @@ LanguagePurityVerdict checkLanguagePurity({
     );
   }
   final ownScript = expectsArabic ? arabic : latin;
+  if (heroNameIsSpelled && ownScript != letters) {
+    return LanguagePurityVerdict(
+      isPure: false,
+      arabicLetters: arabic,
+      latinLetters: latin,
+      otherLetters: other,
+      failure:
+          'The model answer mixed ${letters - ownScript} letters of another '
+          'script into ${language.englishName} text, and the request already '
+          "carried the hero's name spelled in ${language.englishName}.",
+    );
+  }
   final purity = ownScript / letters;
   if (purity < minimumScriptPurity) {
     return LanguagePurityVerdict(

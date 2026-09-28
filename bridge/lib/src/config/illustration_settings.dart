@@ -1,4 +1,8 @@
+import 'package:iam_hero_bridge/src/common/json_reader.dart';
 import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
+
+/// Dotted path the `illustration` section reports its fields under.
+const String illustrationSectionPath = 'illustration';
 
 /// Square edges an illustration may be rendered at.
 ///
@@ -322,7 +326,27 @@ class IllustrationSettings {
     Map<String, Object?> json, {
     int maxDownloadBytes = maxComfyUiImageBytes,
   }) {
-    _rejectUnknownKeys(json, const <String>{
+    return IllustrationSettings.fromReader(
+      JsonReader.object(
+        json,
+        path: illustrationSectionPath,
+        failures: bridgeConfigFailures,
+        expected: 'a JSON object',
+      ),
+      maxDownloadBytes: maxDownloadBytes,
+    );
+  }
+
+  /// Parses the section [reader] already sits on.
+  ///
+  /// The reader carries the dotted path, so the same code reports
+  /// `illustration.upscale.targetSize` whether the section came from a whole
+  /// configuration file or straight from a test.
+  factory IllustrationSettings.fromReader(
+    JsonReader reader, {
+    int maxDownloadBytes = maxComfyUiImageBytes,
+  }) {
+    reader.rejectUnknownKeys(const <String>{
       'checkpoint',
       'imageSize',
       'samplerSteps',
@@ -332,47 +356,35 @@ class IllustrationSettings {
       'loras',
       'upscale',
       'faceDetail',
-    }, 'illustration');
+    });
 
     final settings = IllustrationSettings(
-      checkpoint:
-          _readNonEmptyString(json, 'checkpoint', 'illustration.checkpoint') ??
-          defaultCheckpoint,
-      imageSize: _readChoice(
-        json,
+      checkpoint: reader.optionalString('checkpoint') ?? defaultCheckpoint,
+      imageSize: reader.choice<int>(
         'imageSize',
-        'illustration.imageSize',
-        supportedIllustrationImageSizes,
-        defaultImageSize,
+        allowed: supportedIllustrationImageSizes,
+        fallback: defaultImageSize,
       ),
-      samplerSteps: _readBoundedInt(
-        json,
+      samplerSteps: reader.optionalInt(
         'samplerSteps',
-        'illustration.samplerSteps',
         minimum: minimumSamplerSteps,
         maximum: maximumSamplerSteps,
         fallback: defaultSamplerSteps,
       ),
-      cfgScale: _readBoundedDouble(
-        json,
+      cfgScale: reader.optionalDouble(
         'cfgScale',
-        'illustration.cfgScale',
         minimum: minimumCfgScale,
         maximum: maximumCfgScale,
         fallback: defaultCfgScale,
       ),
-      ipAdapterWeight: _readBoundedDouble(
-        json,
+      ipAdapterWeight: reader.optionalDouble(
         'ipAdapterWeight',
-        'illustration.ipAdapterWeight',
         minimum: 0.0,
         maximum: maximumIpAdapterWeight,
         fallback: defaultIpAdapterWeight,
       ),
-      referenceDenoise: _readBoundedDouble(
-        json,
+      referenceDenoise: reader.optionalDouble(
         'referenceDenoise',
-        'illustration.referenceDenoise',
         // A denoise of zero repaints nothing and hands the face adapter the
         // photograph itself, which is the one output this pass exists to
         // prevent, so the lower bound is exclusive.
@@ -381,16 +393,16 @@ class IllustrationSettings {
         maximum: 1.0,
         fallback: defaultReferenceDenoise,
       ),
-      loras: _readLoras(json),
-      upscale: _readUpscale(json),
-      faceDetail: _readFaceDetail(json),
+      loras: _readLoras(reader),
+      upscale: _readUpscale(reader),
+      faceDetail: _readFaceDetail(reader),
     );
 
     final int output = settings.outputImageSize;
     final int largest = largestSquarePngEdgeWithin(maxDownloadBytes);
     if (output > largest) {
       throw FormatException(
-        'Bridge config section "illustration" asks for ${output}x$output '
+        'Bridge config section "${reader.path}" asks for ${output}x$output '
         'pages, which can exceed the ${maxDownloadBytes ~/ 1024} KB limit on '
         'a downloaded image; at most ${largest}x$largest fits.',
       );
@@ -398,45 +410,35 @@ class IllustrationSettings {
     return settings;
   }
 
-  static List<IllustrationLora> _readLoras(Map<String, Object?> json) {
-    final value = json['loras'];
-    if (value == null) {
+  static List<IllustrationLora> _readLoras(JsonReader reader) {
+    final entries = reader.optionalList(
+      'loras',
+      expected: 'a list of {"name": …, "strength": …} objects',
+    );
+    if (entries == null) {
       return const <IllustrationLora>[];
     }
-    if (value is! List<Object?>) {
-      throw const FormatException(
-        'Bridge config field "illustration.loras" must be a list of '
-        '{"name": …, "strength": …} objects.',
-      );
-    }
-    if (value.length > maximumIllustrationLoraCount) {
-      throw FormatException(
-        'Bridge config field "illustration.loras" holds ${value.length} '
-        'entries; at most $maximumIllustrationLoraCount are supported.',
+    if (entries.length > maximumIllustrationLoraCount) {
+      reader.fail(
+        'loras',
+        'holds ${entries.length} entries; at most '
+            '$maximumIllustrationLoraCount are supported.',
       );
     }
     final loras = <IllustrationLora>[];
-    for (var index = 0; index < value.length; index++) {
-      final path = 'illustration.loras[$index]';
-      final entry = value[index];
-      if (entry is! Map<String, Object?>) {
-        throw FormatException(
-          'Bridge config field "$path" must be a JSON object with "name" '
-          'and "strength".',
-        );
-      }
-      _rejectUnknownKeys(entry, const <String>{'name', 'strength'}, path);
-      final name = _readNonEmptyString(entry, 'name', '$path.name');
-      if (name == null) {
-        throw FormatException('Bridge config field "$path.name" is required.');
-      }
+    for (var index = 0; index < entries.length; index++) {
+      final entry = reader.elementAt(
+        entries[index],
+        field: 'loras',
+        index: index,
+        expected: 'a JSON object with "name" and "strength"',
+      );
+      entry.rejectUnknownKeys(const <String>{'name', 'strength'});
       loras.add(
         IllustrationLora(
-          name: name,
-          strength: _readBoundedDouble(
-            entry,
+          name: entry.requireString('name'),
+          strength: entry.requireDouble(
             'strength',
-            '$path.strength',
             minimum: IllustrationLora.minimumStrength,
             maximum: IllustrationLora.maximumStrength,
           ),
@@ -446,30 +448,19 @@ class IllustrationSettings {
     return List<IllustrationLora>.unmodifiable(loras);
   }
 
-  static IllustrationUpscaleSettings _readUpscale(Map<String, Object?> json) {
-    final section = _readSection(json, 'upscale', 'illustration.upscale');
+  static IllustrationUpscaleSettings _readUpscale(JsonReader reader) {
+    final section = reader.section('upscale');
     if (section == null) {
       return const IllustrationUpscaleSettings();
     }
-    _rejectUnknownKeys(section, const <String>{
-      'enabled',
-      'model',
-      'targetSize',
-    }, 'illustration.upscale');
+    section.rejectUnknownKeys(const <String>{'enabled', 'model', 'targetSize'});
     return IllustrationUpscaleSettings(
-      enabled: _readBool(
-        section,
-        'enabled',
-        'illustration.upscale.enabled',
-        fallback: false,
-      ),
+      enabled: section.optionalBool('enabled', fallback: false),
       model:
-          _readNonEmptyString(section, 'model', 'illustration.upscale.model') ??
+          section.optionalString('model') ??
           IllustrationUpscaleSettings.defaultModel,
-      targetSize: _readBoundedInt(
-        section,
+      targetSize: section.optionalInt(
         'targetSize',
-        'illustration.upscale.targetSize',
         minimum: IllustrationUpscaleSettings.minimumTargetSize,
         maximum: IllustrationUpscaleSettings.maximumTargetSize,
         fallback: IllustrationUpscaleSettings.defaultTargetSize,
@@ -477,182 +468,24 @@ class IllustrationSettings {
     );
   }
 
-  static IllustrationFaceDetailSettings _readFaceDetail(
-    Map<String, Object?> json,
-  ) {
-    final section = _readSection(json, 'faceDetail', 'illustration.faceDetail');
+  static IllustrationFaceDetailSettings _readFaceDetail(JsonReader reader) {
+    final section = reader.section('faceDetail');
     if (section == null) {
       return const IllustrationFaceDetailSettings();
     }
-    _rejectUnknownKeys(section, const <String>{
-      'enabled',
-      'detector',
-      'denoise',
-    }, 'illustration.faceDetail');
+    section.rejectUnknownKeys(const <String>{'enabled', 'detector', 'denoise'});
     return IllustrationFaceDetailSettings(
-      enabled: _readBool(
-        section,
-        'enabled',
-        'illustration.faceDetail.enabled',
-        fallback: false,
-      ),
+      enabled: section.optionalBool('enabled', fallback: false),
       detector:
-          _readNonEmptyString(
-            section,
-            'detector',
-            'illustration.faceDetail.detector',
-          ) ??
+          section.optionalString('detector') ??
           IllustrationFaceDetailSettings.defaultDetector,
-      denoise: _readBoundedDouble(
-        section,
+      denoise: section.optionalDouble(
         'denoise',
-        'illustration.faceDetail.denoise',
         minimum: 0.0,
         minimumIsExclusive: true,
         maximum: 1.0,
         fallback: IllustrationFaceDetailSettings.defaultDenoise,
       ),
     );
-  }
-
-  static void _rejectUnknownKeys(
-    Map<String, Object?> json,
-    Set<String> known,
-    String path,
-  ) {
-    for (final key in json.keys) {
-      if (!known.contains(key)) {
-        throw FormatException(
-          'Bridge config section "$path" has no setting named "$key". '
-          'Known settings: ${(known.toList()..sort()).join(', ')}.',
-        );
-      }
-    }
-  }
-
-  static Map<String, Object?>? _readSection(
-    Map<String, Object?> json,
-    String key,
-    String path,
-  ) {
-    final value = json[key];
-    if (value == null) {
-      return null;
-    }
-    if (value is! Map<String, Object?>) {
-      throw FormatException('Bridge config field "$path" must be an object.');
-    }
-    return value;
-  }
-
-  static String? _readNonEmptyString(
-    Map<String, Object?> json,
-    String key,
-    String path,
-  ) {
-    final value = json[key];
-    if (value == null) {
-      return null;
-    }
-    if (value is! String || value.trim().isEmpty) {
-      throw FormatException(
-        'Bridge config field "$path" must be a non-empty string.',
-      );
-    }
-    return value.trim();
-  }
-
-  static bool _readBool(
-    Map<String, Object?> json,
-    String key,
-    String path, {
-    required bool fallback,
-  }) {
-    final value = json[key];
-    if (value == null) {
-      return fallback;
-    }
-    if (value is! bool) {
-      throw FormatException(
-        'Bridge config field "$path" must be true or false.',
-      );
-    }
-    return value;
-  }
-
-  static int _readChoice(
-    Map<String, Object?> json,
-    String key,
-    String path,
-    List<int> allowed,
-    int fallback,
-  ) {
-    final value = json[key];
-    if (value == null) {
-      return fallback;
-    }
-    if (value is! int || !allowed.contains(value)) {
-      throw FormatException(
-        'Bridge config field "$path" must be one of ${allowed.join(', ')}.',
-      );
-    }
-    return value;
-  }
-
-  static int _readBoundedInt(
-    Map<String, Object?> json,
-    String key,
-    String path, {
-    required int minimum,
-    required int maximum,
-    required int fallback,
-  }) {
-    final value = json[key];
-    if (value == null) {
-      return fallback;
-    }
-    if (value is! int || value < minimum || value > maximum) {
-      throw FormatException(
-        'Bridge config field "$path" must be an integer between $minimum '
-        'and $maximum.',
-      );
-    }
-    return value;
-  }
-
-  /// Reads one bounded number, accepting the JSON integer spelling of it.
-  ///
-  /// `7` and `7.0` are the same number in a configuration file, so an integer
-  /// is widened; anything that is not a number at all is refused rather than
-  /// parsed out of a string. A null [fallback] marks the field as required.
-  static double _readBoundedDouble(
-    Map<String, Object?> json,
-    String key,
-    String path, {
-    required double minimum,
-    required double maximum,
-    double? fallback,
-    bool minimumIsExclusive = false,
-  }) {
-    final value = json[key];
-    if (value == null) {
-      if (fallback == null) {
-        throw FormatException('Bridge config field "$path" is required.');
-      }
-      return fallback;
-    }
-    final double? number = value is int
-        ? value.toDouble()
-        : (value is double ? value : null);
-    if (number == null ||
-        number > maximum ||
-        (minimumIsExclusive ? number <= minimum : number < minimum)) {
-      throw FormatException(
-        'Bridge config field "$path" must be a number '
-        '${minimumIsExclusive ? 'above' : 'between'} $minimum '
-        '${minimumIsExclusive ? 'and up to' : 'and'} $maximum.',
-      );
-    }
-    return number;
   }
 }

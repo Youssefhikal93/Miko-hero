@@ -1,3 +1,4 @@
+import 'package:iam_hero_bridge/src/common/local_network.dart';
 import 'package:shelf/shelf.dart';
 
 /// Grants browser pages controlled cross-origin access to the bridge.
@@ -28,7 +29,12 @@ Middleware corsMiddleware({required List<String> extraAllowedOrigins}) {
     if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
       return false;
     }
-    return _isLoopbackHost(uri.host);
+    // Deliberately the narrow question: a page served from the LAN is not
+    // consented to here, only one served from this very machine. Both
+    // predicates read the same parsed address, so "is this loopback" and the
+    // configuration's wider "is this private" can never disagree about what
+    // an address is.
+    return isLoopbackHost(uri.host);
   }
 
   Map<String, String> allowHeaders(String origin) {
@@ -72,18 +78,6 @@ Middleware corsMiddleware({required List<String> extraAllowedOrigins}) {
       return response.change(headers: allowHeaders(origin));
     };
   };
-}
-
-bool _isLoopbackHost(String host) {
-  final normalized = host.toLowerCase();
-  if (normalized == 'localhost' || normalized == '::1') return true;
-  final octets = normalized.split('.');
-  return octets.length == 4 &&
-      octets.first == '127' &&
-      octets.every((octet) {
-        final value = int.tryParse(octet);
-        return value != null && value >= 0 && value <= 255;
-      });
 }
 
 String _normalizeOrigin(String origin) {

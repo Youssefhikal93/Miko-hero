@@ -95,6 +95,50 @@ void main() {
     }
   });
 
+  test('the confirmed spelling travels beside the entered name', () async {
+    final httpClient = _bridge(
+      story: bridgeStoryPayload(
+        storyId: 'story-9',
+        languageCode: 'ar',
+        pageCount: 6,
+      ),
+    );
+    final generator = _generator(
+      httpClient,
+      currentTime: () => fixedTime,
+      nameSpelling: 'مليكة',
+    );
+
+    await generator.generate(_request(language: AppLanguage.arabic));
+
+    final body = httpClient.jsonBodiesFor('/stories/generate').single;
+    expect(body['heroName'], 'Miko');
+    expect(body['heroNameSpelling'], 'مليكة');
+  });
+
+  test(
+    'a child with no spelling for this language sends no field at all',
+    () async {
+      final httpClient = _bridge(
+        story: bridgeStoryPayload(
+          storyId: 'story-9',
+          languageCode: 'en',
+          pageCount: 6,
+        ),
+      );
+      final generator = _generator(httpClient, currentTime: () => fixedTime);
+
+      await generator.generate(_request());
+
+      final body = httpClient.jsonBodiesFor('/stories/generate').single;
+      expect(
+        body.containsKey('heroNameSpelling'),
+        isFalse,
+        reason: 'an older bridge must see the body it has always seen',
+      );
+    },
+  );
+
   test('a request without a parent gender choice never reaches the PC', () {
     final httpClient = _bridge(
       story: bridgeStoryPayload(
@@ -335,6 +379,7 @@ LocalAiStoryGenerator _generator(
   FakeBridgeHttpClient httpClient, {
   required DateTime Function() currentTime,
   void Function(LocalAiProgress progress)? onProgress,
+  String nameSpelling = '',
 }) {
   return LocalAiStoryGenerator(
     client: BridgeClient(
@@ -343,6 +388,7 @@ LocalAiStoryGenerator _generator(
       deviceToken: 'device-token',
     ),
     resolveAgeYears: (request) => 7,
+    resolveNameSpelling: (request) => nameSpelling,
     currentTime: currentTime,
     onProgress: onProgress,
     pollInterval: Duration.zero,

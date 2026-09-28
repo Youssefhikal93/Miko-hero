@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:miko_hero/core/models/app_language.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
-import 'package:miko_hero/core/models/child_reading_settings.dart';
 import 'package:miko_hero/core/models/child_story_preferences.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/app_language_dropdown.dart';
+import 'package:miko_hero/shared/reading_comfort_controls.dart';
 
 /// Per-child story defaults, recurring world, interests, and safety controls.
 class StoryPreferencesCard extends ConsumerWidget {
@@ -30,7 +31,7 @@ class StoryPreferencesCard extends ConsumerWidget {
           children: <Widget>[
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.menu_book_rounded),
+              leading: const Icon(AppIcons.shelf),
               title: Text(text.storyPreferencesTitle),
               subtitle: Text(text.storyPreferencesBody(profile.name)),
             ),
@@ -38,11 +39,11 @@ class StoryPreferencesCard extends ConsumerWidget {
             const SizedBox(height: 16),
             FilledButton.tonalIcon(
               onPressed: () => _editPreferences(context, ref),
-              icon: const Icon(Icons.tune_rounded),
+              icon: const Icon(AppIcons.storyPreferences),
               label: Text(text.editStoryPreferences),
             ),
             const Divider(height: 34),
-            _ReadingComfortControls(profile: profile),
+            ReadingComfortControls(profile: profile),
           ],
         ),
       ),
@@ -77,99 +78,6 @@ class StoryPreferencesCard extends ConsumerWidget {
   }
 }
 
-/// Reader text size and easy-reading font controls for one child.
-///
-/// Lives beside the story preferences because a parent thinks of both as "how
-/// this child's stories work", but the values are stored separately: these only
-/// change how existing prose is displayed and never reach a generator.
-class _ReadingComfortControls extends ConsumerWidget {
-  /// Creates comfort controls for the active My Kingdom profile.
-  const _ReadingComfortControls({required this.profile});
-
-  final ChildProfile profile;
-
-  @override
-  /// Saves every choice immediately, the way the kingdom style card does.
-  Widget build(BuildContext context, WidgetRef ref) {
-    final text = AppLocalizations.of(context);
-    final settings = profile.readingSettings;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          text.readingComfortTitle,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 6),
-        Text(text.readingComfortBody(profile.name)),
-        const SizedBox(height: 14),
-        Text(text.readerTextSize),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: ReaderTextSize.values
-              .map((size) {
-                return ChoiceChip(
-                  key: ValueKey<String>('reader-text-size-${size.name}'),
-                  selected: settings.textSize == size,
-                  onSelected: (_) =>
-                      _save(context, ref, settings.withTextSize(size)),
-                  label: Text(_textSizeLabel(text, size)),
-                );
-              })
-              .toList(growable: false),
-        ),
-        const SizedBox(height: 6),
-        SwitchListTile(
-          key: const ValueKey<String>('easy-reading-font'),
-          contentPadding: EdgeInsets.zero,
-          value: settings.easyReadingFont,
-          title: Text(text.easyReadingFont),
-          subtitle: Text(text.easyReadingFontHint),
-          onChanged: (enabled) =>
-              _save(context, ref, settings.withEasyReadingFont(enabled)),
-        ),
-      ],
-    );
-  }
-
-  /// Persists one comfort change and confirms it with a short message.
-  Future<void> _save(
-    BuildContext context,
-    WidgetRef ref,
-    ChildReadingSettings settings,
-  ) async {
-    final text = AppLocalizations.of(context);
-    try {
-      await ref
-          .read(profileControllerProvider)
-          .setReadingSettings(profile.id, settings);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(text.readingComfortSaved(profile.name))),
-        );
-    } on Exception {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(text.somethingWentWrong)));
-    }
-  }
-}
-
-/// Localizes one reader prose size while keeping its stable storage name.
-String _textSizeLabel(AppLocalizations text, ReaderTextSize size) {
-  return switch (size) {
-    ReaderTextSize.small => text.textSizeSmall,
-    ReaderTextSize.medium => text.textSizeMedium,
-    ReaderTextSize.large => text.textSizeLarge,
-    ReaderTextSize.extraLarge => text.textSizeExtraLarge,
-  };
-}
-
 /// Compact read-only summary that avoids exposing empty placeholder values.
 class _PreferenceSummary extends StatelessWidget {
   /// Creates a summary from one validated preference snapshot.
@@ -183,7 +91,7 @@ class _PreferenceSummary extends StatelessWidget {
     final text = AppLocalizations.of(context);
     final entries = <String>[
       text.defaultStoryLanguageValue(
-        _languageName(text, preferences.defaultLanguage),
+        appLanguageName(text, preferences.defaultLanguage),
       ),
       if (preferences.favoriteThings.isNotEmpty)
         text.favoriteThingsValue(preferences.favoriteThings),
@@ -354,16 +262,6 @@ class _StoryPreferencesDialogState extends State<_StoryPreferencesDialog> {
       ),
     );
   }
-}
-
-/// Localizes one supported story language for a preference summary.
-String _languageName(AppLocalizations text, AppLanguage language) {
-  return switch (language) {
-    AppLanguage.english => text.english,
-    AppLanguage.arabic => text.arabic,
-    AppLanguage.swedish => text.swedish,
-    AppLanguage.somali => text.somali,
-  };
 }
 
 /// Localizes one exclusion while retaining its stable storage enum.

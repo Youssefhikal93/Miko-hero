@@ -79,7 +79,7 @@ void main() {
 
   test('a decorated profile is written at the current schema version', () {
     expect(_familyState().toJson()['schemaVersion'], appStateSchemaVersion);
-    expect(appStateSchemaVersion, 4);
+    expect(appStateSchemaVersion, 5);
   });
 
   test('an older snapshot is accepted and a newer one is refused', () {

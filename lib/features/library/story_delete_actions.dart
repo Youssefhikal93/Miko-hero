@@ -7,7 +7,7 @@ import 'package:miko_hero/features/settings/library_sync_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
-import 'package:miko_hero/shared/parent_access_gate.dart';
+import 'package:miko_hero/shared/parent_gated_action.dart';
 
 /// What the parent chose in the two-choice dialog for one bridge story.
 enum BridgeStoryDeleteChoice {
@@ -28,24 +28,23 @@ Future<void> deleteStoryWithParentGate(
   BuildContext context,
   WidgetRef ref,
   StoryBook story,
-) async {
-  final hasAccess = await requestParentAccess(context, ref);
-  if (!hasAccess || !context.mounted) return;
+) {
   if (BridgeStoryProvenance.storyIdOf(story) == null) {
-    await _deleteLocalStory(context, ref, story);
-    return;
+    return _deleteLocalStory(context, ref, story);
   }
-  final choice = await showDialog<BridgeStoryDeleteChoice>(
-    context: context,
-    builder: (context) => const _BridgeStoryDeleteDialog(),
-  );
-  if (choice == null || !context.mounted) return;
-  switch (choice) {
-    case BridgeStoryDeleteChoice.removeFromDevice:
-      await _removeFromThisDevice(context, ref, story);
-    case BridgeStoryDeleteChoice.deleteEverywhere:
-      await _deleteEverywhere(context, ref, story);
-  }
+  return _deleteBridgeStory(context, ref, story);
+}
+
+/// What became of one story the PC master library also holds.
+enum _BridgeStoryDeletion {
+  /// Only this device's offline copy is gone; the PC still has the story.
+  removedFromDevice,
+
+  /// The PC deleted it, so every family device loses it at the next sync.
+  deletedEverywhere,
+
+  /// The PC had already deleted it, so this device only caught up.
+  alreadyDeletedEverywhere,
 }
 
 /// Confirms and performs the single local deletion a demo story allows.
@@ -53,11 +52,69 @@ Future<void> _deleteLocalStory(
   BuildContext context,
   WidgetRef ref,
   StoryBook story,
-) async {
-  final text = AppLocalizations.of(context);
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
+) {
+  return runParentGatedAction<bool, void>(
+    context,
+    ref,
+    confirm: confirmedByDialog((context) => const _DeleteStoryDialog()),
+    run: (context, _) =>
+        ref.read(storyControllerProvider).deleteStory(story.id),
+    // The book leaving the shelf underneath is the whole answer.
+    report: (text, _) => null,
+  );
+}
+
+/// Asks which of the two deletions the parent means, then performs that one.
+///
+/// Deleting everywhere asks the PC first and only then drops the local copy:
+/// offline it fails with the typed bridge message and changes nothing here,
+/// because a local-only delete would quietly do something else than what the
+/// parent asked for, and every other device would keep its copy.
+Future<void> _deleteBridgeStory(
+  BuildContext context,
+  WidgetRef ref,
+  StoryBook story,
+) {
+  return runParentGatedAction<BridgeStoryDeleteChoice, _BridgeStoryDeletion>(
+    context,
+    ref,
+    confirm: (context) => showDialog<BridgeStoryDeleteChoice>(
+      context: context,
+      builder: (context) => const _BridgeStoryDeleteDialog(),
+    ),
+    run: (context, choice) async {
+      final library = ref.read(librarySyncControllerProvider.notifier);
+      switch (choice) {
+        case BridgeStoryDeleteChoice.removeFromDevice:
+          await library.removeFromThisDevice(story.id);
+          return _BridgeStoryDeletion.removedFromDevice;
+        case BridgeStoryDeleteChoice.deleteEverywhere:
+          final deletion = await library.deleteEverywhere(story.id);
+          return deletion.alreadyDeleted
+              ? _BridgeStoryDeletion.alreadyDeletedEverywhere
+              : _BridgeStoryDeletion.deletedEverywhere;
+      }
+    },
+    report: (text, deletion) => switch (deletion) {
+      _BridgeStoryDeletion.removedFromDevice => text.storyRemovedFromDevice,
+      _BridgeStoryDeletion.deletedEverywhere => text.storyDeletedEverywhere,
+      _BridgeStoryDeletion.alreadyDeletedEverywhere =>
+        text.storyAlreadyDeletedEverywhere,
+    },
+    onFailure: localAiFailureMessage,
+  );
+}
+
+/// The one meaning "delete" has for a story only this device holds.
+class _DeleteStoryDialog extends StatelessWidget {
+  /// Creates the confirmation shown behind the parent gate.
+  const _DeleteStoryDialog();
+
+  @override
+  /// Says that the copy being deleted is the only copy there is.
+  Widget build(BuildContext context) {
+    final text = AppLocalizations.of(context);
+    return AlertDialog(
       title: Text(text.deleteStoryTitle),
       content: Text(text.deleteStoryBody),
       actions: <Widget>[
@@ -70,67 +127,8 @@ Future<void> _deleteLocalStory(
           child: Text(text.confirmDelete),
         ),
       ],
-    ),
-  );
-  if (confirmed != true || !context.mounted) return;
-  final messenger = ScaffoldMessenger.of(context);
-  try {
-    await ref.read(storyControllerProvider).deleteStory(story.id);
-  } on Exception {
-    _report(messenger, text.somethingWentWrong);
-  }
-}
-
-/// Deletes only this device's copy and keeps sync from bringing it back.
-Future<void> _removeFromThisDevice(
-  BuildContext context,
-  WidgetRef ref,
-  StoryBook story,
-) async {
-  final text = AppLocalizations.of(context);
-  final messenger = ScaffoldMessenger.of(context);
-  try {
-    await ref
-        .read(librarySyncControllerProvider.notifier)
-        .removeFromThisDevice(story.id);
-    _report(messenger, text.storyRemovedFromDevice);
-  } on Exception {
-    _report(messenger, text.somethingWentWrong);
-  }
-}
-
-/// Deletes the story on the PC first and only then on this device.
-///
-/// Offline this fails with the typed bridge message and changes nothing here:
-/// a local-only delete would quietly do something else than what the parent
-/// asked for, and every other device would keep its copy.
-Future<void> _deleteEverywhere(
-  BuildContext context,
-  WidgetRef ref,
-  StoryBook story,
-) async {
-  final text = AppLocalizations.of(context);
-  final messenger = ScaffoldMessenger.of(context);
-  try {
-    final deletion = await ref
-        .read(librarySyncControllerProvider.notifier)
-        .deleteEverywhere(story.id);
-    _report(
-      messenger,
-      deletion.alreadyDeleted
-          ? text.storyAlreadyDeletedEverywhere
-          : text.storyDeletedEverywhere,
     );
-  } on Exception catch (error) {
-    _report(messenger, localAiFailureMessage(text, error));
   }
-}
-
-/// Shows one short outcome without leaving the shelf the parent is on.
-void _report(ScaffoldMessengerState messenger, String message) {
-  messenger
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
 }
 
 /// The two clearly worded deletion choices for one bridge story.

@@ -177,6 +177,20 @@ class ProfilePhotoStore {
     if (!isValidProfileId(profileId) || !profileExists(profileId)) {
       throw UnknownProfileException(profileId);
     }
+    final removed = await removePhotoFiles(profileId);
+    _touchProfile(profileId, nowUtc);
+    return removed;
+  }
+
+  /// Removes the photo file of [profileId] without touching the database.
+  ///
+  /// Returns `true` when a file was actually deleted. This is the delete a
+  /// profile's own removal needs: by the time the photo goes, the profile row
+  /// is already gone, so there is no row left to check or to touch.
+  Future<bool> removePhotoFiles(String profileId) async {
+    if (!isValidProfileId(profileId)) {
+      return false;
+    }
     var removed = false;
     for (final format in ReferenceImageFormat.values) {
       final deleted = await _deleteIfPresent(
@@ -184,7 +198,6 @@ class ProfilePhotoStore {
       );
       removed = removed || deleted;
     }
-    _touchProfile(profileId, nowUtc);
     return removed;
   }
 

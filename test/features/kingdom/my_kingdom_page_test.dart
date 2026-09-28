@@ -1,34 +1,29 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:miko_hero/app/app_router.dart';
-import 'package:miko_hero/app/iam_hero_app.dart';
+import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/kingdom_theme.dart';
 import 'package:miko_hero/features/kingdom/kingdom_decorations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../support/seeded_device.dart';
 
 /// Verifies that each child keeps their own kingdom decoration.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'active_profile_id': 'miko',
-      'child_profiles': jsonEncode(<Map<String, Object>>[
-        _profile('miko', 'Miko', 'girl'),
-        _profile('abbas', 'Abbas', 'boy'),
-      ]),
-    });
-    appRouter.go('/kingdom');
+  setUp(() async {
+    await seedDevice(
+      profiles: <ChildProfile>[
+        child(),
+        child(id: 'abbas', name: 'Abbas', gender: ChildGender.boy),
+      ],
+      activeProfileId: 'miko',
+    );
   });
 
   testWidgets('choosing a castle, frame, backdrop, and symbol saves them', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/kingdom');
 
     expect(_castle(tester).style, CastleStyle.classicTowers);
 
@@ -50,8 +45,7 @@ void main() {
   testWidgets('a second hero keeps decoration choices of their own', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: IamHeroApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester, route: '/kingdom');
 
     await _choose(tester, 'castle-roundDomes');
     await _choose(tester, 'symbol-football');
@@ -104,17 +98,3 @@ bool _selected(WidgetTester tester, String chipKey) {
       .widget<ChoiceChip>(find.byKey(ValueKey<String>(chipKey)))
       .selected;
 }
-
-/// One private child profile stored the way the editor would save it.
-Map<String, Object> _profile(String id, String name, String gender) {
-  return <String, Object>{
-    'id': id,
-    'name': name,
-    'age': 7,
-    'photoBase64': _transparentPixel,
-    'gender': gender,
-  };
-}
-
-const _transparentPixel =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';

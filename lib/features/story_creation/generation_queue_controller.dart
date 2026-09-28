@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_controller.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
+import 'package:miko_hero/core/models/local_identity.dart';
 import 'package:miko_hero/core/models/story_models.dart';
 import 'package:miko_hero/core/models/unknown_entity_exception.dart';
 import 'package:miko_hero/core/storage/local_repository.dart';
@@ -121,13 +122,11 @@ class GenerationQueueController extends AsyncNotifier<List<GenerationJob>> {
 
   /// Creates a collision-free identity from the enqueue timestamp.
   String _newJobId(List<GenerationJob> jobs, DateTime createdAt) {
-    final baseId = 'generation-${createdAt.microsecondsSinceEpoch}';
-    var candidate = baseId;
-    var suffix = 1;
-    while (jobs.any((job) => job.id == candidate)) {
-      candidate = '$baseId-${suffix++}';
-    }
-    return candidate;
+    return newLocalId(
+      prefix: 'generation',
+      createdAt: createdAt,
+      takenIds: jobs.map((job) => job.id),
+    );
   }
 
   /// Detects whether interrupted running states required normalization.

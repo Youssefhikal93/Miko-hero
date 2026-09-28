@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:miko_hero/core/models/reading_badge.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 
 /// Bounded Material icon drawn for one reading badge.
 ///
@@ -8,10 +9,10 @@ import 'package:miko_hero/l10n/app_localizations.dart';
 /// kingdom decorations.
 IconData readingBadgeIcon(ReadingBadge badge) {
   return switch (badge) {
-    ReadingBadge.firstStory => Icons.auto_stories_rounded,
-    ReadingBadge.fiveStories => Icons.star_rounded,
-    ReadingBadge.tenStories => Icons.workspace_premium_rounded,
-    ReadingBadge.twentyFiveStories => Icons.emoji_events_rounded,
+    ReadingBadge.firstStory => AppIcons.stories,
+    ReadingBadge.fiveStories => AppIcons.star,
+    ReadingBadge.tenStories => AppIcons.crown,
+    ReadingBadge.twentyFiveStories => AppIcons.readingBadge,
   };
 }
 

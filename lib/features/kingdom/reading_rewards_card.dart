@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/core/models/reading_badge.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/reading_badge_view.dart';
 
 /// Earned reading badges and progress toward the next one for one child.
@@ -28,7 +29,7 @@ class ReadingRewardsCard extends StatelessWidget {
           children: <Widget>[
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.emoji_events_rounded),
+              leading: const Icon(AppIcons.readingBadge),
               title: Text(text.readingBadgesTitle),
               subtitle: Text(text.readingBadgesBody(profile.name)),
             ),

@@ -1391,6 +1391,51 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pairedDeviceForgotten => 'تمت إزالة الاقتران من هذا الجهاز';
 
   @override
+  String get pairedDevicesTitle => 'الأجهزة المقترنة بالكمبيوتر';
+
+  @override
+  String get pairedDevicesBody =>
+      'كل جهاز مذكور هنا يصل إلى الكمبيوتر. إن أزلت جهازاً فعليه الاقتران من جديد.';
+
+  @override
+  String get pairedDevicesEmpty => 'لا يعرض الكمبيوتر أي جهاز مقترن.';
+
+  @override
+  String pairedDeviceThisDevice(String name) {
+    return '$name · هذا الجهاز';
+  }
+
+  @override
+  String pairedDeviceSince(String date) {
+    return 'اقترن في $date';
+  }
+
+  @override
+  String pairedDeviceLastSeen(String date) {
+    return 'آخر ظهور $date';
+  }
+
+  @override
+  String get pairedDeviceNeverSeen => 'لم يُستخدم منذ الاقتران';
+
+  @override
+  String get removePairedDevice => 'إزالة';
+
+  @override
+  String removePairedDeviceTitle(String name) {
+    return 'هل تزيل $name؟';
+  }
+
+  @override
+  String get removePairedDeviceBody =>
+      'سيفقد ذلك الجهاز الوصول إلى الكمبيوتر فوراً. يمكنه الاقتران من جديد برمز جديد.';
+
+  @override
+  String pairedDeviceRemoved(String name) {
+    return 'لم يعد $name قادراً على الوصول إلى الكمبيوتر';
+  }
+
+  @override
   String get openAiConnectionSettings => 'فتح إعدادات اتصال الذكاء الاصطناعي';
 
   @override
@@ -1417,6 +1462,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get bridgeUnreachable =>
       'لم يستجب الكمبيوتر. تأكد من تشغيل الجسر ومن صحة العنوان.';
+
+  @override
+  String get bridgeBlockedByBrowser =>
+      'لم يسمح المتصفح لهذه الصفحة بالاتصال بالكمبيوتر. على الكمبيوتر نفسه، أو على جهاز يعمل عليه Tailscale، افتح إعدادات الموقع في المتصفح لهذه الصفحة، واضبط \"الوصول إلى الشبكة المحلية\" على السماح، ثم أعد تحميل الصفحة. إن استمر الفشل، تأكد من تشغيل الجسر ومن صحة العنوان.';
 
   @override
   String get bridgeTimedOut => 'استغرق الكمبيوتر وقتاً طويلاً للرد.';
@@ -1446,6 +1495,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get bridgeInvalidRequest => 'رفض الكمبيوتر طلب القصة هذا.';
+
+  @override
+  String get bridgeDeviceNotFound => 'لم يعد الكمبيوتر يعرف ذلك الجهاز.';
+
+  @override
+  String get bridgeCannotRemoveThisDevice =>
+      'استخدم «نسيان هذا الجهاز» لإلغاء اقتران هذا الجهاز.';
 
   @override
   String get bridgeJobNotFound => 'لم يعد الكمبيوتر يعرف طلب القصة هذا.';
@@ -1643,4 +1699,192 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get bridgeIllustrationNotReady => 'لم تُرسم هذه الصورة بعد.';
+
+  @override
+  String get heroSheetTitle => 'كيف يُرسم البطل';
+
+  @override
+  String get heroSheetIntro =>
+      'يقرأ الكمبيوتر صورة هذا الطفل مرة واحدة ثم يرسم البطل نفسه في كل قصة. وأنت تحدّد ما يرتديه البطل وما يحمله دائماً.';
+
+  @override
+  String get heroSheetReadFromPhoto => 'مقروء من الصورة';
+
+  @override
+  String get heroSheetHair => 'الشعر';
+
+  @override
+  String get heroSheetSkinTone => 'لون البشرة';
+
+  @override
+  String get heroSheetEyeColor => 'العينان';
+
+  @override
+  String get heroSheetNotReadYet => 'لم يقرأ الكمبيوتر هذه الصورة بعد.';
+
+  @override
+  String get heroSheetOutfit => 'يرتدي دائماً';
+
+  @override
+  String get heroSheetProp => 'يحمل دائماً';
+
+  @override
+  String get heroSheetWardrobeHelper =>
+      'عبارة قصيرة بالإنجليزية، لأن نموذج الرسم يقرأ الإنجليزية.';
+
+  @override
+  String get heroSheetReadAgain => 'اقرأ الصورة من جديد';
+
+  @override
+  String get heroSheetRereadDone => 'قرأ الكمبيوتر الصورة من جديد.';
+
+  @override
+  String get heroSheetRereadPending =>
+      'الكمبيوتر مشغول، وسيقرأ الصورة من جديد بعد قليل.';
+
+  @override
+  String get heroSheetRereadFailed =>
+      'لم يتمكن الكمبيوتر من قراءة الصورة من جديد.';
+
+  @override
+  String get heroSheetSaveFailed => 'لم يُحفظ ما يرتديه البطل على الكمبيوتر.';
+
+  @override
+  String get heroSheetUnavailable =>
+      'لم يردّ الكمبيوتر، لذلك لا يظهر شكل البطل.';
+
+  @override
+  String get settingsSubtitle => 'كل ما يقرره أحد الوالدين لهذا الجهاز.';
+
+  @override
+  String get settingsFamilyTitle => 'العائلة';
+
+  @override
+  String get settingsFamilyBody => 'الأبطال على هذا الجهاز، ولغة التطبيق.';
+
+  @override
+  String get settingsReadingTitle => 'القراءة';
+
+  @override
+  String get settingsReadingBody =>
+      'شكل صفحات القصة، وطريقة قراءتها بصوت عالٍ.';
+
+  @override
+  String get settingsPcTitle => 'الكمبيوتر';
+
+  @override
+  String get settingsPcBody =>
+      'مكان كتابة القصص، والأجهزة التي يثق بها الكمبيوتر، والمكتبة دون اتصال.';
+
+  @override
+  String get settingsSafetyTitle => 'الأمان';
+
+  @override
+  String get settingsSafetyBody =>
+      'رمز PIN للوالدين والمواضيع التي تتجنبها القصص.';
+
+  @override
+  String get settingsSafetyTopicsBody => 'تُختار لكل طفل في مملكتي.';
+
+  @override
+  String get settingsDataTitle => 'بياناتك';
+
+  @override
+  String get settingsDataBody =>
+      'النسخ الاحتياطية، وما يبقى على هذا الجهاز، وحذفه كله.';
+
+  @override
+  String get settingsAboutSummary => 'ما هذا التطبيق ومن يكتب قصصه';
+
+  @override
+  String get settingsNoHeroes => 'لا توجد ملفات أبطال على هذا الجهاز بعد';
+
+  @override
+  String settingsReadingTextSizeValue(String size) {
+    return 'حجم النص: $size';
+  }
+
+  @override
+  String get settingsReadingMixed => 'مختلط';
+
+  @override
+  String get settingsReadingEasyOn => 'خط القراءة السهلة مفعّل';
+
+  @override
+  String get settingsReadingEasyOff => 'خط القراءة السهلة متوقف';
+
+  @override
+  String get settingsReadingEasySome => 'خط القراءة السهلة لبعض الأبطال';
+
+  @override
+  String get settingsPcDemo => 'قصص تجريبية';
+
+  @override
+  String get settingsPcNotPaired => 'الكمبيوتر · غير مقترن بعد';
+
+  @override
+  String get settingsPcPaired => 'مقترن بالكمبيوتر';
+
+  @override
+  String get settingsPcNeverSynced => 'لم تتم المزامنة بعد';
+
+  @override
+  String settingsPcSyncedAt(String moment) {
+    return 'تمت المزامنة $moment';
+  }
+
+  @override
+  String get settingsSafetyPinOn => 'رمز PIN للوالدين مفعّل';
+
+  @override
+  String get settingsSafetyPinOff => 'لا يوجد رمز PIN للوالدين';
+
+  @override
+  String settingsDataSummary(int count) {
+    return 'القصص على هذا الجهاز: $count';
+  }
+
+  @override
+  String get settingsNarrationTitle => 'القراءة بصوت عالٍ';
+
+  @override
+  String get settingsNarrationBody =>
+      'تُختار سرعة القراءة ومقدارها ومؤقّت النوم داخل القارئ في كل مرة تُقرأ فيها قصة بصوت عالٍ. لا يُحفظ أي من ذلك على هذا الجهاز.';
+
+  @override
+  String get settingsDangerZone => 'لا يمكن التراجع';
+
+  @override
+  String get nameSpellingsTitle => 'الاسم في كل لغة';
+
+  @override
+  String nameSpellingsBody(String name) {
+    return 'كيف يُكتب اسم $name في كل لغة من لغات القصص. اترك الخانة فارغة لاستخدام الاسم كما كتبته تمامًا.';
+  }
+
+  @override
+  String get nameSpellingsHint => 'الاسم نفسه بحروف تلك اللغة';
+
+  @override
+  String get suggestNameSpellings => 'اسأل الكمبيوتر';
+
+  @override
+  String get nameSpellingsSuggesting => 'نسأل الكمبيوتر كيف يُكتب الاسم…';
+
+  @override
+  String get nameSpellingsSuggested =>
+      'ملأ الكمبيوتر هذه الخانات. راجعها قبل الحفظ.';
+
+  @override
+  String get nameSpellingsSuggestFailed =>
+      'لم يستطع الكمبيوتر اقتراح الكتابة. يمكنك كتابتها بنفسك.';
+
+  @override
+  String get nameSpellingsNeedName => 'اكتب الاسم أولًا.';
+
+  @override
+  String get nameSpellingsNeedPc => 'اربط كمبيوتر العائلة ليملأها لك.';
+
+  @override
+  String get nameSpellingTooLong => 'هذا أطول من أن يكون اسمًا.';
 }

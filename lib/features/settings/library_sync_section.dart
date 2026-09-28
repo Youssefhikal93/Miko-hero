@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:miko_hero/core/ai_connection/library_sync.dart';
 import 'package:miko_hero/features/settings/library_sync_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 
 /// Parent-only synchronization controls inside the AI connection card.
@@ -29,7 +30,7 @@ class LibrarySyncSection extends ConsumerWidget {
       ),
       error: (error, stackTrace) => ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.error_outline_rounded),
+        leading: const Icon(AppIcons.error),
         title: Text(AppLocalizations.of(context).somethingWentWrong),
         trailing: TextButton(
           onPressed: () => ref.invalidate(librarySyncControllerProvider),
@@ -73,7 +74,7 @@ class _LoadedLibrarySyncSection extends ConsumerWidget {
                   dimension: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.cloud_sync_outlined),
+              : const Icon(AppIcons.sync),
           label: Text(
             snapshot.isSyncing ? text.librarySyncRunning : text.syncNow,
           ),
@@ -180,7 +181,7 @@ class _LoadedLibrarySyncSection extends ConsumerWidget {
           OutlinedButton.icon(
             key: const ValueKey<String>('redownload-removed-stories'),
             onPressed: () => unawaited(_allowRemovedStoriesAgain(context, ref)),
-            icon: const Icon(Icons.cloud_download_outlined),
+            icon: const Icon(AppIcons.redownload),
             label: Text(text.redownloadRemovedStories),
           ),
         ],

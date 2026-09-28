@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:iam_hero_bridge/src/common/atomic_files.dart';
 import 'package:iam_hero_bridge/src/common/image_bytes.dart';
 import 'package:iam_hero_bridge/src/common/paths.dart';
+import 'package:iam_hero_bridge/src/common/secrets.dart';
 import 'package:iam_hero_bridge/src/config/bridge_config.dart';
 import 'package:iam_hero_bridge/src/generation/story_generation_request.dart';
 import 'package:iam_hero_bridge/src/illustration/comfyui_client.dart';
@@ -20,11 +21,24 @@ import 'package:iam_hero_bridge/src/library/story_deleter.dart';
 /// anything that would busy-poll the local server.
 const Duration illustrationPollInterval = Duration(seconds: 1);
 
-/// Longest any single control call to ComfyUI may take.
+/// A reference photo that is now sitting inside ComfyUI's input folder.
 ///
-/// Submitting a workflow and reading history are metadata calls: if they
-/// have not answered in half a minute, the server is not merely busy.
-const Duration illustrationControlTimeout = Duration(seconds: 30);
+/// Carries the name to reference it by and the fingerprint of its bytes. The
+/// fingerprint never leaves the PC: it seeds the portrait, and it is how the
+/// bridge tells one photo from another without keeping a copy of either.
+class ReferencePhotoUpload {
+  /// Creates an upload descriptor.
+  const ReferencePhotoUpload({
+    required this.imageName,
+    required this.photoHash,
+  });
+
+  /// Name ComfyUI stored the photo under.
+  final String imageName;
+
+  /// Lowercase hexadecimal SHA-256 of the photo's bytes.
+  final String photoHash;
+}
 
 /// Renders one page image end to end: workflow in, stored PNG out.
 ///
@@ -54,18 +68,13 @@ class IllustrationRenderer {
   final Duration _pollInterval;
 
   /// Endpoint used for short metadata calls.
-  ComfyUiEndpoint get _control => ComfyUiEndpoint(
-    baseUrl: _config.comfyUiBaseUrl,
-    timeout: _config.illustrationTimeout < illustrationControlTimeout
-        ? _config.illustrationTimeout
-        : illustrationControlTimeout,
-  );
+  ComfyUiEndpoint get _control => _config.comfyUi.control;
 
   /// Endpoint used for the two calls that move bytes.
-  ComfyUiEndpoint get _transfer => ComfyUiEndpoint(
-    baseUrl: _config.comfyUiBaseUrl,
-    timeout: _config.illustrationTimeout,
-  );
+  ComfyUiEndpoint get _transfer => _config.comfyUi.transfer;
+
+  /// Wall-clock budget for rendering one page end to end.
+  Duration get _renderTimeout => _config.comfyUi.renderTimeout;
 
   /// Whether the local ComfyUI answers at all.
   Future<bool> isComfyUiReachable() => _client.isReachable(_control);
@@ -94,23 +103,31 @@ class IllustrationRenderer {
 
   /// Uploads the reference photo of [profileId], if there is one.
   ///
-  /// Returns the name ComfyUI stored it under, or `null` when the child has
-  /// no photo — in which case every page renders as plain text-to-image and
-  /// the hero simply will not resemble anyone in particular. A failed upload
-  /// is also reported as `null` rather than failing the job: a book without
-  /// face likeness beats no book at all.
-  Future<String?> uploadReferencePhoto(String profileId) async {
+  /// Returns the name ComfyUI stored it under plus the photo's fingerprint, or
+  /// `null` when the child has no photo — in which case every page renders as
+  /// plain text-to-image and the hero simply will not resemble anyone in
+  /// particular. A failed upload is also reported as `null` rather than failing
+  /// the job: a book without face likeness beats no book at all.
+  ///
+  /// The fingerprint is taken here because this is the one place the bytes are
+  /// already in hand, and stage one needs it to seed the portrait per photo
+  /// instead of per story.
+  Future<ReferencePhotoUpload?> uploadReferencePhoto(String profileId) async {
     final ProfileReferencePhoto? photo = _photoStore.findPhoto(profileId);
     if (photo == null) {
       return null;
     }
     try {
       final Uint8List bytes = await _photoStore.readPhotoBytes(photo);
-      return await _client.uploadReferenceImage(
+      final String imageName = await _client.uploadReferenceImage(
         _transfer,
         fileName: photo.fileName,
         contentType: photo.format.contentType,
         bytes: bytes,
+      );
+      return ReferencePhotoUpload(
+        imageName: imageName,
+        photoHash: sha256HexOfBytes(bytes),
       );
     } on Exception catch (_) {
       // The cause is dropped on purpose: it can carry the file path.
@@ -131,7 +148,7 @@ class IllustrationRenderer {
     required StoryGenderContext? gender,
     String? referenceImageName,
   }) async {
-    final deadline = _clock().toUtc().add(_config.illustrationTimeout);
+    final deadline = _clock().toUtc().add(_renderTimeout);
     final workflow = buildIllustrationWorkflow(
       illustrationId: target.illustrationId,
       sceneDescription: target.sceneDescription,
@@ -165,20 +182,26 @@ class IllustrationRenderer {
   /// The portrait is derived from the child's photo and is private content: it
   /// stays inside ComfyUI, is never written into the library, and neither it
   /// nor its name is ever logged.
+  ///
+  /// [photo] fixes the seed: the portrait is a function of the child and their
+  /// photograph, never of the book being made, so every story of one child
+  /// redraws the same face.
   Future<String?> renderStylizedReference({
     required String storyId,
-    required String photoImageName,
+    required String profileId,
+    required ReferencePhotoUpload photo,
     required StoryIllustrationStyle style,
     required StoryGenderContext? gender,
   }) async {
     // The stylization pass gets the same wall-clock budget as a page: it is
     // the same checkpoint, the same size and the same step count.
-    final deadline = _clock().toUtc().add(_config.illustrationTimeout);
+    final deadline = _clock().toUtc().add(_renderTimeout);
     try {
       final promptId = await _submit(
         buildReferenceStylizeWorkflow(
-          storyId: storyId,
-          photoImageName: photoImageName,
+          profileId: profileId,
+          photoHash: photo.photoHash,
+          photoImageName: photo.imageName,
           style: style,
           gender: gender,
           settings: _config.illustration,
@@ -266,7 +289,7 @@ class IllustrationRenderer {
         throw IllustrationException(
           IllustrationFailureCode.comfyUiTimeout,
           'ComfyUI did not finish the page within '
-          '${_config.illustrationTimeoutSeconds} seconds.',
+          '${_renderTimeout.inSeconds} seconds.',
         );
       }
       await Future<void>.delayed(_pollInterval);

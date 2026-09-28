@@ -46,15 +46,7 @@ class SyncHandlers {
   /// learns that difference.
   Future<Response> downloadStory(Request request, String storyId) async {
     requireAuthenticatedDevice(request);
-    final story = _reader.readStory(storyId);
-    if (story == null) {
-      throw ApiError(
-        404,
-        ApiErrorCode.storyNotFound,
-        'No story exists under this id.',
-      );
-    }
-    return jsonResponse(200, <String, Object?>{'story': story.toJson()});
+    return storyDownloadResponse(_reader, storyId);
   }
 
   /// Handles `GET /sync/illustrations/<illustrationId>`.
@@ -145,4 +137,22 @@ class SyncHandlers {
     }
     return jsonResponse(200, deletion.toJson());
   }
+}
+
+/// The one whole-story answer the bridge gives, whoever asked for it.
+///
+/// `GET /sync/stories/<storyId>` and `GET /stories/<storyId>` are the same
+/// question from two mouths — a device catching up, and the owner reading in
+/// Postman — so they share one serializer and one `404`. A second shape for
+/// the second caller would be a second thing to keep true.
+Response storyDownloadResponse(SyncReader reader, String storyId) {
+  final story = reader.readStory(storyId);
+  if (story == null) {
+    throw ApiError(
+      404,
+      ApiErrorCode.storyNotFound,
+      'No story exists under this id.',
+    );
+  }
+  return jsonResponse(200, <String, Object?>{'story': story.toJson()});
 }

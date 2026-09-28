@@ -36,7 +36,7 @@ class MasterLibrary {
   MasterLibrary({required this.rootPath});
 
   /// Schema version implemented by this build of the bridge.
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 4;
 
   /// Absolute or relative root folder of this library.
   final String rootPath;
@@ -149,6 +149,8 @@ class MasterLibrary {
 const Map<int, List<String>> schemaSteps = <int, List<String>>{
   1: schemaV1Statements,
   2: schemaV2Statements,
+  3: schemaV3Statements,
+  4: schemaV4Statements,
 };
 
 /// Ordered DDL statements that build schema version 1.
@@ -234,5 +236,53 @@ const List<String> schemaV2Statements = <String>[
   '''
   ALTER TABLE story_pages
     ADD COLUMN scene_description TEXT NOT NULL DEFAULT ''
+  ''',
+];
+
+/// Ordered DDL statements that upgrade schema version 2 to version 3.
+///
+/// Version 3 records when a paired device last authenticated, so the parent
+/// can see in the app which devices still reach the PC and remove the ones
+/// that should not. Nullable and undefaulted: a device that has not called
+/// since the upgrade truthfully has no last-seen moment, which is different
+/// from claiming it was seen at migration time.
+const List<String> schemaV3Statements = <String>[
+  '''
+  ALTER TABLE devices
+    ADD COLUMN last_seen_at_utc TEXT
+  ''',
+];
+
+/// Ordered DDL statements that upgrade schema version 3 to version 4.
+///
+/// Version 4 adds the per-child **character sheet**: how the drawn hero of a
+/// profile looks, so every story of one child draws the same character instead
+/// of inventing a new one per book. One row per profile, created the first
+/// time a photo is described and refreshed only when `photo_hash` changes.
+///
+/// A new table rather than columns on `profiles`, because the sheet is derived
+/// data with its own lifecycle: it appears and disappears with the photo, it is
+/// rebuilt from the photo whenever it is missing, and `profiles` is a row the
+/// app owns and syncs. Deleting the row costs nothing; deleting a child does
+/// not have to think about it.
+///
+/// `hair`, `skin_tone` and `eye_color` come from the photo and are refreshed
+/// with it; `outfit` and `prop` are chosen once and deliberately survive a new
+/// photo, because a hero whose coat changes with the camera is the very thing
+/// this table exists to stop. Every value describes a DRAWN character in
+/// English; none of it describes a photograph or a real person.
+const List<String> schemaV4Statements = <String>[
+  '''
+  CREATE TABLE IF NOT EXISTS hero_character_sheets (
+    profile_id TEXT PRIMARY KEY REFERENCES profiles(id),
+    hair TEXT NOT NULL,
+    skin_tone TEXT NOT NULL,
+    eye_color TEXT NOT NULL,
+    outfit TEXT NOT NULL,
+    prop TEXT NOT NULL,
+    photo_hash TEXT NOT NULL,
+    created_at_utc TEXT NOT NULL,
+    updated_at_utc TEXT NOT NULL
+  )
   ''',
 ];

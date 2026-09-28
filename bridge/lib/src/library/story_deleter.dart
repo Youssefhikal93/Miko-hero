@@ -135,7 +135,7 @@ class StoryDeleter {
         removedFileCount: 0,
       );
     }
-    final removed = await _removeIllustrationFiles(plan.relativePaths);
+    final removed = await removeIllustrationFiles(_library, plan.relativePaths);
     return StoryDeletion(
       storyId: storyId,
       alreadyDeleted: false,
@@ -143,42 +143,53 @@ class StoryDeleter {
       removedFileCount: removed,
     );
   }
+}
 
-  Future<int> _removeIllustrationFiles(List<String> relativePaths) async {
-    var removed = 0;
-    final parents = <String>{};
-    for (final relativePath in relativePaths) {
-      if (!isIllustrationRelativePath(relativePath)) {
-        // A path outside the illustrations folder is never deleted; only
-        // generated illustrations belong to a story.
-        continue;
-      }
-      final file = File(
-        joinPath(_library.rootPath, toPlatformRelativePath(relativePath)),
-      );
-      try {
-        if (await file.exists()) {
-          await file.delete();
-          removed++;
-        }
-        parents.add(file.parent.path);
-      } on FileSystemException {
-        // A file that cannot be removed is an orphan, not a broken library:
-        // its row is already gone. Nothing is logged, paths are content.
-      }
+/// Removes the illustration files at [relativePaths] from [library] and
+/// prunes any folder they emptied, answering how many files actually went.
+///
+/// Shared by story deletion and profile deletion, which delete the same kind
+/// of file for different reasons, so the guard against a path pointing
+/// outside `illustrations/` is written once. Always called *after* the
+/// transaction that removed the rows: the file system cannot join it, and an
+/// orphan file is harmless where a row pointing at a missing file is not.
+Future<int> removeIllustrationFiles(
+  MasterLibrary library,
+  List<String> relativePaths,
+) async {
+  var removed = 0;
+  final parents = <String>{};
+  for (final relativePath in relativePaths) {
+    if (!isIllustrationRelativePath(relativePath)) {
+      // A path outside the illustrations folder is never deleted; only
+      // generated illustrations belong to a story.
+      continue;
     }
-    for (final parent in parents) {
-      final directory = Directory(parent);
-      try {
-        if (await directory.exists() && await directory.list().isEmpty) {
-          await directory.delete();
-        }
-      } on FileSystemException {
-        // Leaving an empty folder behind is harmless.
+    final file = File(
+      joinPath(library.rootPath, toPlatformRelativePath(relativePath)),
+    );
+    try {
+      if (await file.exists()) {
+        await file.delete();
+        removed++;
       }
+      parents.add(file.parent.path);
+    } on FileSystemException {
+      // A file that cannot be removed is an orphan, not a broken library:
+      // its row is already gone. Nothing is logged, paths are content.
     }
-    return removed;
   }
+  for (final parent in parents) {
+    final directory = Directory(parent);
+    try {
+      if (await directory.exists() && await directory.list().isEmpty) {
+        await directory.delete();
+      }
+    } on FileSystemException {
+      // Leaving an empty folder behind is harmless.
+    }
+  }
+  return removed;
 }
 
 /// Whether [relativePath] is a library-relative illustration file path.

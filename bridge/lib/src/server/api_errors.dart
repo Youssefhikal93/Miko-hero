@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:iam_hero_bridge/src/common/json_reader.dart';
 import 'package:shelf/shelf.dart';
 
 /// Machine-readable error codes used in typed JSON error responses.
@@ -38,6 +39,12 @@ abstract final class ApiErrorCode {
   /// A required body field is missing or malformed.
   static const String invalidField = 'invalid_field';
 
+  /// No active paired device with this id exists on the PC.
+  static const String deviceNotFound = 'device_not_found';
+
+  /// A device tried to remove its own pairing from the PC device list.
+  static const String cannotRemoveSelf = 'cannot_remove_self';
+
   /// No generation job with this id belongs to the calling device.
   static const String jobNotFound = 'job_not_found';
 
@@ -62,6 +69,13 @@ abstract final class ApiErrorCode {
   /// The illustration exists but has no rendered image file yet.
   static const String illustrationNotReady = 'illustration_not_ready';
 
+  /// The local Ollama could not answer a call the request was waiting on.
+  ///
+  /// The same wire code a generation job reports, because it is the same fact
+  /// about the same machine — only reported inside the request rather than on
+  /// a job, since the name-spelling suggestion is answered synchronously.
+  static const String ollamaUnavailable = 'ollama_unavailable';
+
   /// Unexpected server-side failure.
   static const String internalError = 'internal_error';
 }
@@ -83,6 +97,52 @@ class ApiError implements Exception {
   @override
   String toString() => 'ApiError($status, $code)';
 }
+
+/// How a JSON request body names its fields and refuses them.
+///
+/// One bad field is a `400 invalid_field` with the field named and its value
+/// left out, which is the same envelope every other handler answers with.
+class _ApiFieldFailures extends JsonFieldFailures {
+  const _ApiFieldFailures();
+
+  @override
+  String describeField(String path) => 'Field "$path"';
+
+  @override
+  String describeContainer(String path) =>
+      path.isEmpty ? 'The request body' : 'Field "$path"';
+
+  @override
+  Object failure(String path, String message) =>
+      ApiError(400, ApiErrorCode.invalidField, message);
+}
+
+/// The vocabulary an HTTP request body's fields are refused in.
+const JsonFieldFailures apiFieldFailures = _ApiFieldFailures();
+
+/// How a URL query string names its parameters and refuses them.
+///
+/// The same `400 invalid_field` envelope as a body field, in the words the
+/// caller typed it in: a filter is refused as a query parameter, because
+/// telling someone their *body* is wrong when they mistyped a URL sends them
+/// looking in the wrong place.
+class _ApiQueryFailures extends JsonFieldFailures {
+  const _ApiQueryFailures();
+
+  @override
+  String describeField(String path) => 'Query parameter "$path"';
+
+  @override
+  String describeContainer(String path) =>
+      path.isEmpty ? 'The query string' : 'Query parameter "$path"';
+
+  @override
+  Object failure(String path, String message) =>
+      ApiError(400, ApiErrorCode.invalidField, message);
+}
+
+/// The vocabulary a URL query parameter is refused in.
+const JsonFieldFailures apiQueryFailures = _ApiQueryFailures();
 
 /// Serializes [body] as one JSON response with `application/json`.
 Response jsonResponse(int status, Map<String, Object?> body) {

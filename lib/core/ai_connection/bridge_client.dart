@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:miko_hero/core/ai_connection/bridge_exception.dart';
 import 'package:miko_hero/core/ai_connection/bridge_models.dart';
 import 'package:miko_hero/core/ai_connection/bridge_sync_models.dart';
+import 'package:miko_hero/core/models/app_language.dart';
 
 /// Address the bridge listens on out of the box, on the parent's own PC.
 const defaultBridgeBaseUrl = 'http://127.0.0.1:8765';
@@ -56,6 +58,7 @@ class BridgeClient {
     required this.baseUrl,
     this.deviceToken,
     this.requestTimeout = defaultBridgeRequestTimeout,
+    this.runsInBrowser = kIsWeb,
   });
 
   /// Web-safe HTTP boundary replaced by tests.
@@ -71,6 +74,14 @@ class BridgeClient {
 
   /// Bound applied to every single call so no screen can hang forever.
   final Duration requestTimeout;
+
+  /// Whether a failed connection is the browser's refusal rather than the PC's.
+  ///
+  /// A browser reports every blocked or refused call as one opaque client
+  /// exception, so on the web that exception is typed [BridgeFailure.blockedByBrowser]
+  /// and its message tells the parent about the site permission. Injectable so
+  /// the web reading can be tested on the VM.
+  final bool runsInBrowser;
 
   /// Reads bridge and dependency health; the only call needing no pairing.
   Future<BridgeHealth> readHealth() async {
@@ -114,6 +125,28 @@ class BridgeClient {
     return token;
   }
 
+  /// Lists every device the PC still trusts, oldest pairing first.
+  ///
+  /// The PC marks the calling device's own row, so no device id has to be
+  /// stored on this device for it to recognize itself in the list.
+  Future<List<BridgePairedDevice>> listDevices() async {
+    final answer = await _send('GET', '/devices', authenticated: true);
+    return BridgePairedDevice.listFromJson(answer);
+  }
+
+  /// Removes one other device's pairing on the PC.
+  ///
+  /// That device's next call is refused; this device is refused outright with
+  /// [BridgeFailure.cannotRemoveThisDevice], because forgetting this device is
+  /// a local decision made on the device itself.
+  Future<void> revokeDevice(String deviceId) async {
+    await _send(
+      'DELETE',
+      '/devices/${Uri.encodeComponent(deviceId)}',
+      authenticated: true,
+    );
+  }
+
   /// Queues one story generation job and returns its identity and position.
   Future<BridgeJobSubmission> submitStory(BridgeStoryRequest request) async {
     final answer = await _send(
@@ -123,6 +156,25 @@ class BridgeClient {
       body: request.toJson(),
     );
     return BridgeJobSubmission.fromJson(answer);
+  }
+
+  /// Asks the PC how one child's name is written in each story language.
+  ///
+  /// [genderContext] is optional refinement, `girl` or `boy`; leaving it out
+  /// simply asks about a child. The answer is a suggestion — the parent
+  /// confirms or corrects it in the profile editor — and nothing about it is
+  /// stored on the PC, so this call names no profile.
+  Future<Map<AppLanguage, String>> suggestNameSpellings({
+    required String heroName,
+    String? genderContext,
+  }) async {
+    final answer = await _send(
+      'POST',
+      '/profiles/spellings/suggest',
+      authenticated: true,
+      body: <String, Object>{'heroName': heroName, 'gender': ?genderContext},
+    );
+    return bridgeNameSpellingsFromJson(answer);
   }
 
   /// Polls one job, including the whole story once it completed.
@@ -246,6 +298,53 @@ class BridgeClient {
       throw const BridgeException(BridgeFailure.invalidResponse);
     }
     return removed;
+  }
+
+  /// Reads how the PC draws one child's hero.
+  ///
+  /// Answers null for a child whose photo the PC has never read: that is a
+  /// state a parent is shown, not a failure.
+  Future<BridgeHeroSheet?> readHeroSheet(String profileId) async {
+    final answer = await _send(
+      'GET',
+      '/profiles/${Uri.encodeComponent(profileId)}/hero-sheet',
+      authenticated: true,
+    );
+    return BridgeHeroSheet.optionalFromEnvelope(answer);
+  }
+
+  /// Saves what one child's hero always wears and carries.
+  ///
+  /// Only these two travel: what the PC read from the photo is the PC's, and
+  /// the only way to move it is [rereadHeroSheetFromPhoto]. A blank value
+  /// clears that half of the wardrobe.
+  Future<BridgeHeroSheet?> saveHeroSheetWardrobe({
+    required String profileId,
+    required String outfit,
+    required String prop,
+  }) async {
+    final answer = await _send(
+      'PUT',
+      '/profiles/${Uri.encodeComponent(profileId)}/hero-sheet',
+      authenticated: true,
+      body: <String, Object>{'outfit': outfit, 'prop': prop},
+    );
+    return BridgeHeroSheet.optionalFromEnvelope(answer);
+  }
+
+  /// Asks the PC to read one child's reference photo again.
+  ///
+  /// Returns the sheet as it stands once the PC answers. The PC accepts the
+  /// request rather than promising it is finished — the re-read waits for the
+  /// one graphics card — so an answer that is still the old sheet means the PC
+  /// was busy, not that anything failed.
+  Future<BridgeHeroSheet?> rereadHeroSheetFromPhoto(String profileId) async {
+    final answer = await _send(
+      'POST',
+      '/profiles/${Uri.encodeComponent(profileId)}/hero-sheet/rederive',
+      authenticated: true,
+    );
+    return BridgeHeroSheet.optionalFromEnvelope(answer);
   }
 
   /// Asks the PC to draw the page images of one master-library story.
@@ -372,6 +471,12 @@ class BridgeClient {
       return await http.Response.fromStream(streamed).timeout(requestTimeout);
     } on TimeoutException {
       throw const BridgeException(BridgeFailure.timedOut);
+    } on http.ClientException {
+      throw BridgeException(
+        runsInBrowser
+            ? BridgeFailure.blockedByBrowser
+            : BridgeFailure.unreachable,
+      );
     } on Exception {
       throw const BridgeException(BridgeFailure.unreachable);
     }
@@ -418,6 +523,8 @@ class BridgeClient {
       'pairing_expired' => BridgeFailure.pairingExpired,
       'invalid_pairing_code' => BridgeFailure.invalidPairingCode,
       'invalid_field' || 'invalid_request' => BridgeFailure.invalidRequest,
+      'device_not_found' => BridgeFailure.deviceNotFound,
+      'cannot_remove_self' => BridgeFailure.cannotRemoveThisDevice,
       'job_not_found' => BridgeFailure.jobNotFound,
       'story_not_found' => BridgeFailure.storyNotFound,
       'profile_not_found' => BridgeFailure.profileNotFound,

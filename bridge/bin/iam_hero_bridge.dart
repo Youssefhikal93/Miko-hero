@@ -53,7 +53,7 @@ Future<void> main(List<String> args) async {
       'Failed to bind ${config.bindAddress}:${config.port} '
       '(${error.message}).',
     );
-    library.close();
+    await server.close();
     exitCode = 74;
     return;
   }
@@ -78,8 +78,5 @@ Future<void> main(List<String> args) async {
     await subscription.cancel();
   }
   print('Shutting down.');
-  server.generationQueue.shutdown();
-  server.illustrationQueue.shutdown();
-  await httpServer.close(force: true);
-  library.close();
+  await server.close();
 }

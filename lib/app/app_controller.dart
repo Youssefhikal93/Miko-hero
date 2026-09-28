@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:miko_hero/core/ai_connection/bridge_client.dart';
+import 'package:miko_hero/core/files/encrypted_file_picker.dart';
 import 'package:miko_hero/core/generation/demo_story_generator.dart';
 import 'package:miko_hero/core/generation/local_ai_story_generator.dart';
 import 'package:miko_hero/core/generation/story_generator.dart';
@@ -25,6 +26,14 @@ final bridgeCredentialStorageProvider = Provider<BridgeCredentialStorage>((
 ) {
   if (kIsWeb) return const PreferencesBridgeCredentialStorage();
   return const SecureBridgeCredentialStorage();
+});
+
+/// Supplies the platform save and open dialogs every file flow shares.
+///
+/// One picker for backups, story files, and rendered PDFs, so a test replaces
+/// exactly one boundary to drive any of those flows without a device dialog.
+final encryptedFilePickerProvider = Provider<EncryptedFilePicker>((ref) {
+  return const PlatformEncryptedFilePicker();
 });
 
 /// Opens the platform stores once per provider container.
@@ -62,6 +71,7 @@ final storyGeneratorProvider = Provider<StoryGenerator>((ref) {
       deviceToken: connection.credential?.deviceToken,
     ),
     resolveAgeYears: (request) => _heroAgeYears(ref, request),
+    resolveNameSpelling: (request) => _heroNameSpelling(ref, request),
     currentTime: DateTime.now,
     pollInterval: ref.watch(localAiPollIntervalProvider),
     onProgress: (progress) {
@@ -82,6 +92,19 @@ int _heroAgeYears(Ref ref, StoryRequest request) {
   return profile?.age ?? defaultChildProfileAgeYears;
 }
 
+/// Resolves how the family writes the hero's name in the story's language.
+///
+/// Empty whenever there is nothing to say — a deleted profile, or a child with
+/// no confirmed spelling for this language — which the bridge reads as "write
+/// the name exactly as it was typed", the behaviour it always had.
+String _heroNameSpelling(Ref ref, StoryRequest request) {
+  final profile = ref
+      .read(appControllerProvider)
+      .value
+      ?.profileById(request.profileId);
+  return profile?.nameSpellings[request.presentation.language] ?? '';
+}
+
 /// Supplies free narration through the current device's installed voices.
 final narrationServiceProvider = Provider<NarrationService>((ref) {
   return DeviceNarrationService(FlutterTts());
@@ -92,7 +115,7 @@ final appControllerProvider = AsyncNotifierProvider<AppController, AppState>(
   AppController.new,
 );
 
-/// Loads application state and commits snapshots already persisted by features.
+/// Loads application state and publishes snapshots storage already accepted.
 class AppController extends AsyncNotifier<AppState> {
   @override
   /// Loads local state before any feature screen is rendered.
@@ -101,7 +124,12 @@ class AppController extends AsyncNotifier<AppState> {
     return repository.readState();
   }
 
-  /// Publishes a snapshot only after its feature controller completes storage.
+  /// Publishes a snapshot that has already been written to local storage.
+  ///
+  /// The publish half of `LibraryTransaction`, which is the only caller in the
+  /// application: a feature controller that reached in here directly could
+  /// publish a library storage never accepted, which is exactly the drift the
+  /// transaction exists to prevent.
   void commit(AppState persistedState) {
     state = AsyncData(persistedState);
   }

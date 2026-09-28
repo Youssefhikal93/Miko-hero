@@ -1,11 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/child_profile.dart';
 import 'package:miko_hero/features/profile/profile_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
+import 'package:miko_hero/shared/hero_face.dart';
+import 'package:miko_hero/shared/hero_label.dart';
 
 /// Home's header: who the app is reading as, and the way to change it.
 ///
@@ -49,26 +50,21 @@ class HomeHeroHeader extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Text(
-                      text.readingAs,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.1,
-                        color: AppTheme.mutedDeep,
-                      ),
-                    ),
+                    Text(text.readingAs, style: AppTheme.overlineSoft),
                     Row(
                       children: <Widget>[
                         Flexible(
                           child: Text(
-                            profile?.name ?? text.chooseHero,
+                            profile == null
+                                ? text.chooseHero
+                                : context.heroDisplayName(profile),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                         ),
                         const Icon(
-                          Icons.expand_more_rounded,
+                          AppIcons.expandMore,
                           size: 20,
                           color: AppTheme.mutedDeep,
                         ),
@@ -130,31 +126,13 @@ class HomeHeroAvatar extends StatelessWidget {
   /// primary to, so the header ring is the accent while every child in the
   /// switcher still wears their own.
   Widget build(BuildContext context) {
-    final child = profile;
-    final accent = child == null
-        ? Theme.of(context).colorScheme.primary
-        : Color(child.themeColorValue);
-    final photo = profile?.photoBase64;
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: accent, width: 2),
-      ),
-      child: CircleAvatar(
-        radius: radius,
-        backgroundColor: AppTheme.sunken,
-        backgroundImage: photo == null
-            ? null
-            : MemoryImage(base64Decode(photo)),
-        child: photo == null
-            ? const Icon(
-                Icons.person_rounded,
-                size: 20,
-                color: AppTheme.mutedDeep,
-              )
-            : null,
-      ),
+    return HeroFace(
+      profile: profile,
+      size: radius * 2,
+      ring: true,
+      background: AppTheme.sunken,
+      fallbackIcon: AppIcons.heroSilhouette,
+      fallbackColor: AppTheme.mutedDeep,
     );
   }
 }
@@ -195,11 +173,11 @@ class _HeroSwitcherSheet extends StatelessWidget {
               key: ValueKey<String>('home-hero-${profile.id}'),
               onTap: () => Navigator.of(context).pop(profile),
               leading: HomeHeroAvatar(profile: profile, radius: 16),
-              title: Text(profile.heroName),
+              title: Text(context.heroDisplayLabel(profile)),
               subtitle: Text(text.yearsOld(profile.age)),
               trailing: active
                   ? Icon(
-                      Icons.check_rounded,
+                      AppIcons.activeHero,
                       color: Color(profile.themeColorValue),
                     )
                   : null,

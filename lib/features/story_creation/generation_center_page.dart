@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:miko_hero/app/app_theme.dart';
 import 'package:miko_hero/core/models/generation_job.dart';
 import 'package:miko_hero/features/settings/ai_connection_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_progress_controller.dart';
 import 'package:miko_hero/features/story_creation/generation_queue_controller.dart';
 import 'package:miko_hero/features/story_creation/story_controller.dart';
 import 'package:miko_hero/l10n/app_localizations.dart';
+import 'package:miko_hero/shared/app_icons.dart';
 import 'package:miko_hero/shared/local_ai_messages.dart';
 import 'package:miko_hero/shared/screen_layout.dart';
 
@@ -168,9 +170,7 @@ class _ActiveGeneratorCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _ReadinessRow(
-              icon: usesLocalAi
-                  ? Icons.memory_rounded
-                  : Icons.offline_bolt_rounded,
+              icon: usesLocalAi ? AppIcons.localAi : AppIcons.offlineGenerator,
               title: text.storyGeneratorMode,
               status: usesLocalAi
                   ? text.localAiGeneratorMode
@@ -180,7 +180,7 @@ class _ActiveGeneratorCard extends ConsumerWidget {
             const Divider(),
             if (usesLocalAi) ...<Widget>[
               _ReadinessRow(
-                icon: Icons.link_rounded,
+                icon: AppIcons.pair,
                 title: text.aiConnectionTitle,
                 status: isPaired
                     ? text.bridgeStatusReady
@@ -190,7 +190,7 @@ class _ActiveGeneratorCard extends ConsumerWidget {
               const Divider(),
             ],
             _ReadinessRow(
-              icon: Icons.image_rounded,
+              icon: AppIcons.illustration,
               title: text.comfyUiStatus,
               status: text.notConnectedYet,
               isReady: false,
@@ -200,7 +200,7 @@ class _ActiveGeneratorCard extends ConsumerWidget {
             const SizedBox(height: 8),
             TextButton.icon(
               onPressed: () => context.go('/settings'),
-              icon: const Icon(Icons.hub_rounded),
+              icon: const Icon(AppIcons.bridge),
               label: Text(text.openAiConnectionSettings),
             ),
           ],
@@ -228,7 +228,7 @@ class _ReadinessRow extends StatelessWidget {
   @override
   /// Uses color as reinforcement while keeping status available as text.
   Widget build(BuildContext context) {
-    final statusColor = isReady ? Colors.greenAccent : Colors.orangeAccent;
+    final statusColor = isReady ? AppTheme.ready : AppTheme.attention;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),
@@ -265,7 +265,7 @@ class _GenerationJobCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         child: Row(
           children: <Widget>[
-            const Icon(Icons.pending_actions_rounded),
+            const Icon(AppIcons.job),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -298,14 +298,14 @@ class _GenerationJobCard extends StatelessWidget {
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.refresh_rounded),
+                  : const Icon(AppIcons.refresh),
             ),
             IconButton(
               // Deliberately still enabled while this job is running: it is
               // the parent's only way to stop a story the PC already started.
               onPressed: onCancel,
               tooltip: text.removeFromQueue,
-              icon: const Icon(Icons.close_rounded),
+              icon: const Icon(AppIcons.close),
             ),
           ],
         ),
@@ -336,7 +336,7 @@ class _QueueError extends StatelessWidget {
     final text = AppLocalizations.of(context);
     return Card(
       child: ListTile(
-        leading: const Icon(Icons.error_outline_rounded),
+        leading: const Icon(AppIcons.error),
         title: Text(text.somethingWentWrong),
         trailing: TextButton(onPressed: onRetry, child: Text(text.retry)),
       ),

@@ -43,10 +43,11 @@ You do not need to change any of this; it is here so you know what is already
 handled and what is genuinely the model's job.
 
 1. **Two-pass generation.** The bridge now asks the model for a compact
-   outline first — a working title, one beat per page, and a one-line
-   description of how the hero looks — validates it, and only then asks for the
-   finished pages with that outline embedded in the prompt. That is what buys a
-   real story arc instead of six unrelated scenes.
+   outline first — a working title, one beat per page, a one-line description
+   of how the hero looks, the **lesson moment** and the **turn page** —
+   validates it, and only then asks for the finished pages with that outline
+   embedded in the prompt. That is what buys a real story arc instead of six
+   unrelated scenes.
 2. **Story-arc and age-aware prompting.** The page prompt demands a warm
    opening, a challenge or discovery in the middle, an ending the child's own
    action earns, and the lesson shown rather than stated. Sentence length and
@@ -55,21 +56,48 @@ handled and what is genuinely the model's job.
    spoken dialogue on each page, feelings shown through the body, and an
    outline whose hero wants something on page 1 and pays a cost in the middle.
    The first `qwen3.5:9b` books were correct but flat; this is the fix.
-3. **Arabic rules in the prompt.** For `ar` the prompt explicitly requires
-   simple Modern Standard Arabic (فصحى مبسطة), forbids dialect mixing, and
-   forbids Latin letters anywhere in the story text. Every other language gets
-   the matching "this language only" rule.
-4. **Language-purity validation.** After the model answers, the bridge checks
+2a. **The lesson is the spine** (2026-09-04, #60). The moral used to reach the
+   model as one line, followed by two rules forbidding it to be stated — so a
+   story about "listening to your parents" came back as a pleasant adventure
+   with nothing to listen to. The outline pass now has to answer with a
+   **lesson moment**: one sentence, in the story's own language, naming the
+   concrete situation where the hero faces the lesson; and a **turn page**,
+   the page where the hero chooses it. The planner is told the middle
+   challenge *is* the lesson — the hero does the opposite first, it costs
+   something, and then the turn happens. A plan with no usable lesson moment,
+   or a turn page outside the middle (**the middle is every page after page 1
+   and before the last page**: page 1 is the ordinary opening, so a turn there
+   leaves no room to do the opposite first, and the last page is the
+   resolution, so a turn there is the moral announced at the end), is refused
+   as `invalid_model_output` and re-planned, exactly like a bad appearance
+   line. The page pass gets the lesson moment verbatim and must show the turn
+   page as a choice in action and feeling. **Rule 7 was relaxed to match**:
+   never lecture and never address the reader, but one character — a parent, a
+   friend — may say the lesson out loud once, in ordinary dialogue, never on
+   the last page. A real child's book does that; the old rule forbade it.
+3. **Arabic morphology and word rules in the prompt.** For `ar` both passes
+   state whether the hero is grammatically feminine or masculine, require every
+   verb, adjective, participle and pronoun about the hero to agree on every
+   page, and say that a name used for both girls and boys does not change that.
+   They also require simple Modern Standard Arabic (فصحى مبسطة), forbid dialect
+   mixing and Latin letters, require real common words a child knows, and tell
+   the model to re-read for invented words and agreement mistakes before it
+   answers. Every other language keeps the matching "this language only" rule.
+4. **Lower story sampling temperature.** Both the outline and page call send
+   Ollama `temperature: 0.6`. Its default `0.8` produces fluent-looking wrong
+   words; prose for a six-year-old needs less randomness, not more. The
+   name-spelling and character-sheet calls keep Ollama's default body.
+5. **Language-purity validation.** After the model answers, the bridge checks
    the script of the title and pages. Arabic that is mostly Latin letters, or
    English with Arabic words dropped in, is rejected as invalid output and
    retried. This catches gross failures; it cannot catch bad grammar.
-5. **A consistent hero.** The outline's appearance line is appended to every
+6. **A consistent hero.** The outline's appearance line is appended to every
    page's scene description, so ComfyUI draws the same child in the same
    clothes on every page. The line has to be English: the first Arabic book
    on `qwen3.5:9b` wrote it in Arabic, the image model read it as noise, and
    the pages lost their foggy-night mood. An appearance line in another script
    is now refused and the outline retried.
-6. **Everything is configurable.** The model is one line in
+7. **Everything is configurable.** The model is one line in
    `bridge_config.json`. Nothing about the model is hardcoded.
 
 ## Non-negotiables
@@ -205,7 +233,13 @@ refuses it with a clear message if anything is wrong.
    - Would a child this age understand it?
 4. Read the other three. Check the story actually has an arc: does something
    change in the middle, and does the ending come from something the hero did?
-   Is the moral shown rather than announced on the last page?
+   Then check the lesson, which is the point of the whole exercise: **is the
+   book visibly about the moral the parent typed?** Ask it as a stranger
+   would — hand someone the six pages and see whether they can say what the
+   story is about. On the turn page the hero should be choosing the lesson,
+   not being told it; before it the hero should be doing the opposite. A book
+   where the moral could be swapped for any other moral without changing a
+   scene has failed, however pretty it reads.
 5. **Check the time.** Note how long one six-page story takes end to end. Up
    to a few minutes is normal and fine — the parent reviews the draft later
    anyway. If it takes longer than the owner is willing to wait, drop one size
